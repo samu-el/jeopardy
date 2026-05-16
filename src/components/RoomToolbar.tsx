@@ -9,7 +9,6 @@ import Popover from "@mui/material/Popover";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import HomeIcon from "@mui/icons-material/HomeOutlined";
 import LogoutIcon from "@mui/icons-material/LogoutOutlined";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ReplayIcon from "@mui/icons-material/ReplayOutlined";
@@ -53,11 +52,29 @@ export function RoomToolbar({ onOpenPicker, onOpenBrowser }: RoomToolbarProps) {
     >
       <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
         <Tooltip title="Home">
-          <IconButton onClick={() => setScreen("landing")}>
-            <HomeIcon />
-          </IconButton>
+          <Box
+            component="button"
+            onClick={() => setScreen("landing")}
+            aria-label="Home"
+            sx={{
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              p: 0,
+              display: "inline-flex",
+              alignItems: "center",
+              transition: "opacity 0.15s ease",
+              "&:hover": { opacity: 0.8 },
+              "&:focus-visible": {
+                outline: "2px solid rgba(91,140,255,0.6)",
+                outlineOffset: 4,
+                borderRadius: 4,
+              },
+            }}
+          >
+            <Wordmark size="sm" />
+          </Box>
         </Tooltip>
-        <Wordmark size="sm" />
         {lobby.loadedEpisode ? (
           <Chip
             label={`#${lobby.loadedEpisode.id}${lobby.loadedEpisode.airDate ? ` · ${lobby.loadedEpisode.airDate}` : ""}`}
