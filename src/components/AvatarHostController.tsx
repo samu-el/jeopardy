@@ -30,6 +30,17 @@ export function AvatarHostController() {
         getMode: () => useGameStore.getState().preferences.avatarHostMode,
         getVoiceProfileId: () => useGameStore.getState().preferences.voiceProfileId,
         getSoundEnabled: () => useGameStore.getState().preferences.soundEnabled,
+        onCueSpoken: (cue) => {
+          if (cue.type !== "clue-readout") return;
+          const store = useGameStore.getState();
+          const runtime = store.runtime;
+          const currentClueId = store.publicState?.currentClue?.clueId;
+          if (!runtime || !currentClueId) return;
+          runtime.sendCommand(store.lobby.hostId, {
+            type: "readout-complete",
+            clueId: currentClueId,
+          });
+        },
       });
     }
     // Intentionally no cleanup: calling synth.cancel() during React StrictMode's

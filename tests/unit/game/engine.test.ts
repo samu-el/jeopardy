@@ -307,4 +307,52 @@ describe("game engine", () => {
     const afterSubmit = getPublicGameState(state, 200).currentClue!;
     expect(afterSubmit.submitted).toEqual({ p2: true });
   });
+
+  it("readout-complete shortens the readout when TTS finishes early", () => {
+    // Game with a long readout estimate so the TTS callback has room to fire first.
+    const longGame = createGame({
+      roomId: "tts-room",
+      players,
+      clues: standardClues,
+      now: 0,
+      settings: {
+        hostId: "p1",
+        buzzUnlockDelayMs: 10_000, // upper-bound fallback for the readout
+        buzzWindowMs: 6_000,
+        answerTimeoutMs: 8_000,
+      },
+    });
+    let state = run(longGame, { type: "start-game", actorId: "p1" }, 10).state;
+    state = run(state, { type: "pick-clue", actorId: "p1", clueId: "j-200" }, 20).state;
+
+    expect(state.activeClue!.readoutEndsAt).toBe(10_020); // 20 + 10_000
+
+    // Host's TTS finishes early at t=1500.
+    state = run(
+      state,
+      { type: "readout-complete", actorId: "p1", clueId: "j-200" },
+      1_500,
+    ).state;
+    expect(state.activeClue!.readoutEndsAt).toBe(1_500);
+    expect(state.activeClue!.buzzWindowEndsAt).toBe(1_500 + 6_000);
+
+    // p2 can now buzz immediately.
+    const buzzResult = run(state, { type: "buzz", actorId: "p2" }, 1_600);
+    expect(buzzResult.events[0].type).toBe("buzz-accepted");
+  });
+
+  it("readout-complete is a no-op once someone has buzzed", () => {
+    let state = createSampleGame();
+    state = run(state, { type: "start-game", actorId: "p1" }, 10).state;
+    state = run(state, { type: "pick-clue", actorId: "p1", clueId: "j-200" }, 20).state;
+    state = run(state, { type: "buzz", actorId: "p2" }, 200).state;
+    const before = state.activeClue!.buzzWindowEndsAt;
+
+    state = run(
+      state,
+      { type: "readout-complete", actorId: "p1", clueId: "j-200" },
+      210,
+    ).state;
+    expect(state.activeClue!.buzzWindowEndsAt).toBe(before); // unchanged
+  });
 });

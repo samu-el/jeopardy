@@ -113,6 +113,8 @@ export function dispatchGameCommand(
       return judgeAnswer(state, command, context.now);
     case "skip":
       return skip(state, command, context.now);
+    case "readout-complete":
+      return readoutComplete(state, command, context.now);
     case "undo":
       return undo(state, command, context.now);
     case "update-settings":
@@ -337,6 +339,38 @@ function submitWager(
   }
 
   return { state: touch(next, now), events };
+}
+
+function readoutComplete(
+  state: GameState,
+  command: Extract<GameCommand, { type: "readout-complete" }>,
+  now: number,
+): GameEngineResult {
+  const active = state.activeClue;
+  if (!active || active.clueId !== command.clueId) {
+    return reject(state, command, "not-found", "Clue is not active.");
+  }
+  if (!isHostOrOpenRoom(state, command.actorId)) {
+    return reject(state, command, "not-authorized", "Only the host can mark the readout complete.");
+  }
+  // Daily Double and Final Jeopardy don't have a buzz window — skip.
+  if (active.dailyDoublePlayerId || active.round === "final-jeopardy") {
+    return { state, events: [] };
+  }
+  // Already past the readout — nothing to advance.
+  if (
+    !active.readoutEndsAt ||
+    now >= active.readoutEndsAt ||
+    Object.keys(active.buzzes).length > 0
+  ) {
+    return { state, events: [] };
+  }
+
+  const next = clone(state);
+  const nextActive = next.activeClue!;
+  nextActive.readoutEndsAt = now;
+  nextActive.buzzWindowEndsAt = now + next.settings.buzzWindowMs;
+  return { state: touch(next, now), events: [] };
 }
 
 function buzz(

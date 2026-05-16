@@ -62,6 +62,10 @@ export type ClientGameCommand =
       type: "skip";
     }
   | {
+      type: "readout-complete";
+      clueId: string;
+    }
+  | {
       type: "undo";
     }
   | {
@@ -162,6 +166,12 @@ export function commandFromClient(
       };
     case "skip":
       return { type: "skip", actorId: clientId };
+    case "readout-complete":
+      return {
+        type: "readout-complete",
+        actorId: clientId,
+        clueId: command.clueId,
+      };
     case "undo":
       return { type: "undo", actorId: clientId };
     case "update-settings":

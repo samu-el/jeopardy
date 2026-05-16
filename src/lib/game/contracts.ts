@@ -217,6 +217,15 @@ export type GameCommand =
       actorId?: string;
     }
   | {
+      /**
+       * Marks the clue readout (TTS) as finished — opens the buzz window
+       * immediately rather than waiting for the time-based fallback.
+       */
+      type: "readout-complete";
+      actorId: string;
+      clueId: string;
+    }
+  | {
       type: "undo";
       actorId: string;
     }

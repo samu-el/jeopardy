@@ -17,6 +17,12 @@ export interface AvatarNarratorConfig {
   getMode: () => AvatarHostMode;
   getVoiceProfileId: () => string;
   getSoundEnabled: () => boolean;
+  /**
+   * Fires when a cue finishes speaking (TTS onend) or, when sound is off
+   * or unavailable, immediately after the cue is generated. Use this to
+   * react to readout completion without estimating from text length.
+   */
+  onCueSpoken?: (cue: AvatarHostCue) => void;
 }
 
 export class AvatarNarrator {
@@ -46,6 +52,8 @@ export class AvatarNarrator {
       return cue;
     }
     if (!this.config.getSoundEnabled()) {
+      // Sound off → no TTS event will ever fire. Leave the engine's
+      // time-based fallback in charge so silent readers get time to read.
       cue.speak = false;
       return cue;
     }
@@ -60,6 +68,7 @@ export class AvatarNarrator {
       // Queue utterances naturally so picks ("Category, for 200") finish
       // before the clue text reads. Interrupting would drop the clue text.
       interrupt: false,
+      onEnd: () => this.config.onCueSpoken?.(cue),
     });
     return cue;
   }
