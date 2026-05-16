@@ -9,6 +9,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import SendIcon from "@mui/icons-material/SendOutlined";
 import { useGameStore } from "@/lib/state/game-store";
+import type { ChatMessage } from "@/lib/runtime";
 
 export function Chat() {
   const chat = useGameStore((s) => s.chat);
@@ -31,9 +32,6 @@ export function Chat() {
 
   return (
     <Paper variant="outlined" sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <Box sx={{ p: 1.5, borderBottom: "1px solid", borderColor: "divider" }}>
-        <Typography variant="subtitle2">Game log & chat</Typography>
-      </Box>
       <Box
         ref={scrollRef}
         sx={{
@@ -46,11 +44,7 @@ export function Chat() {
           minHeight: 0,
         }}
       >
-        {chat.length === 0 ? (
-          <Typography variant="caption" color="text.secondary">
-            No messages yet. Events will appear here as you play.
-          </Typography>
-        ) : (
+        {chat.length === 0 ? null : (
           chat.map((message) => (
             <Stack
               key={message.id}
@@ -58,14 +52,34 @@ export function Chat() {
               spacing={1}
               sx={{ alignItems: "baseline", fontSize: 13 }}
             >
+              {message.kind === "player" && message.authorName ? (
+                <Typography
+                  component="span"
+                  color={kindColor(message.kind)}
+                  sx={{ flexShrink: 0, fontSize: 12, fontWeight: 700 }}
+                >
+                  {message.authorName}
+                </Typography>
+              ) : (
+                <Box
+                  component="span"
+                  sx={{
+                    flexShrink: 0,
+                    mt: "6px",
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    backgroundColor: kindColor(message.kind),
+                  }}
+                />
+              )}
               <Typography
                 component="span"
-                color={kindColor(message.kind)}
-                sx={{ flexShrink: 0, fontSize: 12, fontWeight: 700 }}
+                sx={{
+                  wordBreak: "break-word",
+                  color: message.kind === "player" ? "text.primary" : "text.secondary",
+                }}
               >
-                {message.authorName ?? labelForKind(message.kind)}
-              </Typography>
-              <Typography component="span" sx={{ wordBreak: "break-word" }}>
                 {message.text}
               </Typography>
             </Stack>
@@ -80,7 +94,7 @@ export function Chat() {
         <TextField
           fullWidth
           size="small"
-          placeholder="Send a message…"
+          placeholder="Message"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
@@ -98,20 +112,7 @@ export function Chat() {
   );
 }
 
-function labelForKind(kind: string) {
-  switch (kind) {
-    case "system":
-      return "system";
-    case "host":
-      return "host";
-    case "judge":
-      return "judge";
-    default:
-      return "?";
-  }
-}
-
-function kindColor(kind: string) {
+function kindColor(kind: ChatMessage["kind"]) {
   switch (kind) {
     case "system":
       return "info.main";

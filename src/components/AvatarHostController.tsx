@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import Box from "@mui/material/Box";
-import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import SpeakerNotesIcon from "@mui/icons-material/SpeakerNotesOutlined";
@@ -19,10 +18,6 @@ export function AvatarHostController() {
   const publicState = useGameStore((s) => s.publicState);
   const setLastCue = useGameStore((s) => s.setLastCue);
   const lastCue = useGameStore((s) => s.lastCue);
-  const profile = useMemo(
-    () => findAvatarProfile(preferences.avatarHostProfileId),
-    [preferences.avatarHostProfileId],
-  );
 
   const narratorRef = useRef<AvatarNarrator | null>(null);
 
@@ -67,8 +62,11 @@ export function AvatarHostController() {
         pointerEvents: "none",
       }}
     >
-      <Box
+      <Stack
+        direction="row"
+        spacing={1}
         sx={{
+          alignItems: "flex-start",
           background: "linear-gradient(135deg, rgba(14,21,48,0.96), rgba(31,63,191,0.5))",
           border: "1px solid rgba(255,255,255,0.12)",
           borderRadius: 2,
@@ -76,23 +74,11 @@ export function AvatarHostController() {
           boxShadow: 6,
         }}
       >
-        <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 0.5 }}>
-          <SpeakerNotesIcon fontSize="small" color="secondary" />
-          <Chip
-            label={profile.label}
-            size="small"
-            sx={{ fontWeight: 700 }}
-            color="secondary"
-            variant="outlined"
-          />
-          <Typography variant="caption" color="text.secondary">
-            {preferences.avatarHostMode === "voice-only" ? "voice" : "avatar"}
-          </Typography>
-        </Stack>
+        <SpeakerNotesIcon fontSize="small" color="secondary" />
         <Typography variant="body2" sx={{ color: "text.primary" }}>
           {lastCue.text}
         </Typography>
-      </Box>
+      </Stack>
     </Box>
   );
 }

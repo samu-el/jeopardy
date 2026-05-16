@@ -61,7 +61,6 @@ export function Scoreboard({ state, currentClientId }: ScoreboardProps) {
                 <Typography noWrap sx={{ fontWeight: 700 }}>
                   {player.displayName}
                 </Typography>
-                {isYou ? <Chip size="small" label="you" color="primary" variant="outlined" /> : null}
                 {isPicker ? (
                   <Chip size="small" label="picker" color="secondary" />
                 ) : null}

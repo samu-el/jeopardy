@@ -4,7 +4,6 @@ import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import Chip from "@mui/material/Chip";
 import { useGameStore } from "@/lib/state/game-store";
 import { usePersistedLobby } from "@/lib/state/use-persisted-lobby";
 import { Lobby } from "./Lobby";
@@ -46,22 +45,9 @@ export function AppShell() {
             >
               J
             </Box>
-            <Stack>
-              <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1 }}>
-                Jeopardy Modern
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Live multiplayer board with AI bots & host
-              </Typography>
-            </Stack>
-          </Stack>
-          <Stack direction="row" spacing={1}>
-            <Chip
-              label={screen === "play" ? "In game" : "Lobby"}
-              color={screen === "play" ? "success" : "default"}
-              variant="outlined"
-              size="small"
-            />
+            <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1 }}>
+              Jeopardy
+            </Typography>
           </Stack>
         </Stack>
         {screen === "lobby" ? <Lobby /> : <GameView />}

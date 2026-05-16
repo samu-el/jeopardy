@@ -13,7 +13,7 @@ import Typography from "@mui/material/Typography";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEventsOutlined";
 import HomeIcon from "@mui/icons-material/HomeOutlined";
 import ReplayIcon from "@mui/icons-material/ReplayOutlined";
-import type { GameStats, PublicGameState } from "@/lib/game";
+import type { PublicGameState } from "@/lib/game";
 
 interface ResultsViewProps {
   state: PublicGameState;
@@ -27,15 +27,6 @@ export function ResultsView({ state, onPlayAgain, onExit }: ResultsViewProps) {
   }, [state.players]);
   const winner = sorted[0];
   const stats = state.stats;
-  const reactionAverages = useMemo(
-    () => computeReactionAverages(stats),
-    [stats],
-  );
-  const topReaction = useMemo(() => {
-    return Object.entries(reactionAverages)
-      .filter(([, avg]) => Number.isFinite(avg))
-      .sort(([, a], [, b]) => a - b)[0];
-  }, [reactionAverages]);
 
   return (
     <Stack spacing={3}>
@@ -50,9 +41,6 @@ export function ResultsView({ state, onPlayAgain, onExit }: ResultsViewProps) {
       >
         <CardContent sx={{ py: { xs: 4, md: 6 } }}>
           <EmojiEventsIcon sx={{ fontSize: { xs: 64, md: 96 }, color: "secondary.main" }} />
-          <Typography variant="overline" sx={{ display: "block", color: "secondary.light" }}>
-            Final scores
-          </Typography>
           <Typography
             variant="h2"
             sx={{
@@ -62,7 +50,7 @@ export function ResultsView({ state, onPlayAgain, onExit }: ResultsViewProps) {
               wordBreak: "break-word",
             }}
           >
-            {winner ? `${winner.displayName} wins` : "Game complete"}
+            {winner?.displayName ?? "—"}
           </Typography>
           {winner ? (
             <Typography
@@ -84,7 +72,7 @@ export function ResultsView({ state, onPlayAgain, onExit }: ResultsViewProps) {
               startIcon={<ReplayIcon />}
               onClick={onPlayAgain}
             >
-              Play again
+              Again
             </Button>
             <Button
               variant="outlined"
@@ -92,7 +80,7 @@ export function ResultsView({ state, onPlayAgain, onExit }: ResultsViewProps) {
               startIcon={<HomeIcon />}
               onClick={onExit}
             >
-              Back to lobby
+              Lobby
             </Button>
           </Stack>
         </CardContent>
@@ -100,9 +88,6 @@ export function ResultsView({ state, onPlayAgain, onExit }: ResultsViewProps) {
 
       <Card variant="outlined">
         <CardContent>
-          <Typography variant="h5" sx={{ mb: 2 }}>
-            Leaderboard
-          </Typography>
           <Stack spacing={1}>
             {sorted.map((player, index) => (
               <Paper
@@ -140,9 +125,6 @@ export function ResultsView({ state, onPlayAgain, onExit }: ResultsViewProps) {
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography sx={{ fontWeight: 700 }}>{player.displayName}</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {player.kind === "ai-bot" ? "AI bot" : "Human"}
-                  </Typography>
                 </Box>
                 <Typography
                   variant="h5"
@@ -161,22 +143,8 @@ export function ResultsView({ state, onPlayAgain, onExit }: ResultsViewProps) {
 
       <Card variant="outlined">
         <CardContent>
-          <Typography variant="h5" sx={{ mb: 2 }}>
-            Round stats
-          </Typography>
-          <Stack spacing={2}>
-            <SummaryRow label="Questions started" value={String(stats.questionsStarted)} />
-            {topReaction ? (
-              <SummaryRow
-                label="Fastest average buzz"
-                value={`${state.players.find((p) => p.id === topReaction[0])?.displayName ?? topReaction[0]} — ${Math.round(topReaction[1])} ms`}
-              />
-            ) : null}
-          </Stack>
-
           <Box
             sx={{
-              mt: 3,
               display: "grid",
               gap: 2,
               gridTemplateColumns: {
@@ -210,13 +178,13 @@ export function ResultsView({ state, onPlayAgain, onExit }: ResultsViewProps) {
                     />
                   </Stack>
                   <StatLine label="Accuracy" value={`${accuracy.toFixed(0)}%`} progress={accuracy} />
-                  <StatLine label="Correct" value={`${correct}`} />
-                  <StatLine label="Incorrect" value={`${incorrect}`} />
-                  <StatLine label="First buzzes" value={`${firstBuzzes}`} />
-                  <StatLine label="Daily Doubles" value={`${dailyDoubles}`} />
+                  <StatLine label="✓" value={`${correct}`} />
+                  <StatLine label="✗" value={`${incorrect}`} />
+                  <StatLine label="1st" value={`${firstBuzzes}`} />
+                  <StatLine label="DD" value={`${dailyDoubles}`} />
                   <StatLine
-                    label="Avg buzz"
-                    value={avgReaction !== null ? `${avgReaction} ms` : "—"}
+                    label="ms"
+                    value={avgReaction !== null ? `${avgReaction}` : "—"}
                   />
                 </Paper>
               );
@@ -224,15 +192,6 @@ export function ResultsView({ state, onPlayAgain, onExit }: ResultsViewProps) {
           </Box>
         </CardContent>
       </Card>
-    </Stack>
-  );
-}
-
-function SummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-      <Typography sx={{ color: "text.secondary", minWidth: 180 }}>{label}</Typography>
-      <Typography sx={{ fontWeight: 700 }}>{value}</Typography>
     </Stack>
   );
 }
@@ -267,11 +226,3 @@ function StatLine({
   );
 }
 
-function computeReactionAverages(stats: GameStats): Record<string, number> {
-  const result: Record<string, number> = {};
-  for (const [playerId, times] of Object.entries(stats.reactionTimesByPlayer)) {
-    if (!times || times.length === 0) continue;
-    result[playerId] = times.reduce((sum, value) => sum + value, 0) / times.length;
-  }
-  return result;
-}

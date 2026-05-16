@@ -173,11 +173,7 @@ export class LocalRoomRuntime {
     const player = state.players[targetPlayerId];
     this.pushChat({
       kind: "judge",
-      authorId: "ai-judge",
-      authorName: "AI judge",
-      text: verdict.correct
-        ? `Accepted "${answer}" from ${player?.displayName ?? targetPlayerId} (${(verdict.confidence * 100).toFixed(0)}% match).`
-        : `Rejected "${answer}" from ${player?.displayName ?? targetPlayerId} (${(verdict.confidence * 100).toFixed(0)}% match).`,
+      text: `${verdict.correct ? "✓" : "✗"} ${player?.displayName ?? targetPlayerId} · "${answer}" · ${(verdict.confidence * 100).toFixed(0)}%`,
     });
     return verdict;
   }
@@ -206,7 +202,7 @@ export class LocalRoomRuntime {
           const player = state.players[event.actorId];
           this.pushChat({
             kind: "system",
-            text: `${player?.displayName ?? event.actorId} selected ${clue?.category ?? "?"} for $${clue?.value ?? 0}${event.dailyDouble ? " — Daily Double!" : "."}`,
+            text: `${player?.displayName ?? event.actorId} → ${clue?.category ?? "?"} $${clue?.value ?? 0}${event.dailyDouble ? " · DD" : ""}`,
           });
           break;
         }
@@ -214,7 +210,7 @@ export class LocalRoomRuntime {
           const player = state.players[event.actorId];
           this.pushChat({
             kind: "system",
-            text: `${player?.displayName ?? event.actorId} buzzed in (${event.reactionTimeMs}ms).`,
+            text: `${player?.displayName ?? event.actorId} · ${event.reactionTimeMs}ms`,
           });
           break;
         }
@@ -223,10 +219,10 @@ export class LocalRoomRuntime {
           this.pushChat({
             kind: "host",
             text: event.correct === true
-              ? `${player?.displayName ?? event.targetPlayerId} got it right (+$${event.delta}).`
+              ? `${player?.displayName ?? event.targetPlayerId} +$${event.delta}`
               : event.correct === false
-                ? `${player?.displayName ?? event.targetPlayerId} got it wrong ($${event.delta}).`
-                : `${player?.displayName ?? event.targetPlayerId}'s answer was discarded.`,
+                ? `${player?.displayName ?? event.targetPlayerId} $${event.delta}`
+                : `${player?.displayName ?? event.targetPlayerId} —`,
           });
           const targetClue = state.activeClue
             ? state.cluesById[state.activeClue.clueId]
@@ -241,17 +237,22 @@ export class LocalRoomRuntime {
         case "round-advanced":
           this.pushChat({
             kind: "system",
-            text: `Round: ${event.round}.`,
+            text: event.round.replace("-jeopardy", "").replace(/^./, (c) => c.toUpperCase()),
           });
           break;
         case "game-started":
-          this.pushChat({ kind: "system", text: "Game on!" });
           break;
         case "command-rejected":
-          if (event.reason !== "buzz-not-open" && event.reason !== "already-buzzed") {
+          // Rejections fire constantly during normal play (early buzzes, queue
+          // ordering races). Surface only auth/setup errors to the chat.
+          if (
+            event.reason === "not-authorized" ||
+            event.reason === "not-found" ||
+            event.reason === "undo-unavailable"
+          ) {
             this.pushChat({
               kind: "system",
-              text: `Rejected ${event.commandType}: ${event.message}`,
+              text: event.message,
             });
           }
           break;
@@ -260,10 +261,10 @@ export class LocalRoomRuntime {
             const player = state.players[event.playerIds[0]];
             this.pushChat({
               kind: "system",
-              text: `Daily Double — ${player?.displayName ?? event.playerIds[0]} is wagering.`,
+              text: `DD · ${player?.displayName ?? event.playerIds[0]}`,
             });
           } else if (state.activeClue?.round === "final-jeopardy") {
-            this.pushChat({ kind: "system", text: "Final Jeopardy — place your wagers." });
+            this.pushChat({ kind: "system", text: "Final" });
           }
           break;
         default:

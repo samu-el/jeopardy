@@ -123,11 +123,11 @@ export function CustomGameBuilder({ open, onClose }: CustomGameBuilderProps) {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle>Build a custom game</DialogTitle>
+      <DialogTitle>Builder</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2}>
           <TextField
-            label="Game title"
+            label="Title"
             value={draft.title}
             onChange={(event) => setDraft({ ...draft, title: event.target.value })}
             fullWidth
@@ -135,9 +135,6 @@ export function CustomGameBuilder({ open, onClose }: CustomGameBuilderProps) {
 
           <Card variant="outlined">
             <CardContent>
-              <Typography variant="subtitle1" sx={{ mb: 1 }}>
-                Categories
-              </Typography>
               <Box
                 sx={{
                   display: "grid",
@@ -153,7 +150,7 @@ export function CustomGameBuilder({ open, onClose }: CustomGameBuilderProps) {
                   <TextField
                     key={cat.id}
                     size="small"
-                    label={`Category ${index + 1}`}
+                    placeholder={`Cat ${index + 1}`}
                     value={cat.name}
                     onChange={(event) => updateCategoryName(cat.id, event.target.value)}
                   />
@@ -254,9 +251,7 @@ export function CustomGameBuilder({ open, onClose }: CustomGameBuilderProps) {
 
           <Card variant="outlined">
             <CardContent>
-              <Typography variant="subtitle1" sx={{ mb: 1 }}>
-                Final Jeopardy (optional)
-              </Typography>
+              <Chip label="Final" sx={{ mb: 1 }} color="error" variant="outlined" />
               <Stack spacing={1}>
                 <TextField
                   size="small"
@@ -335,7 +330,7 @@ export function CustomGameBuilder({ open, onClose }: CustomGameBuilderProps) {
         <Box sx={{ flex: 1 }} />
         <Button onClick={onClose}>Cancel</Button>
         <Button variant="contained" onClick={commit}>
-          Save & use
+          Save
         </Button>
       </DialogActions>
     </Dialog>

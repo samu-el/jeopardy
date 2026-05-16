@@ -11,6 +11,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
+import SpaceBarIcon from "@mui/icons-material/SpaceBar";
 import type { PublicGameState } from "@/lib/game";
 import { useGameStore } from "@/lib/state/game-store";
 import { createVoiceAdapter, judgeAnswer as fuzzyJudge } from "@/lib/ai";
@@ -26,7 +27,6 @@ const voiceAdapter = typeof window === "undefined" ? null : createVoiceAdapter()
 export function ClueStage({ state, currentClientId }: ClueStageProps) {
   const runtime = useGameStore((s) => s.runtime);
   const preferences = useGameStore((s) => s.preferences);
-  const lobby = useGameStore((s) => s.lobby);
   const [wagerInput, setWagerInput] = useState<string>("");
   const [answerInput, setAnswerInput] = useState("");
   const [tickNow, setTickNow] = useState(() =>
@@ -282,7 +282,7 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
         <Box>
           <LinearProgress variant="determinate" value={wagerProgress} sx={{ height: 6, borderRadius: 3 }} />
           <Typography variant="caption" color="text.secondary">
-            Wager window — {Math.max(0, Math.ceil((wagerEndsAt - now) / 1000))}s
+            {Math.max(0, Math.ceil((wagerEndsAt - now) / 1000))}s
           </Typography>
         </Box>
       )}
@@ -312,14 +312,6 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
           >
             {currentClue.clue}
           </Typography>
-          {!preferences.captionsEnabled ? (
-            <Typography
-              variant="body2"
-              sx={{ position: "absolute", color: "text.secondary" }}
-            >
-              Listen for the clue…
-            </Typography>
-          ) : null}
         </Box>
       ) : (
         <Box
@@ -333,28 +325,22 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
           }}
         >
           {currentClue.waitingForWager.length > 0
-            ? `Waiting for ${currentClue.waitingForWager
+            ? currentClue.waitingForWager
                 .map((id) => playerName(state, id))
-                .join(", ")} to wager…`
-            : "Preparing clue…"}
+                .join(", ")
+            : ""}
         </Box>
       )}
 
       {clueRevealed && !answerRevealed ? (
         <Box>
           {readoutProgress > 0 ? (
-            <>
-              <LinearProgress
-                variant="determinate"
-                value={100 - readoutProgress}
-                color="info"
-                sx={{ height: 6, borderRadius: 3 }}
-              />
-              <Typography variant="caption" color="text.secondary">
-                Reading clue… buzz unlocks in{" "}
-                {Math.max(0, Math.ceil((buzzReadyAt - now) / 100) / 10)}s
-              </Typography>
-            </>
+            <LinearProgress
+              variant="determinate"
+              value={100 - readoutProgress}
+              color="info"
+              sx={{ height: 6, borderRadius: 3 }}
+            />
           ) : (
             <>
               <LinearProgress
@@ -364,7 +350,7 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
                 sx={{ height: 6, borderRadius: 3 }}
               />
               <Typography variant="caption" color="text.secondary">
-                Answer window — {Math.max(0, Math.ceil((answerEndsAt - now) / 1000))}s
+                {Math.max(0, Math.ceil((answerEndsAt - now) / 1000))}s
               </Typography>
             </>
           )}
@@ -372,21 +358,15 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
       ) : null}
 
       {answerRevealed ? (
-        <Stack spacing={1}>
-          <Typography variant="overline" color="success.light">
-            Correct response
-          </Typography>
-          <Typography variant="h5" color="success.light">
-            {currentClue.correctResponse}
-          </Typography>
-        </Stack>
+        <Typography variant="h5" color="success.light" sx={{ fontWeight: 700 }}>
+          {currentClue.correctResponse}
+        </Typography>
       ) : null}
 
-      {/* Wager input */}
       {myWagerOpen && !wagerSubmittedByMe ? (
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
           <TextField
-            label={`Wager (min $${wagerLimits.min}, max $${wagerLimits.max})`}
+            label={`Wager $${wagerLimits.min}–${wagerLimits.max}`}
             type="number"
             value={wagerInput}
             onChange={(event) => setWagerInput(event.target.value)}
@@ -395,9 +375,15 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
             }}
             size="small"
             autoFocus
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                handleSubmitWager();
+              }
+            }}
           />
           <Button variant="contained" onClick={handleSubmitWager}>
-            Submit wager
+            Wager
           </Button>
         </Stack>
       ) : null}
@@ -416,6 +402,7 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
             variant="contained"
             color="error"
             size="large"
+            endIcon={canIBuzz ? <SpaceBarIcon /> : undefined}
             sx={{
               minWidth: 180,
               py: 1.5,
@@ -426,7 +413,7 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
             }}
             aria-label="Buzz in"
           >
-            {buzzed ? "Buzzed!" : canIBuzz ? "BUZZ (Space)" : "Locked"}
+            {buzzed ? "BUZZED" : "BUZZ"}
           </Button>
           {buzzed && !answerRevealed ? (
             <Stack
@@ -437,7 +424,7 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
               <TextField
                 fullWidth
                 size="small"
-                label="Your answer"
+                label="Answer"
                 value={answerInput}
                 onChange={(event) => setAnswerInput(event.target.value)}
                 onKeyDown={(event) => {
@@ -470,10 +457,16 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
         >
           <TextField
             fullWidth
-            label="Your final answer"
+            label="Final answer"
             value={answerInput}
             onChange={(event) => setAnswerInput(event.target.value)}
             disabled={Boolean(submittedAnswer)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                handleSubmitAnswer();
+              }
+            }}
           />
           <Button
             variant="contained"
@@ -494,7 +487,7 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
           sx={{ flexWrap: "wrap" }}
         >
           <Button variant="outlined" onClick={handleReveal}>
-            Reveal answer
+            Reveal
           </Button>
           {state.settings.aiJudgeEnabled && Object.keys(currentClue.buzzes).length > 0 ? (
             <Button
@@ -522,91 +515,67 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
                 }, 100);
               }}
             >
-              Auto-judge with AI
+              Auto-judge
             </Button>
           ) : null}
         </Stack>
       ) : null}
 
       {isHost && answerRevealed && currentClue.currentJudgePlayerId ? (
-        <Box>
-          <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
-            Judging {playerName(state, currentClue.currentJudgePlayerId)}:{" "}
-            <Box component="span" sx={{ color: "secondary.light" }}>
-              {currentClue.answers[currentClue.currentJudgePlayerId] || "(no answer)"}
-            </Box>
-          </Typography>
-          {(() => {
-            const target = currentClue.currentJudgePlayerId;
-            if (!target) return null;
-            const verdict = fuzzyJudge({
-              submittedAnswer: currentClue.answers[target] ?? "",
-              expectedAnswer: currentClue.correctResponse ?? "",
-            });
-            return (
+        (() => {
+          const target = currentClue.currentJudgePlayerId;
+          const verdict = fuzzyJudge({
+            submittedAnswer: currentClue.answers[target] ?? "",
+            expectedAnswer: currentClue.correctResponse ?? "",
+          });
+          return (
+            <Box>
               <Stack
                 direction="row"
                 spacing={1}
                 useFlexGap
                 sx={{ mb: 1, alignItems: "center", flexWrap: "wrap" }}
               >
+                <Typography variant="subtitle2">
+                  {playerName(state, target)}:{" "}
+                  <Box component="span" sx={{ color: "secondary.light" }}>
+                    {currentClue.answers[target] || "—"}
+                  </Box>
+                </Typography>
                 <Chip
                   size="small"
-                  label={`AI: ${verdict.correct ? "Correct" : "Incorrect"} (${Math.round(verdict.confidence * 100)}%)`}
+                  label={`${Math.round(verdict.confidence * 100)}%`}
                   color={verdict.correct ? "success" : "error"}
                   variant="outlined"
                 />
-                <Typography variant="caption" color="text.secondary">
-                  {verdict.reason}
-                </Typography>
               </Stack>
-            );
-          })()}
-          <Stack
-            direction="row"
-            spacing={1}
-            useFlexGap
-            sx={{ flexWrap: "wrap" }}
-          >
-            <Button variant="contained" color="success" onClick={() => handleJudge(true)}>
-              Correct
-            </Button>
-            <Button variant="contained" color="error" onClick={() => handleJudge(false)}>
-              Incorrect
-            </Button>
-            <Button variant="outlined" onClick={() => handleJudge(null)}>
-              Discard
-            </Button>
-            {state.settings.aiJudgeEnabled ? (
-              <Button
-                variant="outlined"
-                onClick={() => {
-                  if (!currentClue.currentJudgePlayerId) return;
-                  runtime?.judgeWithAi(currentClue.currentJudgePlayerId);
-                }}
+              <Stack
+                direction="row"
+                spacing={1}
+                useFlexGap
+                sx={{ flexWrap: "wrap" }}
               >
-                Ask AI judge
-              </Button>
-            ) : (
-              <Button
-                variant="outlined"
-                onClick={() => {
-                  if (!currentClue.currentJudgePlayerId) return;
-                  const verdict = fuzzyJudge({
-                    submittedAnswer:
-                      currentClue.answers[currentClue.currentJudgePlayerId] ?? "",
-                    expectedAnswer: currentClue.correctResponse ?? "",
-                  });
-                  alert(
-                    `AI suggests: ${verdict.correct ? "Correct" : "Incorrect"} (${(verdict.confidence * 100).toFixed(0)}% match — ${verdict.reason}).`,
-                  );
-                }}
-              >
-                Suggest with AI
-              </Button>
-            )}
-          </Stack>
-        </Box>
+                <Button
+                  variant="contained"
+                  color="success"
+                  onClick={() => handleJudge(true)}
+                >
+                  Correct
+                </Button>
+                <Button
+                  variant="contained"
+                  color="error"
+                  onClick={() => handleJudge(false)}
+                >
+                  Incorrect
+                </Button>
+                <Button variant="outlined" onClick={() => handleJudge(null)}>
+                  Skip
+                </Button>
+              </Stack>
+            </Box>
+          );
+        })()
       ) : null}
 
       {isHost && currentClue.canAdvance ? (
@@ -616,14 +585,8 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
           onClick={handleSkip}
           sx={{ alignSelf: "flex-end" }}
         >
-          {lobby.hostControlsAuto ? "Next clue" : "Advance"}
+          Next
         </Button>
-      ) : null}
-
-      {submittedAnswer ? (
-        <Typography variant="caption" color="text.secondary">
-          Your answer is locked in.
-        </Typography>
       ) : null}
     </Paper>
   );

@@ -9,7 +9,6 @@ import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
-import Typography from "@mui/material/Typography";
 import {
   baselineAvatarHostProfiles,
   baselineVoiceProfiles,
@@ -21,18 +20,15 @@ export function SettingsPanel() {
   const setPreference = useGameStore((s) => s.setPreference);
 
   return (
-    <Stack spacing={3}>
+    <Stack spacing={2}>
       <Card variant="outlined">
         <CardContent>
-          <Typography variant="h5" sx={{ mb: 2 }}>
-            Voice & accessibility
-          </Typography>
           <Stack spacing={2}>
-            <FormControl fullWidth>
-              <InputLabel id="voice-profile">Clue readout voice</InputLabel>
+            <FormControl fullWidth size="small">
+              <InputLabel id="voice-profile">Voice</InputLabel>
               <Select
                 labelId="voice-profile"
-                label="Clue readout voice"
+                label="Voice"
                 value={preferences.voiceProfileId}
                 onChange={(event) => setPreference("voiceProfileId", event.target.value)}
               >
@@ -51,7 +47,7 @@ export function SettingsPanel() {
                   onChange={(_, value) => setPreference("soundEnabled", value)}
                 />
               }
-              label="Sound effects and clue readout"
+              label="Sound"
             />
             <FormControlLabel
               control={
@@ -60,7 +56,7 @@ export function SettingsPanel() {
                   onChange={(_, value) => setPreference("captionsEnabled", value)}
                 />
               }
-              label="Captions and on-screen clue text (always-on for accessibility)"
+              label="Captions"
             />
             <FormControlLabel
               control={
@@ -69,7 +65,7 @@ export function SettingsPanel() {
                   onChange={(_, value) => setPreference("reducedMotion", value)}
                 />
               }
-              label="Reduced motion (calmer transitions)"
+              label="Reduced motion"
             />
           </Stack>
         </CardContent>
@@ -77,19 +73,12 @@ export function SettingsPanel() {
 
       <Card variant="outlined">
         <CardContent>
-          <Typography variant="h5" sx={{ mb: 2 }}>
-            Avatar AI host
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 2, color: "text.secondary" }}>
-            The avatar host adds light commentary and pacing reminders. It never reveals
-            answers or private wagers early.
-          </Typography>
           <Stack spacing={2}>
-            <FormControl fullWidth>
-              <InputLabel id="host-mode">Host mode</InputLabel>
+            <FormControl fullWidth size="small">
+              <InputLabel id="host-mode">Host</InputLabel>
               <Select
                 labelId="host-mode"
-                label="Host mode"
+                label="Host"
                 value={preferences.avatarHostMode}
                 onChange={(event) =>
                   setPreference(
@@ -99,16 +88,16 @@ export function SettingsPanel() {
                 }
               >
                 <MenuItem value="off">Off</MenuItem>
-                <MenuItem value="voice-only">Voice only</MenuItem>
-                <MenuItem value="avatar-and-voice">Avatar & voice</MenuItem>
+                <MenuItem value="voice-only">Voice</MenuItem>
+                <MenuItem value="avatar-and-voice">Avatar</MenuItem>
               </Select>
             </FormControl>
 
-            <FormControl fullWidth>
-              <InputLabel id="host-profile">Host persona</InputLabel>
+            <FormControl fullWidth size="small">
+              <InputLabel id="host-profile">Persona</InputLabel>
               <Select
                 labelId="host-profile"
-                label="Host persona"
+                label="Persona"
                 value={preferences.avatarHostProfileId}
                 onChange={(event) =>
                   setPreference("avatarHostProfileId", event.target.value)

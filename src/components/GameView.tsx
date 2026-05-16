@@ -5,8 +5,9 @@ import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
+import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
+import Tooltip from "@mui/material/Tooltip";
 import LogoutIcon from "@mui/icons-material/LogoutOutlined";
 import UndoIcon from "@mui/icons-material/UndoOutlined";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
@@ -23,8 +24,8 @@ const roundLabels: Record<string, string> = {
   jeopardy: "Jeopardy",
   "double-jeopardy": "Double Jeopardy",
   "triple-jeopardy": "Triple Jeopardy",
-  "final-jeopardy": "Final Jeopardy",
-  complete: "Game Complete",
+  "final-jeopardy": "Final",
+  complete: "Complete",
 };
 
 export function GameView() {
@@ -50,9 +51,7 @@ export function GameView() {
     return (
       <ResultsView
         state={publicState}
-        onPlayAgain={() => {
-          exitToLobby();
-        }}
+        onPlayAgain={exitToLobby}
         onExit={exitToLobby}
       />
     );
@@ -62,66 +61,44 @@ export function GameView() {
     <Stack spacing={2}>
       <AvatarHostController />
       <Stack
-        direction={{ xs: "column", sm: "row" }}
+        direction="row"
         spacing={1}
+        useFlexGap
         sx={{
           justifyContent: "space-between",
-          alignItems: { xs: "flex-start", sm: "center" },
+          alignItems: "center",
+          flexWrap: "wrap",
         }}
       >
-        <Stack
-          direction="row"
-          spacing={1}
-          useFlexGap
-          sx={{ alignItems: "center", flexWrap: "wrap" }}
-        >
-          <Chip
-            color="primary"
-            label={roundLabels[publicState.round] ?? publicState.round}
-            sx={{ fontWeight: 700 }}
-          />
-          {publicState.pickerId ? (
-            <Chip
-              variant="outlined"
-              label={`Picker: ${
-                publicState.players.find((player) => player.id === publicState.pickerId)
-                  ?.displayName ?? publicState.pickerId
-              }`}
-            />
-          ) : null}
-          <Chip
-            variant="outlined"
-            label={`${publicState.players.length} player${publicState.players.length === 1 ? "" : "s"}`}
-          />
-        </Stack>
+        <Chip
+          color="primary"
+          label={roundLabels[publicState.round] ?? publicState.round}
+          sx={{ fontWeight: 700 }}
+        />
         <Stack direction="row" spacing={1}>
-          {isHost && (publicState.round === "lobby" || publicState.round === "complete") ? (
+          {isHost && showLobbyStart ? (
             <Button
               variant="contained"
               startIcon={<PlayArrowIcon />}
               onClick={() => runtime.sendCommand(lobby.hostId, { type: "start-game" })}
-              disabled={!showLobbyStart}
             >
-              {publicState.round === "lobby" ? "Begin" : "Game ended"}
+              Begin
             </Button>
           ) : null}
           {isHost ? (
-            <Button
-              variant="outlined"
-              startIcon={<UndoIcon />}
-              onClick={() => runtime.sendCommand(lobby.hostId, { type: "undo" })}
-            >
-              Undo
-            </Button>
+            <Tooltip title="Undo">
+              <IconButton
+                onClick={() => runtime.sendCommand(lobby.hostId, { type: "undo" })}
+              >
+                <UndoIcon />
+              </IconButton>
+            </Tooltip>
           ) : null}
-          <Button
-            color="error"
-            variant="outlined"
-            startIcon={<LogoutIcon />}
-            onClick={exitToLobby}
-          >
-            Leave
-          </Button>
+          <Tooltip title="Leave">
+            <IconButton color="error" onClick={exitToLobby}>
+              <LogoutIcon />
+            </IconButton>
+          </Tooltip>
         </Stack>
       </Stack>
 
@@ -136,35 +113,13 @@ export function GameView() {
           <ClueStage state={publicState} currentClientId={lobby.hostId} />
           <Card variant="outlined">
             <CardContent sx={{ p: { xs: 1, sm: 2 } }}>
-              {showLobbyStart ? (
-                <Box sx={{ p: 4, textAlign: "center" }}>
-                  <Typography variant="h5" sx={{ mb: 1 }}>
-                    Ready to play
-                  </Typography>
-                  <Typography color="text.secondary">
-                    Press Begin to deal the board.
-                  </Typography>
-                </Box>
-              ) : showResults ? (
-                <Box sx={{ p: 4, textAlign: "center" }}>
-                  <Typography variant="h4" sx={{ mb: 1 }}>
-                    Final scores
-                  </Typography>
-                  <Typography color="text.secondary" sx={{ mb: 3 }}>
-                    {publicState.players[0]
-                      ? `Winner: ${publicState.players[0].displayName} with $${publicState.players[0].score}`
-                      : "Game over."}
-                  </Typography>
-                </Box>
-              ) : (
-                <Board
-                  state={publicState}
-                  canPick={canPick}
-                  onPick={(clueId) =>
-                    runtime.sendCommand(lobby.hostId, { type: "pick-clue", clueId })
-                  }
-                />
-              )}
+              <Board
+                state={publicState}
+                canPick={canPick}
+                onPick={(clueId) =>
+                  runtime.sendCommand(lobby.hostId, { type: "pick-clue", clueId })
+                }
+              />
             </CardContent>
           </Card>
         </Stack>
@@ -180,9 +135,6 @@ export function GameView() {
         >
           <Card variant="outlined" sx={{ flexShrink: 0 }}>
             <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Scoreboard
-              </Typography>
               <Scoreboard state={publicState} currentClientId={lobby.hostId} />
             </CardContent>
           </Card>

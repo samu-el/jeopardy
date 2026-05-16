@@ -16,12 +16,15 @@ import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import DeleteIcon from "@mui/icons-material/DeleteOutlined";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import ScienceIcon from "@mui/icons-material/Science";
 import BuildIcon from "@mui/icons-material/BuildCircleOutlined";
+import LibraryIcon from "@mui/icons-material/LibraryBooksOutlined";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import { baselineBotProfiles } from "@/lib/foundation/game-contracts";
 import { useGameStore } from "@/lib/state/game-store";
 import { sampleEpisodes } from "@/lib/sample-games";
@@ -72,7 +75,7 @@ export function Lobby() {
             .filter((issue) => issue.severity === "error")
             .slice(0, 3)
             .map((issue) => issue.message)
-            .join("; ") || "Could not parse CSV.",
+            .join("; ") || "Invalid CSV.",
         );
         setCustomGame(undefined, result.issues);
         return;
@@ -84,7 +87,7 @@ export function Lobby() {
   }
 
   function loadSampleCsv() {
-    const result = normalizeCustomCsvGame(sampleCsv, { title: "Warmup pack" });
+    const result = normalizeCustomCsvGame(sampleCsv, { title: "Warmup" });
     if (result.ok) {
       setCustomGame(result.game, result.issues);
     }
@@ -95,29 +98,22 @@ export function Lobby() {
       <Stack spacing={3}>
         <Card variant="outlined">
           <CardContent>
-            <Typography variant="h5" sx={{ mb: 2 }}>
-              You
-            </Typography>
             <TextField
               fullWidth
               label="Your name"
               value={lobby.hostName}
               onChange={(event) => setHostName(event.target.value)}
-              helperText="You are the host. You'll pick clues, judge answers, and control pacing."
             />
           </CardContent>
         </Card>
 
         <Card variant="outlined">
           <CardContent>
-            <Typography variant="h5" sx={{ mb: 2 }}>
-              Game source
-            </Typography>
-            <FormControl fullWidth>
-              <InputLabel id="game-source">Episode</InputLabel>
+            <FormControl fullWidth size="small">
+              <InputLabel id="game-source">Game</InputLabel>
               <Select
                 labelId="game-source"
-                label="Episode"
+                label="Game"
                 value={lobby.selectedGameId}
                 onChange={(event) => selectGame(event.target.value)}
               >
@@ -127,7 +123,7 @@ export function Lobby() {
                   </MenuItem>
                 ))}
                 {lobby.customGame ? (
-                  <MenuItem value="custom">Custom: {lobby.customGame.title}</MenuItem>
+                  <MenuItem value="custom">{lobby.customGame.title}</MenuItem>
                 ) : null}
               </Select>
             </FormControl>
@@ -135,46 +131,41 @@ export function Lobby() {
               direction="row"
               spacing={1}
               useFlexGap
-              sx={{ mt: 2, flexWrap: "wrap" }}
+              sx={{ mt: 1.5, flexWrap: "wrap" }}
             >
-              <Button
-                component="label"
-                variant="outlined"
-                startIcon={<UploadFileIcon />}
-              >
-                Upload CSV
-                <input
-                  hidden
-                  type="file"
-                  accept=".csv,text/csv"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) handleFile(file);
-                  }}
-                />
-              </Button>
-              <Button onClick={loadSampleCsv} variant="text" startIcon={<ScienceIcon />}>
-                Try the sample warmup pack
-              </Button>
-              <Button
-                onClick={() => setBuilderOpen(true)}
-                variant="outlined"
-                startIcon={<BuildIcon />}
-              >
-                Build my own
-              </Button>
-              <Button onClick={() => setBrowserOpen(true)} variant="text">
-                Browse episodes
-              </Button>
+              <Tooltip title="Upload CSV">
+                <IconButton component="label" size="small">
+                  <UploadFileIcon />
+                  <input
+                    hidden
+                    type="file"
+                    accept=".csv,text/csv"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) handleFile(file);
+                    }}
+                  />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Build">
+                <IconButton size="small" onClick={() => setBuilderOpen(true)}>
+                  <BuildIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Browse">
+                <IconButton size="small" onClick={() => setBrowserOpen(true)}>
+                  <LibraryIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Sample">
+                <IconButton size="small" onClick={loadSampleCsv}>
+                  <ScienceIcon />
+                </IconButton>
+              </Tooltip>
             </Stack>
             {uploadError ? (
-              <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+              <Typography color="error" variant="caption" sx={{ display: "block", mt: 1 }}>
                 {uploadError}
-              </Typography>
-            ) : null}
-            {lobby.customGame ? (
-              <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
-                Custom game loaded: {lobby.customGame.clues.length} clues across rounds.
               </Typography>
             ) : null}
           </CardContent>
@@ -184,26 +175,21 @@ export function Lobby() {
           <CardContent>
             <Stack
               direction="row"
-              sx={{ mb: 2, justifyContent: "space-between", alignItems: "center" }}
+              sx={{ mb: 1.5, alignItems: "baseline", gap: 1 }}
             >
-              <Typography variant="h5">Players</Typography>
-              <Chip
-                label={`${totalPlayers} player${totalPlayers === 1 ? "" : "s"}`}
-                color="primary"
-                variant="outlined"
-              />
+              <Typography variant="h6">Players</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {totalPlayers}
+              </Typography>
             </Stack>
 
-            <Typography variant="subtitle1" sx={{ mb: 1 }}>
-              Bots
-            </Typography>
             <Stack spacing={1}>
               {lobby.bots.map((bot) => (
                 <Stack
-                  direction={{ xs: "column", sm: "row" }}
+                  direction="row"
                   spacing={1}
                   key={bot.id}
-                  sx={{ alignItems: { sm: "center" } }}
+                  sx={{ alignItems: "center" }}
                 >
                   <TextField
                     fullWidth
@@ -212,13 +198,26 @@ export function Lobby() {
                     onChange={(event) => renameBot(bot.id, event.target.value)}
                   />
                   <Chip
-                    label={`${bot.profile.label} · ${Math.round(bot.profile.targetAccuracy * 100)}%`}
-                    sx={{ alignSelf: "flex-start" }}
+                    label={`${Math.round(bot.profile.targetAccuracy * 100)}%`}
+                    size="small"
                     color="secondary"
                     variant="outlined"
                   />
-                  <IconButton aria-label="remove bot" onClick={() => removeBot(bot.id)}>
-                    <DeleteIcon />
+                  <IconButton aria-label="remove" size="small" onClick={() => removeBot(bot.id)}>
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Stack>
+              ))}
+              {lobby.extraHumans.map((human) => (
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  key={human.id}
+                  sx={{ alignItems: "center" }}
+                >
+                  <Chip label={human.name} sx={{ flex: 1, justifyContent: "flex-start" }} />
+                  <IconButton aria-label="remove" size="small" onClick={() => removeHuman(human.id)}>
+                    <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Stack>
               ))}
@@ -235,55 +234,45 @@ export function Lobby() {
                   key={profile.id}
                   size="small"
                   variant="outlined"
+                  startIcon={<AddIcon />}
                   onClick={() => addBot(profile)}
                 >
-                  Add {profile.label}
+                  {profile.label}
                 </Button>
               ))}
             </Stack>
 
-            <Divider sx={{ my: 3 }} />
-
-            <Typography variant="subtitle1" sx={{ mb: 1 }}>
-              Local human players (pass-and-play)
-            </Typography>
-            <Stack spacing={1}>
-              {lobby.extraHumans.map((human) => (
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  key={human.id}
-                  sx={{ alignItems: "center" }}
-                >
-                  <Chip label={human.name} />
-                  <Button size="small" color="error" onClick={() => removeHuman(human.id)}>
-                    Remove
-                  </Button>
-                </Stack>
-              ))}
-            </Stack>
-            <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+            <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
               <TextField
                 size="small"
-                placeholder="Name"
+                placeholder="Add player"
                 value={humanName}
                 onChange={(event) => setHumanName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && humanName.trim()) {
+                    event.preventDefault();
+                    addHuman(humanName);
+                    setHumanName("");
+                  }
+                }}
+                fullWidth
               />
-              <Button
-                variant="outlined"
+              <IconButton
+                size="small"
+                color="primary"
                 disabled={!humanName.trim()}
                 onClick={() => {
                   addHuman(humanName);
                   setHumanName("");
                 }}
               >
-                Add player
-              </Button>
+                <AddIcon />
+              </IconButton>
             </Stack>
 
-            <Divider sx={{ my: 3 }} />
+            <Divider sx={{ my: 2.5 }} />
 
-            <Stack spacing={1}>
+            <Stack spacing={0.5}>
               <FormControlLabel
                 control={
                   <Switch
@@ -291,7 +280,7 @@ export function Lobby() {
                     onChange={(_, value) => setAiJudge(value)}
                   />
                 }
-                label="AI judge — auto-judge answers using fuzzy matching"
+                label="AI judge"
               />
               <FormControlLabel
                 control={
@@ -300,7 +289,7 @@ export function Lobby() {
                     onChange={(_, value) => setHostControlsAuto(value)}
                   />
                 }
-                label="Auto-advance after each clue is judged"
+                label="Auto-advance"
               />
               <FormControlLabel
                 control={
@@ -309,7 +298,7 @@ export function Lobby() {
                     onChange={(_, value) => setSoloMode(value)}
                   />
                 }
-                label="Solo practice — adaptive bot difficulty between rounds"
+                label="Solo practice"
               />
             </Stack>
           </CardContent>
@@ -324,7 +313,7 @@ export function Lobby() {
           onClick={startGame}
           sx={{ alignSelf: "flex-start", px: 4, py: 1.4 }}
         >
-          Start game
+          Start
         </Button>
       </Stack>
       <SettingsPanel />

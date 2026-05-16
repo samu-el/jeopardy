@@ -39,13 +39,13 @@ export function EpisodeBrowser({ open, onClose }: EpisodeBrowserProps) {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Episode browser</DialogTitle>
+      <DialogTitle>Episodes</DialogTitle>
       <DialogContent dividers>
         <TextField
           autoFocus
           fullWidth
           size="small"
-          placeholder="Search title, category, or date"
+          placeholder="Search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           sx={{ mb: 2 }}
@@ -90,14 +90,14 @@ export function EpisodeBrowser({ open, onClose }: EpisodeBrowserProps) {
                       onClose();
                     }}
                   >
-                    Use this game
+                    Use
                   </Button>
                 </Stack>
               </Paper>
             );
           })}
           {filtered.length === 0 ? (
-            <Typography color="text.secondary">No episodes match your search.</Typography>
+            <Typography color="text.secondary" variant="caption">—</Typography>
           ) : null}
         </Stack>
       </DialogContent>

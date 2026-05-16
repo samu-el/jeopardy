@@ -3,7 +3,7 @@ import type { ArchivedEpisodeInput } from "@/lib/data";
 export const classicSampleEpisode: ArchivedEpisodeInput = {
   episodeNumber: "S-100",
   airDate: "2026-05-16",
-  info: "Studio Showdown — a balanced six-category practice board",
+  info: "Mixed categories",
   title: "Studio Showdown",
   jeopardy: [
     // Category 1: SCIENCE
@@ -96,7 +96,7 @@ export const sampleEpisodes: { id: string; title: string; data: ArchivedEpisodeI
     data: {
       episodeNumber: "S-101",
       airDate: "2026-05-09",
-      info: "All things software and modern computing",
+      info: "Software & computing",
       title: "Code Night",
       jeopardy: [
         { x: 1, y: 1, cat: "Languages", val: 200, q: "Created by Guido van Rossum in 1991, this snake-named language is famously beginner-friendly.", a: "Python" },
