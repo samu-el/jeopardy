@@ -22,7 +22,6 @@ export interface AvatarNarratorConfig {
 export class AvatarNarrator {
   private readonly config: AvatarNarratorConfig;
   private lastCueByType: Partial<Record<AvatarHostCue["type"], string>> = {};
-  private lastSpeakAt = 0;
 
   constructor(config: AvatarNarratorConfig) {
     this.config = config;
@@ -42,26 +41,24 @@ export class AvatarNarrator {
     }
     this.lastCueByType[cue.type] = cue.text;
     if (!cue.speak) return cue;
+    if (!cue.text.trim()) {
+      cue.speak = false;
+      return cue;
+    }
     if (!this.config.getSoundEnabled()) {
       cue.speak = false;
       return cue;
     }
     const adapter = this.config.voice;
     if (!adapter) return cue;
-    const now = Date.now();
-    if (now - this.lastSpeakAt < 350) return cue;
-    this.lastSpeakAt = now;
-    // Always use the user-selected voice so every spoken line (intro,
-    // categories, clue text, judging reactions) sounds like the same host.
-    // Otherwise the system mixes two different system voices and they
-    // overlap when fired close together.
     const voiceId = this.config.getVoiceProfileId() || profile.voiceProfileId;
     adapter.speak({
       text: cue.text,
       voiceProfileId: voiceId,
       rate: 0.97,
       pitch: profile.persona === "dry-commentator" ? 0.92 : 1,
-      // Let utterances queue naturally; one continuous host voice.
+      // Queue utterances naturally so picks ("Category, for 200") finish
+      // before the clue text reads. Interrupting would drop the clue text.
       interrupt: false,
     });
     return cue;

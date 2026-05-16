@@ -5,6 +5,10 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
 import Popover from "@mui/material/Popover";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
@@ -13,6 +17,7 @@ import LogoutIcon from "@mui/icons-material/LogoutOutlined";
 import ShareIcon from "@mui/icons-material/IosShareOutlined";
 import KeyboardIcon from "@mui/icons-material/KeyboardOutlined";
 import HistoryIcon from "@mui/icons-material/HistoryOutlined";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ReplayIconAlt from "@mui/icons-material/PlayCircleOutlineOutlined";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ReplayIcon from "@mui/icons-material/ReplayOutlined";
@@ -21,7 +26,7 @@ import PeopleIcon from "@mui/icons-material/PeopleOutlineOutlined";
 import ShuffleIcon from "@mui/icons-material/ShuffleOutlined";
 import LibraryIcon from "@mui/icons-material/LibraryBooksOutlined";
 import { useGameStore } from "@/lib/state/game-store";
-import { primeAudio } from "@/lib/ai";
+import { primeAudio, primeSpeech } from "@/lib/ai";
 import { Wordmark } from "./Wordmark";
 import { SettingsPanel } from "./SettingsPanel";
 import { PlayersPanel } from "./PlayersPanel";
@@ -49,6 +54,8 @@ export function RoomToolbar({
   const exitToLobby = useGameStore((s) => s.exitToLobby);
   const [settingsAnchor, setSettingsAnchor] = useState<HTMLElement | null>(null);
   const [playersAnchor, setPlayersAnchor] = useState<HTMLElement | null>(null);
+  const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
+  const closeMore = () => setMoreAnchor(null);
 
   const canBegin = Boolean(lobby.loadedEpisode || lobby.customGame);
   const inGame = Boolean(runtime && publicState && publicState.round !== "lobby");
@@ -104,27 +111,6 @@ export function RoomToolbar({
             <ShuffleIcon />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Browse">
-          <IconButton onClick={onOpenBrowser} sx={{ minWidth: 44, minHeight: 44 }}>
-            <LibraryIcon />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Players">
-          <IconButton
-            onClick={(event) => setPlayersAnchor(event.currentTarget)}
-            sx={{ minWidth: 44, minHeight: 44 }}
-          >
-            <PeopleIcon />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Settings">
-          <IconButton
-            onClick={(event) => setSettingsAnchor(event.currentTarget)}
-            sx={{ minWidth: 44, minHeight: 44 }}
-          >
-            <SettingsIcon />
-          </IconButton>
-        </Tooltip>
         <Tooltip title="Share">
           <IconButton
             onClick={() => {
@@ -141,25 +127,21 @@ export function RoomToolbar({
             <ShareIcon />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Transcript">
+        <Tooltip title="Settings">
           <IconButton
-            onClick={onToggleTranscript}
+            onClick={(event) => setSettingsAnchor(event.currentTarget)}
             sx={{ minWidth: 44, minHeight: 44 }}
           >
-            <HistoryIcon />
+            <SettingsIcon />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Replay last game">
+        <Tooltip title="More">
           <IconButton
-            onClick={onOpenReplay}
+            onClick={(event) => setMoreAnchor(event.currentTarget)}
             sx={{ minWidth: 44, minHeight: 44 }}
+            aria-label="More"
           >
-            <ReplayIconAlt />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Shortcuts">
-          <IconButton onClick={onToggleShortcuts} sx={{ minWidth: 44, minHeight: 44 }}>
-            <KeyboardIcon />
+            <MoreVertIcon />
           </IconButton>
         </Tooltip>
         {inGame ? (
@@ -180,6 +162,7 @@ export function RoomToolbar({
             disabled={!canBegin}
             onClick={() => {
               primeAudio();
+              primeSpeech();
               startGame();
             }}
             sx={{ ml: 1, px: 3 }}
@@ -193,6 +176,70 @@ export function RoomToolbar({
           </IconButton>
         </Tooltip>
       </Stack>
+
+      <Menu
+        anchorEl={moreAnchor}
+        open={Boolean(moreAnchor)}
+        onClose={closeMore}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <MenuItem
+          onClick={(event) => {
+            closeMore();
+            setPlayersAnchor(event.currentTarget);
+          }}
+        >
+          <ListItemIcon>
+            <PeopleIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Players</ListItemText>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            closeMore();
+            onOpenBrowser();
+          }}
+        >
+          <ListItemIcon>
+            <LibraryIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Browse episodes</ListItemText>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            closeMore();
+            onToggleTranscript();
+          }}
+        >
+          <ListItemIcon>
+            <HistoryIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Transcript</ListItemText>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            closeMore();
+            onOpenReplay();
+          }}
+        >
+          <ListItemIcon>
+            <ReplayIconAlt fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Replay last game</ListItemText>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            closeMore();
+            onToggleShortcuts();
+          }}
+        >
+          <ListItemIcon>
+            <KeyboardIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Shortcuts</ListItemText>
+        </MenuItem>
+      </Menu>
 
       <Popover
         open={Boolean(settingsAnchor)}

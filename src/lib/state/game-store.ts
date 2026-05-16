@@ -16,7 +16,6 @@ import { defaultAvatarHostProfile, type AvatarHostCue } from "@/lib/ai";
 export type ScreenName = "landing" | "play" | "results";
 
 export interface UiPreferences {
-  captionsEnabled: boolean;
   reducedMotion: boolean;
   soundEnabled: boolean;
   voiceProfileId: string;
@@ -117,7 +116,6 @@ function makeId(prefix: string) {
 export const useGameStore = create<GameStoreState>((set, get) => ({
   screen: "landing",
   preferences: {
-    captionsEnabled: true,
     reducedMotion: false,
     soundEnabled: true,
     voiceProfileId: "female-natural",
@@ -363,3 +361,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   appendChat: (message) =>
     set((state) => ({ chat: [...state.chat, message].slice(-200) })),
 }));
+
+if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+  (window as unknown as { __game: typeof useGameStore }).__game = useGameStore;
+}

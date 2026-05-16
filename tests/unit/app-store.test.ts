@@ -8,7 +8,6 @@ import {
 describe("app store", () => {
   it("defaults to local-first accessibility preferences", () => {
     expect(getInitialAppState().preferences).toEqual({
-      captionsEnabled: true,
       reducedMotion: false,
       soundEnabled: true,
       voiceProfileId: "browser-default",

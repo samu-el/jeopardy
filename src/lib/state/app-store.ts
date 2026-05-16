@@ -19,7 +19,6 @@ export interface PublicRoomSnapshot {
 }
 
 export interface ClientPreferences {
-  captionsEnabled: boolean;
   reducedMotion: boolean;
   soundEnabled: boolean;
   voiceProfileId: string;
@@ -54,7 +53,6 @@ export type AppStoreInitialState = Partial<
 };
 
 export const defaultClientPreferences: ClientPreferences = {
-  captionsEnabled: true,
   reducedMotion: false,
   soundEnabled: true,
   voiceProfileId: "browser-default",

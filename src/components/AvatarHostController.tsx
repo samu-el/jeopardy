@@ -32,9 +32,9 @@ export function AvatarHostController() {
         getSoundEnabled: () => useGameStore.getState().preferences.soundEnabled,
       });
     }
-    return () => {
-      narratorRef.current?.cancel();
-    };
+    // Intentionally no cleanup: calling synth.cancel() during React StrictMode's
+    // double-invoked cleanup can leave Microsoft SAPI voices in a wedged state
+    // where subsequent speak() calls play silently. The queue drains naturally.
   }, []);
 
   useEffect(() => {

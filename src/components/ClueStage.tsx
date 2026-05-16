@@ -18,6 +18,7 @@ import {
   judgeAnswer as fuzzyJudge,
   playSfx,
   primeAudio,
+  primeSpeech,
   startFinalTheme,
   stopFinalTheme,
 } from "@/lib/ai";
@@ -241,6 +242,7 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
 
   function handleBuzz() {
     primeAudio();
+    primeSpeech();
     runtime?.sendCommand(currentClientId, { type: "buzz" });
   }
 
@@ -287,7 +289,18 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
   const wagerProgress = clampProgress(wagerEndsAt - now, 30_000);
 
   const buzzed = currentClue.buzzes[currentClientId] !== undefined;
-  const canIBuzz = currentClue.canBuzz && !buzzed && currentClue.round !== "final-jeopardy";
+  const canIBuzz =
+    !buzzed &&
+    currentClue.round !== "final-jeopardy" &&
+    !currentClue.dailyDouble &&
+    currentClue.waitingForWager.length === 0 &&
+    Object.keys(currentClue.buzzes).length === 0 &&
+    clueRevealed &&
+    !answerRevealed &&
+    currentClue.judges[currentClientId] === undefined &&
+    Boolean(currentClue.readoutEndsAt) &&
+    tickNow >= (currentClue.readoutEndsAt ?? Number.POSITIVE_INFINITY) &&
+    tickNow <= (currentClue.answerWindowEndsAt ?? Number.NEGATIVE_INFINITY);
   const submittedAnswer =
     currentClue.answers[currentClientId] ??
     (state.currentClue?.buzzes[currentClientId] === undefined ? undefined : "");

@@ -41,12 +41,6 @@ export interface AvatarHostInput {
   mode?: AvatarHostMode;
 }
 
-const personaTone: Record<AvatarHostProfile["persona"], string> = {
-  "classic-host": "crisp and stately",
-  "friendly-coach": "warm and supportive",
-  "dry-commentator": "deadpan and concise",
-};
-
 export function defaultAvatarHostProfile() {
   return baselineAvatarHostProfiles[0];
 }
@@ -61,9 +55,9 @@ export function generateAvatarHostCue(input: AvatarHostInput): AvatarHostCue {
       return {
         id: `intro-${Date.now()}`,
         type: "intro",
-        text: greeting(profile),
-        speak,
-        animationHint: "lean-in",
+        text: "",
+        speak: false,
+        animationHint: "idle",
       };
     case "intro-categories": {
       const categories = input.context?.categories ?? [];
@@ -164,18 +158,6 @@ export function generateAvatarHostCue(input: AvatarHostInput): AvatarHostCue {
         speak: speak && profile.allowRuleReminders,
         animationHint: "idle",
       };
-  }
-}
-
-function greeting(profile: AvatarHostProfile) {
-  const tone = personaTone[profile.persona];
-  switch (profile.persona) {
-    case "classic-host":
-      return `Welcome to Jeopardy. Your host, ${profile.label}, here. Let's play.`;
-    case "friendly-coach":
-      return `Hey, glad you made it. We've got a great board lined up — relax and have fun.`;
-    case "dry-commentator":
-      return `Welcome. It's a game show. You know the rules. (Tone: ${tone}.)`;
   }
 }
 

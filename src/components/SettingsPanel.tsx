@@ -117,15 +117,6 @@ export function SettingsPanel() {
             <FormControlLabel
               control={
                 <Switch
-                  checked={preferences.captionsEnabled}
-                  onChange={(_, value) => setPreference("captionsEnabled", value)}
-                />
-              }
-              label="Captions"
-            />
-            <FormControlLabel
-              control={
-                <Switch
                   checked={preferences.reducedMotion}
                   onChange={(_, value) => setPreference("reducedMotion", value)}
                 />

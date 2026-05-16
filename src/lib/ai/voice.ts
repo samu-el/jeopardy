@@ -223,6 +223,26 @@ export function createVoiceAdapter(): VoiceAdapter {
   return new BrowserVoiceAdapter();
 }
 
+let primed = false;
+/**
+ * Warms up speech synthesis on the first user gesture. Some Chromium builds
+ * (notably with Microsoft SAPI voices on Windows) play the FIRST utterance
+ * silently if the engine hasn't been touched yet. Speaking a near-silent
+ * utterance from a click handler clears that.
+ */
+export function primeSpeech() {
+  if (primed) return;
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  primed = true;
+  try {
+    const u = new SpeechSynthesisUtterance(" ");
+    u.volume = 0;
+    window.speechSynthesis.speak(u);
+  } catch {
+    // ignore
+  }
+}
+
 // Curated personas. Each maps to a search predicate; we pick the highest-
 // scored discovered voice that matches. The persona id is what gets stored
 // in user preferences so it survives across machines.
