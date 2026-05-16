@@ -121,23 +121,39 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set((state) => ({
       lobby: { ...state.lobby, hostName: name.trim() || "You" },
     })),
-  setLoadedEpisode: (loaded) =>
+  setLoadedEpisode: (loaded) => {
+    const { runtime } = get();
+    if (runtime) runtime.destroy();
     set((state) => ({
+      runtime: null,
+      publicState: null,
+      chat: [],
+      lastEvents: [],
+      lastCue: null,
       lobby: {
         ...state.lobby,
         loadedEpisode: loaded,
         customGame: loaded ? undefined : state.lobby.customGame,
       },
-    })),
-  setCustomGame: (game, issues) =>
+    }));
+  },
+  setCustomGame: (game, issues) => {
+    const { runtime } = get();
+    if (runtime && game) runtime.destroy();
     set((state) => ({
+      runtime: game ? null : state.runtime,
+      publicState: game ? null : state.publicState,
+      chat: game ? [] : state.chat,
+      lastEvents: game ? [] : state.lastEvents,
+      lastCue: game ? null : state.lastCue,
       lobby: {
         ...state.lobby,
         customGame: game,
         customIssues: issues,
         loadedEpisode: game ? undefined : state.lobby.loadedEpisode,
       },
-    })),
+    }));
+  },
   addBot: (profile) =>
     set((state) => ({
       lobby: {

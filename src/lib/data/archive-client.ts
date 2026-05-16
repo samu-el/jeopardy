@@ -61,13 +61,21 @@ export async function fetchArchiveStats(): Promise<{ total: number }> {
   return (await response.json()) as { total: number };
 }
 
+export async function fetchThemeCounts(): Promise<Record<string, number>> {
+  const response = await fetch("/api/episodes?mode=themes");
+  if (!response.ok) return {};
+  const data = (await response.json()) as { counts?: Record<string, number> };
+  return data.counts ?? {};
+}
+
 export const themeOptions: { id: string; label: string }[] = [
   { id: "all", label: "All" },
   { id: "standard", label: "Standard" },
-  { id: "tournament-of-champions", label: "Tournament of Champions" },
-  { id: "kids-week", label: "Kids Week" },
-  { id: "teen-tournament", label: "Teen Tournament" },
-  { id: "college-championship", label: "College Championship" },
+  { id: "tournament-of-champions", label: "Champions" },
+  { id: "tournament", label: "Tournaments" },
+  { id: "kids-week", label: "Kids" },
+  { id: "teen-tournament", label: "Teen" },
+  { id: "college-championship", label: "College" },
   { id: "celebrity", label: "Celebrity" },
   { id: "masters", label: "Masters / GOAT" },
   { id: "primetime", label: "Primetime" },

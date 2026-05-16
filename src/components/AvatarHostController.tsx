@@ -132,11 +132,14 @@ function handleEvent(
         context: { category, value },
       });
     }
-    case "clue-revealed":
-      // Clue text is read aloud directly by ClueStage so we don't speak it
-      // here. We let the toast show nothing extra; the on-screen text is
-      // the caption.
-      return null;
+    case "clue-revealed": {
+      const active = state.currentClue;
+      if (!active?.clue) return null;
+      return narrator.emit({
+        type: "clue-readout",
+        context: { clueText: active.clue, category: active.category },
+      });
+    }
     case "answer-judged": {
       const player = state.players.find((p) => p.id === event.targetPlayerId);
       if (event.correct === true) {

@@ -59,14 +59,27 @@ export interface EpisodeListing {
   clueCount: number;
 }
 
+// J-Archive's `info` field is mostly short single-word tags ("kids",
+// "college", "teen", "champions", "celebrity", "tournament", "super") so
+// the matchers below accept either the short form or the longer phrasing.
 const THEME_KEYWORDS: { theme: string; match: RegExp }[] = [
-  { theme: "tournament-of-champions", match: /tournament of champions|toc/i },
-  { theme: "kids-week", match: /kids? week|kids? tournament/i },
-  { theme: "teen-tournament", match: /teen tournament|teen reunion/i },
-  { theme: "college-championship", match: /college championship|college tournament/i },
-  { theme: "celebrity", match: /celebrity|power player|all-star/i },
-  { theme: "masters", match: /masters|battle of the decades|greatest of all time|goat/i },
-  { theme: "primetime", match: /primetime|prime time|abc/i },
+  {
+    theme: "tournament-of-champions",
+    match: /\b(tournament of champions|toc|champions)\b/i,
+  },
+  { theme: "kids-week", match: /\bkids?\b/i },
+  { theme: "teen-tournament", match: /\bteen(?: tournament| reunion)?\b/i },
+  {
+    theme: "college-championship",
+    match: /\bcollege(?: championship| tournament)?\b/i,
+  },
+  { theme: "celebrity", match: /\b(celebrity|power player|all[\s-]?star)\b/i },
+  {
+    theme: "masters",
+    match: /\b(masters|battle of the decades|greatest of all time|goat)\b/i,
+  },
+  { theme: "tournament", match: /\btournament\b/i },
+  { theme: "primetime", match: /\b(primetime|prime time|abc|super)\b/i },
 ];
 
 export function classifyTheme(info: string | undefined): string {
@@ -131,6 +144,16 @@ export function getEpisode(
     triple: raw.triple,
     final: raw.final,
   };
+}
+
+export function themeCounts(archive: RawEpisodeMap): Record<string, number> {
+  const counts: Record<string, number> = { all: 0 };
+  for (const episode of Object.values(archive)) {
+    const theme = classifyTheme(episode.info);
+    counts[theme] = (counts[theme] ?? 0) + 1;
+    counts.all += 1;
+  }
+  return counts;
 }
 
 export function getRandomEpisode(

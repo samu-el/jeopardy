@@ -16,6 +16,7 @@ import Typography from "@mui/material/Typography";
 import {
   fetchEpisodeById,
   fetchEpisodeList,
+  fetchThemeCounts,
   themeOptions,
   type ArchiveListing,
 } from "@/lib/data";
@@ -35,6 +36,18 @@ export function EpisodeBrowser({ open, onClose }: EpisodeBrowserProps) {
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const [themeCountMap, setThemeCountMap] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    fetchThemeCounts().then((value) => {
+      if (!cancelled) setThemeCountMap(value);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -65,7 +78,12 @@ export function EpisodeBrowser({ open, onClose }: EpisodeBrowserProps) {
     };
   }, [open, query, theme]);
 
-  const themes = useMemo(() => themeOptions, []);
+  const themes = useMemo(() => {
+    if (Object.keys(themeCountMap).length === 0) return themeOptions;
+    return themeOptions.filter(
+      (entry) => entry.id === "all" || (themeCountMap[entry.id] ?? 0) > 0,
+    );
+  }, [themeCountMap]);
 
   async function load(id: string) {
     setBusy(true);

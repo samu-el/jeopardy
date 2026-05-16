@@ -2,6 +2,7 @@ import {
   getRandomEpisode,
   listEpisodes,
   loadArchive,
+  themeCounts,
 } from "@/lib/data/archive-source";
 
 export const runtime = "nodejs";
@@ -23,6 +24,9 @@ export async function GET(request: Request) {
     if (mode === "stats") {
       const total = Object.keys(archive).length;
       return Response.json({ total });
+    }
+    if (mode === "themes") {
+      return Response.json({ counts: themeCounts(archive) });
     }
     const theme = url.searchParams.get("theme") ?? undefined;
     const query = url.searchParams.get("q") ?? undefined;

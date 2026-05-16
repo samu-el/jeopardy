@@ -14,7 +14,7 @@ import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import SpaceBarIcon from "@mui/icons-material/SpaceBar";
 import type { PublicGameState } from "@/lib/game";
 import { useGameStore } from "@/lib/state/game-store";
-import { createVoiceAdapter, judgeAnswer as fuzzyJudge, playSfx, primeAudio } from "@/lib/ai";
+import { judgeAnswer as fuzzyJudge, playSfx, primeAudio } from "@/lib/ai";
 import { MicAnswerField } from "./MicAnswerField";
 
 interface ClueStageProps {
@@ -22,8 +22,6 @@ interface ClueStageProps {
   currentClientId: string;
   onClose?: () => void;
 }
-
-const voiceAdapter = typeof window === "undefined" ? null : createVoiceAdapter();
 
 export function ClueStage({ state, currentClientId }: ClueStageProps) {
   const runtime = useGameStore((s) => s.runtime);
@@ -34,7 +32,6 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
     typeof window === "undefined" ? 0 : Date.now(),
   );
   const buzzerRef = useRef<HTMLButtonElement | null>(null);
-  const spokenClueId = useRef<string | null>(null);
   const currentClue = state.currentClue;
 
   useEffect(() => {
@@ -49,27 +46,6 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
     setAnswerInput("");
     setWagerInput("");
   }
-  useEffect(() => {
-    if (activeClueId === null) {
-      spokenClueId.current = null;
-    }
-  }, [activeClueId]);
-
-  useEffect(() => {
-    if (!currentClue) return;
-    if (
-      preferences.soundEnabled &&
-      voiceAdapter &&
-      currentClue.clue &&
-      spokenClueId.current !== currentClue.clueId
-    ) {
-      spokenClueId.current = currentClue.clueId;
-      voiceAdapter.speak({
-        text: currentClue.clue,
-        voiceProfileId: preferences.voiceProfileId,
-      });
-    }
-  }, [currentClue, preferences.soundEnabled, preferences.voiceProfileId]);
 
   useEffect(() => {
     if (currentClue?.canBuzz && currentClue.buzzes[currentClientId] === undefined) {

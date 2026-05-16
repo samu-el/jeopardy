@@ -3,40 +3,69 @@
 import { useMemo } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Typography from "@mui/material/Typography";
 import type { PublicBoardClue, PublicGameState } from "@/lib/game";
 import { useGameStore } from "@/lib/state/game-store";
 
 interface BoardProps {
-  state: PublicGameState;
-  onPick: (clueId: string) => void;
-  canPick: boolean;
+  state: PublicGameState | null;
+  onPick?: (clueId: string) => void;
+  canPick?: boolean;
 }
 
-export function Board({ state, onPick, canPick }: BoardProps) {
-  const reducedMotion = useGameStore((s) => s.preferences.reducedMotion);
-  const { board } = state;
-  const byCategory = useMemo(() => groupByCategory(board), [board]);
+const PLACEHOLDER_COLS = 6;
+const PLACEHOLDER_ROWS = 5;
+const PLACEHOLDER_VALUES = [200, 400, 600, 800, 1000];
 
-  if (board.length === 0) {
+export function Board({ state, onPick, canPick = false }: BoardProps) {
+  const reducedMotion = useGameStore((s) => s.preferences.reducedMotion);
+  const board = state?.board;
+  const byCategory = useMemo(() => groupByCategory(board ?? []), [board]);
+
+  if (byCategory.length === 0) {
     return (
       <Box
         sx={{
-          p: 6,
-          borderRadius: 3,
-          border: "1px dashed",
-          borderColor: "divider",
-          textAlign: "center",
+          display: "grid",
+          gap: 1,
+          gridTemplateColumns: `repeat(${PLACEHOLDER_COLS}, minmax(0, 1fr))`,
         }}
       >
-        <Typography variant="h5" sx={{ mb: 1 }}>
-          {state.round === "complete" ? "Game complete" : "Get ready"}
-        </Typography>
-        <Typography color="text.secondary">
-          {state.round === "complete"
-            ? "Final scoreboard below."
-            : "Waiting for the next round to begin."}
-        </Typography>
+        {Array.from({ length: PLACEHOLDER_COLS }).map((_, col) => (
+          <Box
+            key={col}
+            sx={{
+              display: "grid",
+              gap: 1,
+              gridTemplateRows: `auto repeat(${PLACEHOLDER_ROWS}, 1fr)`,
+            }}
+          >
+            <Box
+              sx={{
+                background: "linear-gradient(135deg, #1e3094 0%, #0a1336 100%)",
+                borderRadius: 1.5,
+                minHeight: { xs: 40, sm: 56 },
+              }}
+            />
+            {PLACEHOLDER_VALUES.map((value, row) => (
+              <Box
+                key={row}
+                sx={{
+                  minHeight: { xs: 56, sm: 80, md: 96 },
+                  background: "linear-gradient(135deg, #14245c 0%, #0a1336 100%)",
+                  borderRadius: 1.5,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "rgba(255,210,59,0.18)",
+                  fontSize: { xs: 16, sm: 24, md: 28 },
+                  fontWeight: 800,
+                }}
+              >
+                ${value}
+              </Box>
+            ))}
+          </Box>
+        ))}
       </Box>
     );
   }
@@ -80,7 +109,7 @@ export function Board({ state, onPick, canPick }: BoardProps) {
           {column.clues.map((clue) => (
             <Button
               key={clue.id}
-              onClick={() => onPick(clue.id)}
+              onClick={() => onPick?.(clue.id)}
               disabled={!canPick || clue.revealed}
               variant="contained"
               sx={{

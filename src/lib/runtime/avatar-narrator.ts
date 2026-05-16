@@ -51,12 +51,18 @@ export class AvatarNarrator {
     const now = Date.now();
     if (now - this.lastSpeakAt < 350) return cue;
     this.lastSpeakAt = now;
-    const voiceId = profile.voiceProfileId || this.config.getVoiceProfileId();
+    // Always use the user-selected voice so every spoken line (intro,
+    // categories, clue text, judging reactions) sounds like the same host.
+    // Otherwise the system mixes two different system voices and they
+    // overlap when fired close together.
+    const voiceId = this.config.getVoiceProfileId() || profile.voiceProfileId;
     adapter.speak({
       text: cue.text,
       voiceProfileId: voiceId,
       rate: 0.97,
       pitch: profile.persona === "dry-commentator" ? 0.92 : 1,
+      // Let utterances queue naturally; one continuous host voice.
+      interrupt: false,
     });
     return cue;
   }

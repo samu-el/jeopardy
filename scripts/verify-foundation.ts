@@ -102,6 +102,7 @@ const requiredFiles = [
   "tests/unit/data/normalize.test.ts",
   "tests/unit/data/builder.test.ts",
   "tests/unit/game/engine.test.ts",
+  "tests/unit/game/final-jeopardy.test.ts",
   "tests/unit/realtime/in-memory-room.test.ts",
   "tests/unit/runtime/local-room.test.ts",
   "tests/unit/ai/judge.test.ts",

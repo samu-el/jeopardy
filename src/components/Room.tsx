@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
 import { useGameStore } from "@/lib/state/game-store";
 import { Board } from "./Board";
 import { Chat } from "./Chat";
@@ -91,8 +90,6 @@ export function Room() {
     [players, lobby.hostId, lobby.aiJudgeEnabled, lobby.bots.length],
   );
 
-  const hasEpisode = Boolean(lobby.loadedEpisode || lobby.customGame);
-
   if (showResults && publicState) {
     return (
       <Box sx={{ minHeight: "100vh", background: "#000" }}>
@@ -129,22 +126,20 @@ export function Room() {
         >
           <Box sx={{ position: "relative", minHeight: 320 }}>
             <Box sx={{ width: "100%", maxWidth: 1200, mx: "auto" }}>
-              {publicState ? (
-                <Board
-                  state={publicState}
-                  canPick={
-                    publicState.settings.hostId === lobby.hostId &&
-                    publicState.round !== "lobby" &&
-                    publicState.round !== "complete" &&
-                    !publicState.currentClue
-                  }
-                  onPick={(clueId) => {
-                    runtime?.sendCommand(lobby.hostId, { type: "pick-clue", clueId });
-                  }}
-                />
-              ) : (
-                <EmptyBoard hasEpisode={hasEpisode} onOpenPicker={() => setPickerOpen(true)} />
-              )}
+              <Board
+                state={publicState}
+                canPick={
+                  publicState
+                    ? publicState.settings.hostId === lobby.hostId &&
+                      publicState.round !== "lobby" &&
+                      publicState.round !== "complete" &&
+                      !publicState.currentClue
+                    : false
+                }
+                onPick={(clueId) => {
+                  runtime?.sendCommand(lobby.hostId, { type: "pick-clue", clueId });
+                }}
+              />
             </Box>
             {publicState?.currentClue ? (
               <Box
@@ -166,19 +161,22 @@ export function Room() {
 
           <Box
             sx={{
-              display: "grid",
-              gap: 1.5,
-              gridTemplateColumns: `repeat(${Math.max(1, players.length)}, minmax(0, 1fr))`,
-              alignItems: "end",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: { xs: 1.5, sm: 2 },
+              justifyContent: "center",
+              alignItems: "flex-end",
+              py: 1,
             }}
           >
             {players.map((player) => (
-              <Podium
-                key={player.id}
-                player={player}
-                state={publicState ?? previewState}
-                isYou={player.id === lobby.hostId}
-              />
+              <Box key={player.id} sx={{ flex: "0 0 auto", width: { xs: 130, sm: 160 } }}>
+                <Podium
+                  player={player}
+                  state={publicState ?? previewState}
+                  isYou={player.id === lobby.hostId}
+                />
+              </Box>
             ))}
           </Box>
         </Box>
@@ -193,55 +191,3 @@ export function Room() {
   );
 }
 
-function EmptyBoard({
-  hasEpisode,
-  onOpenPicker,
-}: {
-  hasEpisode: boolean;
-  onOpenPicker: () => void;
-}) {
-  return (
-    <Box
-      sx={{
-        minHeight: 360,
-        border: "1px dashed rgba(255,255,255,0.12)",
-        borderRadius: 1,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 1.5,
-        p: 4,
-      }}
-    >
-      <Typography variant="h5" sx={{ color: "rgba(255,255,255,0.8)" }}>
-        {hasEpisode ? "Ready" : "Pick an episode"}
-      </Typography>
-      <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.4)", textAlign: "center" }}>
-        {hasEpisode
-          ? "Press Begin to deal the board."
-          : "Open the shuffle icon above to load a real Jeopardy! game."}
-      </Typography>
-      {!hasEpisode ? (
-        <Box
-          component="button"
-          onClick={onOpenPicker}
-          sx={{
-            mt: 1,
-            px: 3,
-            py: 1,
-            borderRadius: 999,
-            border: "1px solid #5b8cff",
-            background: "transparent",
-            color: "#5b8cff",
-            fontWeight: 700,
-            cursor: "pointer",
-            "&:hover": { background: "rgba(91,140,255,0.08)" },
-          }}
-        >
-          Choose a game
-        </Box>
-      ) : null}
-    </Box>
-  );
-}

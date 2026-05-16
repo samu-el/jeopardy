@@ -10,6 +10,11 @@ export interface SpeakRequest {
   pitch?: number;
   volume?: number;
   onEnd?: () => void;
+  /**
+   * When true, this utterance interrupts whatever is currently speaking.
+   * Default false — utterances queue behind any in-flight speech.
+   */
+  interrupt?: boolean;
 }
 
 export interface DiscoveredVoice {
@@ -152,7 +157,9 @@ class BrowserVoiceAdapter implements VoiceAdapter {
       return;
     }
     const synth = window.speechSynthesis;
-    synth.cancel();
+    if (request.interrupt) {
+      synth.cancel();
+    }
     if (this.discovered.length === 0) {
       this.refreshVoices();
     }

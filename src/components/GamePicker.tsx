@@ -21,6 +21,7 @@ import {
   fetchEpisodeById,
   fetchEpisodeList,
   fetchRandomEpisode,
+  fetchThemeCounts,
   themeOptions,
   type ArchiveListing,
 } from "@/lib/data";
@@ -42,12 +43,16 @@ export function GamePicker({ open, onClose }: GamePickerProps) {
   const [error, setError] = useState<string | null>(null);
   const [listings, setListings] = useState<ArchiveListing[]>([]);
   const [stats, setStats] = useState<{ total: number } | null>(null);
+  const [themeCountMap, setThemeCountMap] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
     fetchArchiveStats().then((value) => {
       if (!cancelled) setStats(value);
+    });
+    fetchThemeCounts().then((value) => {
+      if (!cancelled) setThemeCountMap(value);
     });
     return () => {
       cancelled = true;
@@ -119,7 +124,12 @@ export function GamePicker({ open, onClose }: GamePickerProps) {
     }
   }
 
-  const themesAvailable = useMemo(() => themeOptions, []);
+  const themesAvailable = useMemo(() => {
+    if (Object.keys(themeCountMap).length === 0) return themeOptions;
+    return themeOptions.filter(
+      (entry) => entry.id === "all" || (themeCountMap[entry.id] ?? 0) > 0,
+    );
+  }, [themeCountMap]);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
