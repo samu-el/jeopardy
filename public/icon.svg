@@ -1,10 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#3b6cff" />
-      <stop offset="100%" stop-color="#ffc34a" />
-    </linearGradient>
-  </defs>
-  <rect width="192" height="192" rx="32" fill="url(#bg)" />
-  <text x="50%" y="58%" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="900" font-size="120" fill="#0c1224">J</text>
+  <rect width="192" height="192" rx="32" fill="#000" />
+  <g transform="skewX(-10) translate(28 0)">
+    <text
+      x="40"
+      y="138"
+      font-family="Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-weight="900"
+      font-style="italic"
+      font-size="150"
+      letter-spacing="-6"
+      fill="#3a78ff"
+      stroke="rgba(0,0,0,0.4)"
+      stroke-width="1"
+    >J</text>
+    <text
+      x="106"
+      y="138"
+      font-family="Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-weight="900"
+      font-style="italic"
+      font-size="150"
+      fill="#ffd23b"
+      stroke="rgba(0,0,0,0.4)"
+      stroke-width="1"
+    >!</text>
+  </g>
 </svg>
