@@ -47,7 +47,14 @@ export interface GameSettings {
   /** How long after the readout ends that players can ring in. */
   buzzWindowMs: number;
   finalTimeoutMs: number;
+  /** Minimum time the readout occupies (lockout for the buzzer). */
   buzzUnlockDelayMs: number;
+  /**
+   * Additional readout time per character of the clue. Defaults to 0 so
+   * tests run on tight timelines; the production runtime sets this to
+   * roughly match TTS speech duration.
+   */
+  readoutPerCharMs: number;
   allowMultipleCorrect: boolean;
   hostId?: string;
   voiceProfileId?: string;

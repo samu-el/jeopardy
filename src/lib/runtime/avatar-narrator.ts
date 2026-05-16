@@ -55,8 +55,8 @@ export class AvatarNarrator {
     adapter.speak({
       text: cue.text,
       voiceProfileId: voiceId,
-      rate: 0.97,
-      pitch: profile.persona === "dry-commentator" ? 0.92 : 1,
+      rate: 0.92,
+      pitch: profile.persona === "dry-commentator" ? 0.9 : 1,
       // Queue utterances naturally so picks ("Category, for 200") finish
       // before the clue text reads. Interrupting would drop the clue text.
       interrupt: false,

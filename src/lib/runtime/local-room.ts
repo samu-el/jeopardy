@@ -84,7 +84,12 @@ export class LocalRoomRuntime {
       now: Date.now(),
       settings: {
         hostId: config.hostId,
-        buzzUnlockDelayMs: 1_200,
+        // Baseline readout padding; the per-char term below carries most
+        // of the timing so short clues don't wait forever.
+        buzzUnlockDelayMs: 1_500,
+        // 70ms/char ≈ 140 wpm — comfortable Jeopardy-host pace, lines
+        // up with the TTS rate of 0.92.
+        readoutPerCharMs: 70,
         buzzWindowMs: 6_000,
         answerTimeoutMs: 10_000,
         finalTimeoutMs: 30_000,

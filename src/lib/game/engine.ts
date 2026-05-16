@@ -26,6 +26,7 @@ export const defaultGameSettings: GameSettings = {
   buzzWindowMs: 6_000,
   finalTimeoutMs: 30_000,
   buzzUnlockDelayMs: 1_500,
+  readoutPerCharMs: 0,
   allowMultipleCorrect: false,
   aiJudgeEnabled: false,
   aiBotsEnabled: false,
@@ -730,7 +731,13 @@ function revealActiveClue(
   state: GameState,
 ) {
   activeClue.clueRevealed = true;
-  activeClue.readoutEndsAt = now + state.settings.buzzUnlockDelayMs;
+  const clue = state.cluesById[activeClue.clueId];
+  // Readout window = base lockout + per-char scaling (so long clues aren't
+  // cut off and short ones don't drag). Tests leave readoutPerCharMs at 0.
+  const estimatedSpeechMs =
+    state.settings.buzzUnlockDelayMs +
+    clue.clue.length * state.settings.readoutPerCharMs;
+  activeClue.readoutEndsAt = now + estimatedSpeechMs;
   activeClue.buzzWindowEndsAt =
     activeClue.readoutEndsAt + state.settings.buzzWindowMs;
   // No active answer deadline until someone buzzes (or Daily Double / Final).
