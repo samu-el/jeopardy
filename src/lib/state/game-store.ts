@@ -4,16 +4,16 @@ import { create } from "zustand";
 import type { BotProfile } from "@/lib/foundation/game-contracts";
 import type { GameEvent, PublicGameState } from "@/lib/game";
 import { LocalRoomRuntime, type ChatMessage } from "@/lib/runtime";
-import { sampleEpisodes } from "@/lib/sample-games";
 import {
   normalizeArchivedEpisode,
+  type ArchivedEpisodeInput,
   type BuilderGame,
   type GameDataIssue,
   type NormalizedGame,
 } from "@/lib/data";
 import { defaultAvatarHostProfile, type AvatarHostCue } from "@/lib/ai";
 
-export type ScreenName = "landing" | "lobby" | "play" | "results";
+export type ScreenName = "landing" | "play" | "results";
 
 export interface UiPreferences {
   captionsEnabled: boolean;
@@ -30,10 +30,18 @@ export interface LobbyBotConfig {
   profile: BotProfile;
 }
 
+export interface LoadedEpisode {
+  id: string;
+  title: string;
+  airDate?: string;
+  info?: string;
+  episode: ArchivedEpisodeInput;
+}
+
 export interface LobbyConfig {
   hostName: string;
   hostId: string;
-  selectedGameId: string;
+  loadedEpisode?: LoadedEpisode;
   customGame?: NormalizedGame;
   customIssues: GameDataIssue[];
   bots: LobbyBotConfig[];
@@ -55,7 +63,7 @@ export interface GameStoreState {
   lastCue: AvatarHostCue | null;
   setScreen: (screen: ScreenName) => void;
   setHostName: (name: string) => void;
-  selectGame: (id: string) => void;
+  setLoadedEpisode: (loaded: LoadedEpisode | undefined) => void;
   setCustomGame: (game: NormalizedGame | undefined, issues: GameDataIssue[]) => void;
   addBot: (profile: BotProfile) => void;
   removeBot: (id: string) => void;
@@ -96,7 +104,6 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   lobby: {
     hostName: "You",
     hostId: stableHostId,
-    selectedGameId: sampleEpisodes[0].id,
     customIssues: [],
     bots: initialBots,
     extraHumans: [],
@@ -114,12 +121,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set((state) => ({
       lobby: { ...state.lobby, hostName: name.trim() || "You" },
     })),
-  selectGame: (id) =>
+  setLoadedEpisode: (loaded) =>
     set((state) => ({
       lobby: {
         ...state.lobby,
-        selectedGameId: id,
-        customGame: id === "custom" ? state.lobby.customGame : undefined,
+        loadedEpisode: loaded,
+        customGame: loaded ? undefined : state.lobby.customGame,
       },
     })),
   setCustomGame: (game, issues) =>
@@ -128,7 +135,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         ...state.lobby,
         customGame: game,
         customIssues: issues,
-        selectedGameId: game ? "custom" : state.lobby.selectedGameId,
+        loadedEpisode: game ? undefined : state.lobby.loadedEpisode,
       },
     })),
   addBot: (profile) =>
@@ -203,17 +210,20 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     if (runtime) runtime.destroy();
 
     const clues = (() => {
-      if (lobby.selectedGameId === "custom" && lobby.customGame) {
+      if (lobby.customGame) {
         return lobby.customGame.clues;
       }
-      const episode = sampleEpisodes.find((sample) => sample.id === lobby.selectedGameId)
-        ?? sampleEpisodes[0];
-      const normalized = normalizeArchivedEpisode(episode.data, {
-        id: episode.id,
-        title: episode.title,
+      if (!lobby.loadedEpisode) return [];
+      const normalized = normalizeArchivedEpisode(lobby.loadedEpisode.episode, {
+        id: lobby.loadedEpisode.id,
+        title: lobby.loadedEpisode.title,
       });
       return normalized.ok ? normalized.game.clues : [];
     })();
+
+    if (clues.length === 0) {
+      return;
+    }
 
     const newRuntime = new LocalRoomRuntime(
       {
@@ -249,6 +259,9 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       publicState: newRuntime.getPublicState(),
       chat: [],
     });
+
+    // Auto-deal the board so Begin = one click.
+    newRuntime.sendCommand(lobby.hostId, { type: "start-game" });
   },
   exitToLobby: () => {
     const { runtime } = get();
@@ -256,7 +269,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set({
       runtime: null,
       publicState: null,
-      screen: "lobby",
+      screen: "play",
     });
   },
   setPublicState: (state) => set({ publicState: state }),

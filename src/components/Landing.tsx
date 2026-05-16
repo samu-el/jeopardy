@@ -64,7 +64,7 @@ export function Landing() {
                 variant="contained"
                 size="large"
                 endIcon={<ArrowForwardIcon />}
-                onClick={() => setScreen("lobby")}
+                onClick={() => setScreen("play")}
                 sx={{
                   background: "#5b8cff",
                   color: "#000",
@@ -82,18 +82,6 @@ export function Landing() {
                 }}
               >
                 New room
-              </Button>
-              <Button
-                variant="text"
-                size="large"
-                onClick={() => setScreen("lobby")}
-                sx={{
-                  color: "rgba(255,255,255,0.7)",
-                  textTransform: "none",
-                  px: 3,
-                }}
-              >
-                How it works
               </Button>
             </Stack>
           </Stack>

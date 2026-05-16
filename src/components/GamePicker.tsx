@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
+import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -16,11 +17,13 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import ShuffleIcon from "@mui/icons-material/ShuffleOutlined";
 import {
-  pickRandomEpisode,
-  sampleEpisodes,
-  themeLabels,
-  type SampleTheme,
-} from "@/lib/sample-games";
+  fetchArchiveStats,
+  fetchEpisodeById,
+  fetchEpisodeList,
+  fetchRandomEpisode,
+  themeOptions,
+  type ArchiveListing,
+} from "@/lib/data";
 import { useGameStore } from "@/lib/state/game-store";
 
 interface GamePickerProps {
@@ -30,32 +33,104 @@ interface GamePickerProps {
 
 type Mode = "random" | "theme" | "number";
 
-const themes: SampleTheme[] = [
-  "standard",
-  "kids-week",
-  "teen-tournament",
-  "college-championship",
-  "tournament-of-champions",
-];
-
 export function GamePicker({ open, onClose }: GamePickerProps) {
-  const selectGame = useGameStore((s) => s.selectGame);
+  const setLoadedEpisode = useGameStore((s) => s.setLoadedEpisode);
   const [mode, setMode] = useState<Mode>("random");
-  const [theme, setTheme] = useState<SampleTheme>("standard");
+  const [theme, setTheme] = useState("all");
   const [numberInput, setNumberInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [listings, setListings] = useState<ArchiveListing[]>([]);
+  const [stats, setStats] = useState<{ total: number } | null>(null);
 
-  const byTheme = useMemo(() => {
-    return sampleEpisodes.filter((episode) => episode.theme === theme);
-  }, [theme]);
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    fetchArchiveStats().then((value) => {
+      if (!cancelled) setStats(value);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
-  function applyEpisodeId(id: string) {
-    selectGame(id);
-    onClose();
+  useEffect(() => {
+    if (!open || mode !== "theme") return;
+    let cancelled = false;
+    const id = setTimeout(() => {
+      if (cancelled) return;
+      setBusy(true);
+      setError(null);
+      fetchEpisodeList({ theme, limit: 30 })
+        .then((response) => {
+          if (cancelled) return;
+          setListings(response.episodes);
+        })
+        .catch((err: Error) => {
+          if (!cancelled) setError(err.message);
+        })
+        .finally(() => {
+          if (!cancelled) setBusy(false);
+        });
+    }, 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(id);
+    };
+  }, [open, mode, theme]);
+
+  async function pickRandom() {
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await fetchRandomEpisode(theme);
+      setLoadedEpisode({
+        id: response.id,
+        title: response.episode.title ?? `Episode ${response.id}`,
+        airDate: response.episode.airDate,
+        info: response.episode.info,
+        episode: response.episode,
+      });
+      onClose();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
   }
+
+  async function pickById(id: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await fetchEpisodeById(id);
+      setLoadedEpisode({
+        id: response.id,
+        title: response.episode.title ?? `Episode ${response.id}`,
+        airDate: response.episode.airDate,
+        info: response.episode.info,
+        episode: response.episode,
+      });
+      onClose();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const themesAvailable = useMemo(() => themeOptions, []);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>New game</DialogTitle>
+      <DialogTitle>
+        New game
+        {stats ? (
+          <Typography variant="caption" sx={{ ml: 1, color: "text.secondary" }}>
+            {stats.total.toLocaleString()} episodes
+          </Typography>
+        ) : null}
+      </DialogTitle>
       <DialogContent dividers>
         <Tabs value={mode} onChange={(_, value) => setMode(value)} sx={{ mb: 2 }}>
           <Tab value="random" label="Random" />
@@ -65,13 +140,22 @@ export function GamePicker({ open, onClose }: GamePickerProps) {
 
         {mode === "random" ? (
           <Stack spacing={2}>
-            <Typography variant="body2" color="text.secondary">
-              Pick a board you have not seen.
-            </Typography>
+            <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
+              {themesAvailable.map((entry) => (
+                <Chip
+                  key={entry.id}
+                  label={entry.label}
+                  color={entry.id === theme ? "primary" : "default"}
+                  onClick={() => setTheme(entry.id)}
+                  variant={entry.id === theme ? "filled" : "outlined"}
+                />
+              ))}
+            </Stack>
             <Button
-              startIcon={<ShuffleIcon />}
+              startIcon={busy ? <CircularProgress size={16} /> : <ShuffleIcon />}
               variant="contained"
-              onClick={() => applyEpisodeId(pickRandomEpisode().id)}
+              onClick={pickRandom}
+              disabled={busy}
               sx={{ alignSelf: "flex-start" }}
             >
               Shuffle
@@ -82,43 +166,48 @@ export function GamePicker({ open, onClose }: GamePickerProps) {
         {mode === "theme" ? (
           <Stack spacing={2}>
             <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
-              {themes.map((entry) => (
+              {themesAvailable.map((entry) => (
                 <Chip
-                  key={entry}
-                  label={themeLabels[entry]}
-                  color={entry === theme ? "primary" : "default"}
-                  onClick={() => setTheme(entry)}
-                  variant={entry === theme ? "filled" : "outlined"}
+                  key={entry.id}
+                  label={entry.label}
+                  color={entry.id === theme ? "primary" : "default"}
+                  onClick={() => setTheme(entry.id)}
+                  variant={entry.id === theme ? "filled" : "outlined"}
                 />
               ))}
             </Stack>
-            <Stack spacing={1}>
-              {byTheme.map((episode) => (
+            {busy ? (
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                <CircularProgress size={18} />
+                <Typography variant="caption" color="text.secondary">Loading…</Typography>
+              </Stack>
+            ) : null}
+            <Stack spacing={1} sx={{ maxHeight: 360, overflow: "auto" }}>
+              {listings.map((episode) => (
                 <Paper
                   key={episode.id}
                   variant="outlined"
-                  sx={{
-                    p: 1.5,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 2,
-                  }}
+                  sx={{ p: 1.5, display: "flex", alignItems: "center", gap: 2 }}
                 >
-                  <Box sx={{ flex: 1 }}>
-                    <Typography sx={{ fontWeight: 700 }}>{episode.title}</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      #{episode.number}
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography sx={{ fontWeight: 700 }}>#{episode.number}</Typography>
+                    <Typography variant="caption" color="text.secondary" noWrap>
+                      {episode.airDate ?? ""}
+                      {episode.info ? ` · ${episode.info}` : ""}
                     </Typography>
                   </Box>
-                  <Button variant="contained" onClick={() => applyEpisodeId(episode.id)}>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={() => pickById(episode.id)}
+                    disabled={busy}
+                  >
                     Use
                   </Button>
                 </Paper>
               ))}
-              {byTheme.length === 0 ? (
-                <Typography variant="caption" color="text.secondary">
-                  No boards yet for this theme.
-                </Typography>
+              {!busy && listings.length === 0 ? (
+                <Typography variant="caption" color="text.secondary">—</Typography>
               ) : null}
             </Stack>
           </Stack>
@@ -128,31 +217,34 @@ export function GamePicker({ open, onClose }: GamePickerProps) {
           <Stack spacing={2}>
             <TextField
               size="small"
-              label="Game number"
+              label="Episode number"
               type="number"
               value={numberInput}
               onChange={(event) => setNumberInput(event.target.value)}
               fullWidth
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && numberInput.trim()) {
+                  event.preventDefault();
+                  pickById(numberInput.trim());
+                }
+              }}
             />
             <Button
               variant="contained"
-              disabled={!numberInput.trim()}
-              onClick={() => {
-                const found = sampleEpisodes.find(
-                  (episode) => String(episode.number) === numberInput.trim(),
-                );
-                if (found) {
-                  applyEpisodeId(found.id);
-                }
-              }}
+              disabled={!numberInput.trim() || busy}
+              onClick={() => pickById(numberInput.trim())}
               sx={{ alignSelf: "flex-start" }}
+              startIcon={busy ? <CircularProgress size={16} /> : undefined}
             >
               Find
             </Button>
-            <Typography variant="caption" color="text.secondary">
-              Try {sampleEpisodes.map((episode) => episode.number).join(", ")}.
-            </Typography>
           </Stack>
+        ) : null}
+
+        {error ? (
+          <Typography color="error" variant="caption" sx={{ mt: 2, display: "block" }}>
+            {error}
+          </Typography>
         ) : null}
       </DialogContent>
       <DialogActions>
