@@ -28,6 +28,15 @@ export interface LobbyBotConfig {
   id: string;
   name: string;
   profile: BotProfile;
+  emoji?: string;
+  color?: string;
+}
+
+export interface LobbyHumanConfig {
+  id: string;
+  name: string;
+  emoji?: string;
+  color?: string;
 }
 
 export interface LoadedEpisode {
@@ -41,11 +50,14 @@ export interface LoadedEpisode {
 export interface LobbyConfig {
   hostName: string;
   hostId: string;
+  hostEmoji?: string;
+  hostColor?: string;
+  hostSpectator?: boolean;
   loadedEpisode?: LoadedEpisode;
   customGame?: NormalizedGame;
   customIssues: GameDataIssue[];
   bots: LobbyBotConfig[];
-  extraHumans: { id: string; name: string }[];
+  extraHumans: LobbyHumanConfig[];
   aiJudgeEnabled: boolean;
   hostControlsAuto: boolean;
   builderDraft?: BuilderGame;
@@ -63,6 +75,10 @@ export interface GameStoreState {
   lastCue: AvatarHostCue | null;
   setScreen: (screen: ScreenName) => void;
   setHostName: (name: string) => void;
+  setPlayerAvatar: (
+    id: string,
+    avatar: { emoji?: string | null; color?: string | null },
+  ) => void;
   setLoadedEpisode: (loaded: LoadedEpisode | undefined) => void;
   setCustomGame: (game: NormalizedGame | undefined, issues: GameDataIssue[]) => void;
   addBot: (profile: BotProfile) => void;
@@ -74,6 +90,7 @@ export interface GameStoreState {
   setHostControlsAuto: (auto: boolean) => void;
   saveBuilderDraft: (draft: BuilderGame) => void;
   setSoloMode: (solo: boolean) => void;
+  setHostSpectator: (spectator: boolean) => void;
   setPreference: <K extends keyof UiPreferences>(key: K, value: UiPreferences[K]) => void;
   startGame: () => void;
   exitToLobby: () => void;
@@ -121,6 +138,46 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set((state) => ({
       lobby: { ...state.lobby, hostName: name.trim() || "You" },
     })),
+  setPlayerAvatar: (id, avatar) =>
+    set((state) => {
+      const patch = (
+        existing: { emoji?: string; color?: string } | undefined,
+      ): { emoji?: string; color?: string } => ({
+        emoji:
+          avatar.emoji === undefined
+            ? existing?.emoji
+            : avatar.emoji === null
+              ? undefined
+              : avatar.emoji,
+        color:
+          avatar.color === undefined
+            ? existing?.color
+            : avatar.color === null
+              ? undefined
+              : avatar.color,
+      });
+      if (id === state.lobby.hostId) {
+        const next = patch({ emoji: state.lobby.hostEmoji, color: state.lobby.hostColor });
+        return {
+          lobby: { ...state.lobby, hostEmoji: next.emoji, hostColor: next.color },
+        };
+      }
+      return {
+        lobby: {
+          ...state.lobby,
+          bots: state.lobby.bots.map((bot) => {
+            if (bot.id !== id) return bot;
+            const next = patch({ emoji: bot.emoji, color: bot.color });
+            return { ...bot, emoji: next.emoji, color: next.color };
+          }),
+          extraHumans: state.lobby.extraHumans.map((human) => {
+            if (human.id !== id) return human;
+            const next = patch({ emoji: human.emoji, color: human.color });
+            return { ...human, emoji: next.emoji, color: next.color };
+          }),
+        },
+      };
+    }),
   setLoadedEpisode: (loaded) => {
     const { runtime } = get();
     if (runtime) runtime.destroy();
@@ -217,6 +274,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set((state) => ({
       lobby: { ...state.lobby, soloMode: solo },
     })),
+  setHostSpectator: (spectator) =>
+    set((state) => ({
+      lobby: { ...state.lobby, hostSpectator: spectator },
+    })),
   setPreference: (key, value) =>
     set((state) => ({
       preferences: { ...state.preferences, [key]: value },
@@ -247,7 +308,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         hostId: lobby.hostId,
         hostName: lobby.hostName,
         humanPlayers: [
-          { id: lobby.hostId, name: lobby.hostName },
+          { id: lobby.hostId, name: lobby.hostName, spectator: lobby.hostSpectator },
           ...lobby.extraHumans,
         ],
         bots: lobby.bots.map((bot) => ({

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import { useGameStore } from "@/lib/state/game-store";
 import { Board } from "./Board";
@@ -13,6 +13,8 @@ import { RoomToolbar } from "./RoomToolbar";
 import { CustomGameBuilder } from "./CustomGameBuilder";
 import { EpisodeBrowser } from "./EpisodeBrowser";
 import { GamePicker } from "./GamePicker";
+import { ShortcutsOverlay } from "./ShortcutsOverlay";
+import { Onboarding } from "./Onboarding";
 
 export function Room() {
   const lobby = useGameStore((s) => s.lobby);
@@ -22,6 +24,20 @@ export function Room() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [browserOpen, setBrowserOpen] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA") return;
+      if (event.key === "?") {
+        event.preventDefault();
+        setShortcutsOpen((value) => !value);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const showResults = publicState?.round === "complete";
 
@@ -97,6 +113,7 @@ export function Room() {
           <RoomToolbar
             onOpenPicker={() => setPickerOpen(true)}
             onOpenBrowser={() => setBrowserOpen(true)}
+            onToggleShortcuts={() => setShortcutsOpen((value) => !value)}
           />
           <ResultsView state={publicState} onPlayAgain={exitToLobby} onExit={exitToLobby} />
         </Box>
@@ -112,6 +129,7 @@ export function Room() {
         <RoomToolbar
           onOpenPicker={() => setPickerOpen(true)}
           onOpenBrowser={() => setBrowserOpen(true)}
+          onToggleShortcuts={() => setShortcutsOpen((value) => !value)}
         />
 
         <AvatarHostController />
@@ -169,15 +187,37 @@ export function Room() {
               py: 1,
             }}
           >
-            {players.map((player) => (
-              <Box key={player.id} sx={{ flex: "0 0 auto", width: { xs: 130, sm: 160 } }}>
-                <Podium
-                  player={player}
-                  state={publicState ?? previewState}
-                  isYou={player.id === lobby.hostId}
-                />
-              </Box>
-            ))}
+            {players.map((player) => {
+              let emoji: string | undefined;
+              let color: string | undefined;
+              if (player.id === lobby.hostId) {
+                emoji = lobby.hostEmoji;
+                color = lobby.hostColor;
+              } else {
+                const bot = lobby.bots.find((b) => b.id === player.id);
+                if (bot) {
+                  emoji = bot.emoji;
+                  color = bot.color;
+                } else {
+                  const human = lobby.extraHumans.find((h) => h.id === player.id);
+                  if (human) {
+                    emoji = human.emoji;
+                    color = human.color;
+                  }
+                }
+              }
+              return (
+                <Box key={player.id} sx={{ flex: "0 0 auto", width: { xs: 130, sm: 160 } }}>
+                  <Podium
+                    player={player}
+                    state={publicState ?? previewState}
+                    isYou={player.id === lobby.hostId}
+                    emoji={emoji}
+                    color={color}
+                  />
+                </Box>
+              );
+            })}
           </Box>
         </Box>
 
@@ -187,6 +227,11 @@ export function Room() {
       <GamePicker open={pickerOpen} onClose={() => setPickerOpen(false)} />
       <EpisodeBrowser open={browserOpen} onClose={() => setBrowserOpen(false)} />
       <CustomGameBuilder open={builderOpen} onClose={() => setBuilderOpen(false)} />
+      <ShortcutsOverlay
+        open={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
+      />
+      <Onboarding />
     </Box>
   );
 }

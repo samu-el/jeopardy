@@ -27,7 +27,7 @@ export interface LocalRoomConfig {
   roomId: string;
   hostId: string;
   hostName: string;
-  humanPlayers: { id: string; name: string }[];
+  humanPlayers: { id: string; name: string; spectator?: boolean }[];
   bots: { id: string; name: string; profile: BotProfile }[];
   clues: GameClue[];
   settings?: Partial<GameSettings>;
@@ -60,7 +60,7 @@ export class LocalRoomRuntime {
         displayName: p.name,
         kind: "human",
         connected: true,
-        spectator: false,
+        spectator: Boolean(p.spectator),
       })),
       ...config.bots.map<GamePlayer>((p) => ({
         id: p.id,

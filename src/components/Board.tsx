@@ -113,6 +113,7 @@ export function Board({ state, onPick, canPick = false }: BoardProps) {
               disabled={!canPick || clue.revealed}
               variant="contained"
               sx={{
+                position: "relative",
                 minHeight: { xs: 56, sm: 80, md: 96 },
                 background: clue.revealed
                   ? "transparent"
@@ -123,7 +124,20 @@ export function Board({ state, onPick, canPick = false }: BoardProps) {
                 border: clue.revealed ? "1px solid" : "none",
                 borderColor: "divider",
                 boxShadow: clue.revealed ? "none" : 4,
-                transition: reducedMotion ? "none" : "transform 0.18s ease, background 0.18s ease",
+                transformOrigin: "center",
+                transition: reducedMotion
+                  ? "none"
+                  : "transform 0.45s cubic-bezier(0.4, 0.0, 0.2, 1), background 0.18s ease",
+                transform: clue.revealed && !reducedMotion ? "rotateX(0deg)" : "none",
+                animation:
+                  clue.revealed && !reducedMotion
+                    ? "tile-flip 0.5s ease forwards"
+                    : "none",
+                "@keyframes tile-flip": {
+                  "0%": { transform: "rotateX(0deg)" },
+                  "50%": { transform: "rotateX(90deg)" },
+                  "100%": { transform: "rotateX(0deg)" },
+                },
                 "&:hover": {
                   background: clue.revealed
                     ? "transparent"

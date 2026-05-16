@@ -17,7 +17,9 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import ShuffleIcon from "@mui/icons-material/ShuffleOutlined";
 import {
+  decadeOptions,
   fetchArchiveStats,
+  fetchDecadeCounts,
   fetchEpisodeById,
   fetchEpisodeList,
   fetchRandomEpisode,
@@ -38,12 +40,14 @@ export function GamePicker({ open, onClose }: GamePickerProps) {
   const setLoadedEpisode = useGameStore((s) => s.setLoadedEpisode);
   const [mode, setMode] = useState<Mode>("random");
   const [theme, setTheme] = useState("all");
+  const [decade, setDecade] = useState("all");
   const [numberInput, setNumberInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [listings, setListings] = useState<ArchiveListing[]>([]);
   const [stats, setStats] = useState<{ total: number } | null>(null);
   const [themeCountMap, setThemeCountMap] = useState<Record<string, number>>({});
+  const [decadeCountMap, setDecadeCountMap] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!open) return;
@@ -53,6 +57,9 @@ export function GamePicker({ open, onClose }: GamePickerProps) {
     });
     fetchThemeCounts().then((value) => {
       if (!cancelled) setThemeCountMap(value);
+    });
+    fetchDecadeCounts().then((value) => {
+      if (!cancelled) setDecadeCountMap(value);
     });
     return () => {
       cancelled = true;
@@ -66,7 +73,7 @@ export function GamePicker({ open, onClose }: GamePickerProps) {
       if (cancelled) return;
       setBusy(true);
       setError(null);
-      fetchEpisodeList({ theme, limit: 30 })
+      fetchEpisodeList({ theme, decade, limit: 30 })
         .then((response) => {
           if (cancelled) return;
           setListings(response.episodes);
@@ -82,13 +89,13 @@ export function GamePicker({ open, onClose }: GamePickerProps) {
       cancelled = true;
       clearTimeout(id);
     };
-  }, [open, mode, theme]);
+  }, [open, mode, theme, decade]);
 
   async function pickRandom() {
     setBusy(true);
     setError(null);
     try {
-      const response = await fetchRandomEpisode(theme);
+      const response = await fetchRandomEpisode(theme, decade);
       setLoadedEpisode({
         id: response.id,
         title: response.episode.title ?? `Episode ${response.id}`,
@@ -131,6 +138,13 @@ export function GamePicker({ open, onClose }: GamePickerProps) {
     );
   }, [themeCountMap]);
 
+  const decadesAvailable = useMemo(() => {
+    if (Object.keys(decadeCountMap).length === 0) return decadeOptions;
+    return decadeOptions.filter(
+      (entry) => entry.id === "all" || (decadeCountMap[entry.id] ?? 0) > 0,
+    );
+  }, [decadeCountMap]);
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
@@ -158,6 +172,18 @@ export function GamePicker({ open, onClose }: GamePickerProps) {
                   color={entry.id === theme ? "primary" : "default"}
                   onClick={() => setTheme(entry.id)}
                   variant={entry.id === theme ? "filled" : "outlined"}
+                />
+              ))}
+            </Stack>
+            <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
+              {decadesAvailable.map((entry) => (
+                <Chip
+                  key={entry.id}
+                  label={entry.label}
+                  size="small"
+                  color={entry.id === decade ? "secondary" : "default"}
+                  onClick={() => setDecade(entry.id)}
+                  variant={entry.id === decade ? "filled" : "outlined"}
                 />
               ))}
             </Stack>

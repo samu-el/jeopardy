@@ -356,6 +356,9 @@ function buzz(
   if (active.buzzes[command.actorId] !== undefined) {
     return reject(state, command, "already-buzzed", "Player already buzzed.");
   }
+  if (active.judges[command.actorId] !== undefined) {
+    return reject(state, command, "already-buzzed", "Player was already judged.");
+  }
 
   const next = clone(state);
   const nextActive = next.activeClue!;
@@ -508,14 +511,38 @@ function judgeAnswer(
   }
   if (command.correct === false) {
     incrementStatFor(command.targetPlayerId, next.stats.incorrectByPlayer);
+    // Buzzer reopen — in non-final rounds, clear the wrong player's buzz so
+    // the rest of the table can ring in for the remaining answer window.
+    // The player is still locked from this clue via the `judges` map.
+    if (next.round !== "final-jeopardy") {
+      delete nextActive.buzzes[command.targetPlayerId];
+      delete nextActive.answers[command.targetPlayerId];
+      delete nextActive.submitted[command.targetPlayerId];
+      nextActive.judgeQueue = nextActive.judgeQueue.filter(
+        (id) => id !== command.targetPlayerId,
+      );
+    }
   }
 
   if (!nextActive.canAdvance) {
-    const currentIndex = nextActive.judgeQueue.indexOf(command.targetPlayerId);
-    nextActive.currentJudgePlayerId = nextActive.judgeQueue
-      .slice(currentIndex + 1)
-      .find((playerId) => nextActive.judges[playerId] === undefined);
-    nextActive.canAdvance = nextActive.currentJudgePlayerId === undefined;
+    nextActive.currentJudgePlayerId = nextActive.judgeQueue.find(
+      (playerId) => nextActive.judges[playerId] === undefined,
+    );
+    if (nextActive.currentJudgePlayerId) {
+      nextActive.canAdvance = false;
+    } else if (
+      command.correct === false &&
+      next.round !== "final-jeopardy" &&
+      nextActive.answerWindowEndsAt &&
+      now < nextActive.answerWindowEndsAt &&
+      remainingActivePlayers(next, nextActive).length > 0
+    ) {
+      // Reopen the clue: hide the answer again, no judge in flight, no advance.
+      nextActive.answerRevealed = false;
+      nextActive.canAdvance = false;
+    } else {
+      nextActive.canAdvance = true;
+    }
   }
 
   const events: GameEvent[] = [
@@ -879,6 +906,15 @@ function selectPicker(state: GameState) {
 
 function getActivePlayers(state: GameState) {
   return Object.values(state.players).filter((player) => !player.spectator);
+}
+
+function remainingActivePlayers(
+  state: GameState,
+  active: ActiveClueState,
+) {
+  return getActivePlayers(state).filter(
+    (player) => active.judges[player.id] === undefined,
+  );
 }
 
 function requireActivePlayer(

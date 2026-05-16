@@ -9,9 +9,11 @@ interface PodiumProps {
   player: PublicPlayerState;
   state: PublicGameState;
   isYou: boolean;
+  emoji?: string;
+  color?: string;
 }
 
-export function Podium({ player, state, isYou }: PodiumProps) {
+export function Podium({ player, state, isYou, emoji, color }: PodiumProps) {
   const active = state.currentClue;
   const buzzedAt = active?.buzzes[player.id];
   const isBuzzed = buzzedAt !== undefined;
@@ -45,6 +47,31 @@ export function Podium({ player, state, isYou }: PodiumProps) {
         filter: isPicker ? "drop-shadow(0 0 12px rgba(255,210,59,0.45))" : "none",
       }}
     >
+      {/* Avatar disc above the plate */}
+      {(emoji || color) && (
+        <Box
+          aria-hidden
+          sx={{
+            position: "absolute",
+            top: -16,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 1,
+            width: 32,
+            height: 32,
+            borderRadius: "50%",
+            background: color ?? "rgba(255,255,255,0.08)",
+            border: "2px solid #0c0c10",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 18,
+          }}
+        >
+          {emoji ?? ""}
+        </Box>
+      )}
+
       {/* Front face — main pillar with name and score */}
       <Box
         sx={{
@@ -55,10 +82,10 @@ export function Podium({ player, state, isYou }: PodiumProps) {
           borderTop: "2px solid",
           borderLeft: "1px solid",
           borderRight: "1px solid",
-          borderColor: isPicker ? "#ffd23b" : "rgba(255,255,255,0.16)",
+          borderColor: isPicker ? "#ffd23b" : color ?? "rgba(255,255,255,0.16)",
           borderRadius: "12px 12px 4px 4px",
           px: 1.25,
-          pt: 1,
+          pt: emoji || color ? 2.25 : 1,
           pb: 1.5,
           textAlign: "center",
           // Subtle inner highlight to feel like the show's gloss

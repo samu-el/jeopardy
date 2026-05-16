@@ -14,8 +14,15 @@ import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import SpaceBarIcon from "@mui/icons-material/SpaceBar";
 import type { PublicGameState } from "@/lib/game";
 import { useGameStore } from "@/lib/state/game-store";
-import { judgeAnswer as fuzzyJudge, playSfx, primeAudio } from "@/lib/ai";
+import {
+  judgeAnswer as fuzzyJudge,
+  playSfx,
+  primeAudio,
+  startFinalTheme,
+  stopFinalTheme,
+} from "@/lib/ai";
 import { MicAnswerField } from "./MicAnswerField";
+import { DailyDoubleSplash } from "./DailyDoubleSplash";
 
 interface ClueStageProps {
   state: PublicGameState;
@@ -41,11 +48,48 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
 
   const activeClueId = currentClue?.clueId ?? null;
   const [trackedClueId, setTrackedClueId] = useState<string | null>(null);
+  const [ddSplashId, setDdSplashId] = useState<string | null>(null);
+  const [ddSplashVisible, setDdSplashVisible] = useState(false);
   if (trackedClueId !== activeClueId) {
     setTrackedClueId(activeClueId);
     setAnswerInput("");
     setWagerInput("");
   }
+
+  // Daily Double splash for ~1.2s when the DD clue is picked, before the
+  // wager form appears. Detect the rising edge in render with a guard.
+  const shouldTriggerDdSplash =
+    Boolean(currentClue?.dailyDouble) &&
+    currentClue?.waitingForWager.length !== 0 &&
+    ddSplashId !== (currentClue?.clueId ?? null);
+  if (shouldTriggerDdSplash && currentClue) {
+    setDdSplashId(currentClue.clueId);
+    setDdSplashVisible(true);
+    if (preferences.soundEnabled) playSfx("daily-double");
+  }
+  useEffect(() => {
+    if (!ddSplashVisible) return;
+    const id = setTimeout(() => setDdSplashVisible(false), 1_200);
+    return () => clearTimeout(id);
+  }, [ddSplashVisible]);
+
+  // Final Jeopardy ambient theme — starts on the wager prompt for FJ and
+  // stops when the round is complete or component unmounts.
+  const finalThemeArmed = useRef<string | null>(null);
+  useEffect(() => {
+    if (!currentClue) {
+      stopFinalTheme();
+      finalThemeArmed.current = null;
+      return;
+    }
+    if (currentClue.round !== "final-jeopardy") return;
+    if (!preferences.soundEnabled) return;
+    if (finalThemeArmed.current === currentClue.clueId) return;
+    finalThemeArmed.current = currentClue.clueId;
+    startFinalTheme(30);
+  }, [currentClue, preferences.soundEnabled]);
+
+  useEffect(() => () => stopFinalTheme(), []);
 
   useEffect(() => {
     if (currentClue?.canBuzz && currentClue.buzzes[currentClientId] === undefined) {
@@ -291,7 +335,12 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
         {preferences.soundEnabled ? <VolumeUpIcon color="action" /> : <VolumeOffIcon color="disabled" />}
       </Stack>
 
-      {currentClue.waitingForWager.length > 0 && (
+      <DailyDoubleSplash
+        visible={ddSplashVisible}
+        reducedMotion={preferences.reducedMotion}
+      />
+
+      {currentClue.waitingForWager.length > 0 && !ddSplashVisible && (
         <Box>
           <LinearProgress variant="determinate" value={wagerProgress} sx={{ height: 6, borderRadius: 3 }} />
           <Typography variant="caption" color="text.secondary">
@@ -376,7 +425,7 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
         </Typography>
       ) : null}
 
-      {myWagerOpen && !wagerSubmittedByMe ? (
+      {myWagerOpen && !wagerSubmittedByMe && !ddSplashVisible ? (
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
           <TextField
             label={`Wager $${wagerLimits.min}–${wagerLimits.max}`}

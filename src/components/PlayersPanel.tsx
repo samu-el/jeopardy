@@ -14,6 +14,7 @@ import AddIcon from "@mui/icons-material/AddOutlined";
 import DeleteIcon from "@mui/icons-material/DeleteOutlined";
 import { baselineBotProfiles } from "@/lib/foundation/game-contracts";
 import { useGameStore } from "@/lib/state/game-store";
+import { AvatarPicker } from "./AvatarPicker";
 
 export function PlayersPanel() {
   const lobby = useGameStore((s) => s.lobby);
@@ -26,17 +27,26 @@ export function PlayersPanel() {
   const setAiJudge = useGameStore((s) => s.setAiJudge);
   const setHostControlsAuto = useGameStore((s) => s.setHostControlsAuto);
   const setSoloMode = useGameStore((s) => s.setSoloMode);
+  const setHostSpectator = useGameStore((s) => s.setHostSpectator);
   const [humanName, setHumanName] = useState("");
 
   return (
     <Stack spacing={2}>
-      <TextField
-        size="small"
-        label="Your name"
-        value={lobby.hostName}
-        onChange={(event) => setHostName(event.target.value)}
-        fullWidth
-      />
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+        <AvatarPicker
+          playerId={lobby.hostId}
+          emoji={lobby.hostEmoji}
+          color={lobby.hostColor}
+          label="Your avatar"
+        />
+        <TextField
+          size="small"
+          label="Your name"
+          value={lobby.hostName}
+          onChange={(event) => setHostName(event.target.value)}
+          fullWidth
+        />
+      </Stack>
 
       <Box>
         <Stack spacing={1}>
@@ -47,6 +57,12 @@ export function PlayersPanel() {
               spacing={1}
               sx={{ alignItems: "center" }}
             >
+              <AvatarPicker
+                playerId={bot.id}
+                emoji={bot.emoji}
+                color={bot.color}
+                size={32}
+              />
               <TextField
                 fullWidth
                 size="small"
@@ -66,6 +82,12 @@ export function PlayersPanel() {
           ))}
           {lobby.extraHumans.map((human) => (
             <Stack key={human.id} direction="row" spacing={1} sx={{ alignItems: "center" }}>
+              <AvatarPicker
+                playerId={human.id}
+                emoji={human.emoji}
+                color={human.color}
+                size={32}
+              />
               <Chip label={human.name} sx={{ flex: 1, justifyContent: "flex-start" }} />
               <IconButton size="small" onClick={() => removeHuman(human.id)}>
                 <DeleteIcon fontSize="small" />
@@ -146,6 +168,15 @@ export function PlayersPanel() {
             />
           }
           label="Solo practice"
+        />
+        <FormControlLabel
+          control={
+            <Switch
+              checked={Boolean(lobby.hostSpectator)}
+              onChange={(_, value) => setHostSpectator(value)}
+            />
+          }
+          label="Watch only"
         />
       </Stack>
     </Stack>

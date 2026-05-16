@@ -30,7 +30,7 @@ export function decideBotBuzz(
   rng: BotRng,
 ): BotBuzzDecision {
   const knowledgeRoll = rng.next();
-  const categoryBoost = clueDifficultyAdjustment(clue);
+  const categoryBoost = clueDifficultyAdjustment(clue) + categoryBiasBoost(profile, clue);
   const effectiveAccuracy = clamp01(profile.targetAccuracy + categoryBoost);
   const knowsAnswer = knowledgeRoll < effectiveAccuracy;
 
@@ -115,6 +115,15 @@ function roundMinimumWager(round: GameClue["round"]) {
       : round === "triple-jeopardy"
         ? 3_000
         : 0;
+}
+
+function categoryBiasBoost(profile: BotProfile, clue: GameClue): number {
+  if (!profile.categoryBias || profile.categoryBias.length === 0) return 0;
+  const category = clue.category.toLowerCase();
+  for (const tag of profile.categoryBias) {
+    if (category.includes(tag.toLowerCase())) return 0.18;
+  }
+  return -0.05;
 }
 
 function clueDifficultyAdjustment(clue: GameClue) {

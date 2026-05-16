@@ -10,6 +10,8 @@ import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import LogoutIcon from "@mui/icons-material/LogoutOutlined";
+import ShareIcon from "@mui/icons-material/IosShareOutlined";
+import KeyboardIcon from "@mui/icons-material/KeyboardOutlined";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ReplayIcon from "@mui/icons-material/ReplayOutlined";
 import SettingsIcon from "@mui/icons-material/SettingsOutlined";
@@ -25,9 +27,14 @@ import { PlayersPanel } from "./PlayersPanel";
 interface RoomToolbarProps {
   onOpenPicker: () => void;
   onOpenBrowser: () => void;
+  onToggleShortcuts: () => void;
 }
 
-export function RoomToolbar({ onOpenPicker, onOpenBrowser }: RoomToolbarProps) {
+export function RoomToolbar({
+  onOpenPicker,
+  onOpenBrowser,
+  onToggleShortcuts,
+}: RoomToolbarProps) {
   const setScreen = useGameStore((s) => s.setScreen);
   const startGame = useGameStore((s) => s.startGame);
   const lobby = useGameStore((s) => s.lobby);
@@ -87,23 +94,50 @@ export function RoomToolbar({ onOpenPicker, onOpenBrowser }: RoomToolbarProps) {
 
       <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
         <Tooltip title="New game">
-          <IconButton onClick={onOpenPicker}>
+          <IconButton onClick={onOpenPicker} sx={{ minWidth: 44, minHeight: 44 }}>
             <ShuffleIcon />
           </IconButton>
         </Tooltip>
         <Tooltip title="Browse">
-          <IconButton onClick={onOpenBrowser}>
+          <IconButton onClick={onOpenBrowser} sx={{ minWidth: 44, minHeight: 44 }}>
             <LibraryIcon />
           </IconButton>
         </Tooltip>
         <Tooltip title="Players">
-          <IconButton onClick={(event) => setPlayersAnchor(event.currentTarget)}>
+          <IconButton
+            onClick={(event) => setPlayersAnchor(event.currentTarget)}
+            sx={{ minWidth: 44, minHeight: 44 }}
+          >
             <PeopleIcon />
           </IconButton>
         </Tooltip>
         <Tooltip title="Settings">
-          <IconButton onClick={(event) => setSettingsAnchor(event.currentTarget)}>
+          <IconButton
+            onClick={(event) => setSettingsAnchor(event.currentTarget)}
+            sx={{ minWidth: 44, minHeight: 44 }}
+          >
             <SettingsIcon />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Share">
+          <IconButton
+            onClick={() => {
+              const url = new URL(window.location.href);
+              if (publicState?.roomId) {
+                url.searchParams.set("room", publicState.roomId);
+              }
+              if (navigator.clipboard) {
+                navigator.clipboard.writeText(url.toString()).catch(() => {});
+              }
+            }}
+            sx={{ minWidth: 44, minHeight: 44 }}
+          >
+            <ShareIcon />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Shortcuts">
+          <IconButton onClick={onToggleShortcuts} sx={{ minWidth: 44, minHeight: 44 }}>
+            <KeyboardIcon />
           </IconButton>
         </Tooltip>
         {inGame ? (

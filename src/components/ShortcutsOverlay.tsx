@@ -1,0 +1,72 @@
+"use client";
+
+import { useEffect } from "react";
+import Box from "@mui/material/Box";
+import Dialog from "@mui/material/Dialog";
+import DialogContent from "@mui/material/DialogContent";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
+
+interface ShortcutsOverlayProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+const SHORTCUTS: { key: string; label: string }[] = [
+  { key: "Space", label: "Buzz in" },
+  { key: "R", label: "Reveal answer" },
+  { key: "Y", label: "Judge correct" },
+  { key: "N", label: "Judge incorrect" },
+  { key: "S", label: "Skip / Next clue" },
+  { key: "?", label: "Toggle this overlay" },
+  { key: "Esc", label: "Close overlays" },
+];
+
+export function ShortcutsOverlay({ open, onClose }: ShortcutsOverlayProps) {
+  useEffect(() => {
+    if (!open) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+      <DialogContent>
+        <Typography variant="overline" sx={{ color: "text.secondary" }}>
+          Keyboard
+        </Typography>
+        <Stack spacing={1} sx={{ mt: 1 }}>
+          {SHORTCUTS.map((entry) => (
+            <Stack
+              key={entry.key}
+              direction="row"
+              spacing={2}
+              sx={{ alignItems: "center", justifyContent: "space-between" }}
+            >
+              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.85)" }}>
+                {entry.label}
+              </Typography>
+              <Box
+                sx={{
+                  px: 1.25,
+                  py: 0.5,
+                  borderRadius: 1,
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.16)",
+                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                  fontSize: 12,
+                  fontWeight: 700,
+                }}
+              >
+                {entry.key}
+              </Box>
+            </Stack>
+          ))}
+        </Stack>
+      </DialogContent>
+    </Dialog>
+  );
+}

@@ -1,4 +1,7 @@
 import { gunzipSync } from "node:zlib";
+import { promises as fs } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { ArchivedEpisodeInput, ArchivedRawClue } from "./contracts";
 
 // Same data source the upstream howardchung/jeopardy app uses.
@@ -24,6 +27,27 @@ let inflight: Promise<RawEpisodeMap> | null = null;
 let lastLoadedAt = 0;
 const TTL_MS = 24 * 60 * 60 * 1000;
 
+const DISK_CACHE_PATH = join(tmpdir(), "jeopardy-archive.json.gz");
+
+async function readDiskCache(): Promise<Buffer | null> {
+  try {
+    const stat = await fs.stat(DISK_CACHE_PATH);
+    if (Date.now() - stat.mtimeMs > TTL_MS) return null;
+    return await fs.readFile(DISK_CACHE_PATH);
+  } catch {
+    return null;
+  }
+}
+
+async function writeDiskCache(buf: Buffer): Promise<void> {
+  try {
+    await fs.writeFile(DISK_CACHE_PATH, buf);
+  } catch {
+    // Read-only filesystem (e.g. some serverless runtimes). Memory cache
+    // still works for the lifetime of the process.
+  }
+}
+
 export async function loadArchive(force = false): Promise<RawEpisodeMap> {
   const now = Date.now();
   if (!force && cache && now - lastLoadedAt < TTL_MS) {
@@ -31,14 +55,17 @@ export async function loadArchive(force = false): Promise<RawEpisodeMap> {
   }
   if (inflight) return inflight;
   inflight = (async () => {
-    const response = await fetch(ARCHIVE_URL, {
-      // Allow Next.js / Bun to cache for the day
-      next: { revalidate: 60 * 60 * 12 },
-    } as RequestInit);
-    if (!response.ok) {
-      throw new Error(`Archive fetch failed: ${response.status}`);
+    let buf = force ? null : await readDiskCache();
+    if (!buf) {
+      const response = await fetch(ARCHIVE_URL, {
+        next: { revalidate: 60 * 60 * 12 },
+      } as RequestInit);
+      if (!response.ok) {
+        throw new Error(`Archive fetch failed: ${response.status}`);
+      }
+      buf = Buffer.from(await response.arrayBuffer());
+      await writeDiskCache(buf);
     }
-    const buf = Buffer.from(await response.arrayBuffer());
     const json = JSON.parse(gunzipSync(buf).toString("utf8")) as RawEpisodeMap;
     cache = json;
     lastLoadedAt = Date.now();
@@ -90,16 +117,38 @@ export function classifyTheme(info: string | undefined): string {
   return "standard";
 }
 
+export function classifyDecade(airDate: string | undefined): string | undefined {
+  if (!airDate) return undefined;
+  const yearMatch = /^(\d{4})/.exec(airDate);
+  if (!yearMatch) return undefined;
+  const year = Number(yearMatch[1]);
+  if (year < 1984 || year > 2100) return undefined;
+  if (year < 1990) return "1980s";
+  if (year < 2000) return "1990s";
+  if (year < 2010) return "2000s";
+  if (year < 2020) return "2010s";
+  return "2020s";
+}
+
 export function listEpisodes(
   archive: RawEpisodeMap,
-  options: { theme?: string; query?: string; limit?: number; offset?: number } = {},
+  options: {
+    theme?: string;
+    decade?: string;
+    query?: string;
+    limit?: number;
+    offset?: number;
+  } = {},
 ): { total: number; episodes: EpisodeListing[] } {
   const term = options.query?.trim().toLowerCase();
   const themeFilter = options.theme && options.theme !== "all" ? options.theme : undefined;
+  const decadeFilter = options.decade && options.decade !== "all" ? options.decade : undefined;
   const all: EpisodeListing[] = [];
   for (const [key, episode] of Object.entries(archive)) {
     const theme = classifyTheme(episode.info);
     if (themeFilter && theme !== themeFilter) continue;
+    const decade = classifyDecade(episode.airDate);
+    if (decadeFilter && decade !== decadeFilter) continue;
     if (term) {
       const haystack = `${episode.epNum} ${episode.info ?? ""} ${episode.airDate ?? ""}`.toLowerCase();
       if (!haystack.includes(term)) continue;
@@ -126,6 +175,17 @@ export function listEpisodes(
     total: all.length,
     episodes: all.slice(offset, offset + limit),
   };
+}
+
+export function decadeCounts(archive: RawEpisodeMap): Record<string, number> {
+  const counts: Record<string, number> = { all: 0 };
+  for (const episode of Object.values(archive)) {
+    const decade = classifyDecade(episode.airDate);
+    if (!decade) continue;
+    counts[decade] = (counts[decade] ?? 0) + 1;
+    counts.all += 1;
+  }
+  return counts;
 }
 
 export function getEpisode(
@@ -158,10 +218,11 @@ export function themeCounts(archive: RawEpisodeMap): Record<string, number> {
 
 export function getRandomEpisode(
   archive: RawEpisodeMap,
-  options: { theme?: string } = {},
+  options: { theme?: string; decade?: string } = {},
 ): { id: string; episode: ArchivedEpisodeInput } | undefined {
   const { episodes } = listEpisodes(archive, {
     theme: options.theme,
+    decade: options.decade,
     limit: 100_000,
   });
   // Require a complete game (final + at least one round) to avoid duds.

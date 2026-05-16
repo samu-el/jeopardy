@@ -55,6 +55,12 @@ export interface BotProfile {
   maxBuzzDelayMs: number;
   targetAccuracy: number;
   wagerAggression: number;
+  /**
+   * Words/patterns the bot is biased toward in category names. Bots will
+   * prefer matching categories when picking, and get a small accuracy bump
+   * on clues whose category matches.
+   */
+  categoryBias?: string[];
 }
 
 export interface AvatarHostProfile {
@@ -113,6 +119,7 @@ export const baselineBotProfiles: BotProfile[] = [
     maxBuzzDelayMs: 2600,
     targetAccuracy: 0.34,
     wagerAggression: 0.2,
+    categoryBias: ["pop", "kids", "tv", "movie"],
   },
   {
     id: "casual",
@@ -122,6 +129,7 @@ export const baselineBotProfiles: BotProfile[] = [
     maxBuzzDelayMs: 1800,
     targetAccuracy: 0.52,
     wagerAggression: 0.45,
+    categoryBias: ["history", "geography", "sports"],
   },
   {
     id: "champion",
@@ -131,6 +139,7 @@ export const baselineBotProfiles: BotProfile[] = [
     maxBuzzDelayMs: 950,
     targetAccuracy: 0.74,
     wagerAggression: 0.7,
+    categoryBias: ["science", "literature", "math"],
   },
   {
     id: "legend",
@@ -140,6 +149,7 @@ export const baselineBotProfiles: BotProfile[] = [
     maxBuzzDelayMs: 420,
     targetAccuracy: 0.88,
     wagerAggression: 0.9,
+    categoryBias: ["world", "language", "art", "classical"],
   },
 ];
 
