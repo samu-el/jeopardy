@@ -84,15 +84,34 @@ export const classicSampleEpisode: ArchivedEpisodeInput = {
   ],
 };
 
-export const sampleEpisodes: { id: string; title: string; data: ArchivedEpisodeInput }[] = [
+export type SampleTheme =
+  | "standard"
+  | "kids-week"
+  | "teen-tournament"
+  | "college-championship"
+  | "tournament-of-champions";
+
+export interface SampleEpisode {
+  id: string;
+  number: number;
+  title: string;
+  theme: SampleTheme;
+  data: ArchivedEpisodeInput;
+}
+
+export const sampleEpisodes: SampleEpisode[] = [
   {
     id: "studio-showdown",
+    number: 100,
     title: "Studio Showdown",
+    theme: "standard",
     data: classicSampleEpisode,
   },
   {
     id: "code-night",
+    number: 101,
     title: "Code Night",
+    theme: "tournament-of-champions",
     data: {
       episodeNumber: "S-101",
       airDate: "2026-05-09",
@@ -171,4 +190,125 @@ export const sampleEpisodes: { id: string; title: string; data: ArchivedEpisodeI
       ],
     },
   },
+  {
+    id: "kids-week",
+    number: 200,
+    title: "Kids Week",
+    theme: "kids-week",
+    data: {
+      episodeNumber: "K-1",
+      airDate: "2026-05-01",
+      info: "Friendlier clues for the youngest contestants",
+      title: "Kids Week",
+      jeopardy: [
+        { x: 1, y: 1, cat: "Animals", val: 100, q: "Black-and-white bear that eats bamboo.", a: "panda" },
+        { x: 1, y: 2, cat: "Animals", val: 200, q: "Largest land mammal.", a: "elephant" },
+        { x: 1, y: 3, cat: "Animals", val: 300, q: "Birds that cannot fly but swim well in the Antarctic.", a: "penguins" },
+        { x: 1, y: 4, cat: "Animals", val: 400, q: "Sea creature with eight arms.", a: "octopus" },
+        { x: 1, y: 5, cat: "Animals", val: 500, q: "Group name for a bunch of lions.", a: "pride" },
+        { x: 2, y: 1, cat: "Colors", val: 100, q: "The color of the sun.", a: "yellow" },
+        { x: 2, y: 2, cat: "Colors", val: 200, q: "Mix red and blue to get this.", a: "purple" },
+        { x: 2, y: 3, cat: "Colors", val: 300, q: "Color of an emerald.", a: "green" },
+        { x: 2, y: 4, cat: "Colors", val: 400, q: "Spectrum has seven of these.", a: "colors" },
+        { x: 2, y: 5, cat: "Colors", val: 500, q: "Red and green make this Italian flag color combo plus white.", a: "Italy" },
+        { x: 3, y: 1, cat: "Numbers", val: 100, q: "Number of legs on a spider.", a: "eight" },
+        { x: 3, y: 2, cat: "Numbers", val: 200, q: "Sides of a triangle.", a: "three" },
+        { x: 3, y: 3, cat: "Numbers", val: 300, q: "Days in a leap year.", a: "366" },
+        { x: 3, y: 4, cat: "Numbers", val: 400, q: "It comes right after twelve.", a: "thirteen" },
+        { x: 3, y: 5, cat: "Numbers", val: 500, q: "Roman numeral for 100.", a: "C" },
+      ],
+      final: [
+        {
+          cat: "School",
+          q: "Subject where you learn about plants and animals.",
+          a: "biology",
+        },
+      ],
+    },
+  },
+  {
+    id: "teen-tournament",
+    number: 300,
+    title: "Teen Tournament",
+    theme: "teen-tournament",
+    data: {
+      episodeNumber: "T-1",
+      airDate: "2026-04-15",
+      info: "High-school favorites",
+      title: "Teen Tournament",
+      jeopardy: [
+        { x: 1, y: 1, cat: "Pop Music", val: 200, q: "Genre dominating the late-2010s charts with artists like Drake.", a: "hip hop" },
+        { x: 1, y: 2, cat: "Pop Music", val: 400, q: "British band of John, Paul, George, and Ringo.", a: "the Beatles" },
+        { x: 1, y: 3, cat: "Pop Music", val: 600, q: "She released the album '1989' in 2014 and re-recorded it in 2023.", a: "Taylor Swift" },
+        { x: 1, y: 4, cat: "Pop Music", val: 800, q: "Beyonce's group before her solo career.", a: "Destiny's Child" },
+        { x: 1, y: 5, cat: "Pop Music", val: 1000, q: "Streaming service founded in Sweden in 2006.", a: "Spotify" },
+        { x: 2, y: 1, cat: "Social Media", val: 200, q: "App that limited posts to 140 characters until 2017.", a: "Twitter" },
+        { x: 2, y: 2, cat: "Social Media", val: 400, q: "Disappearing-message app with a ghost logo.", a: "Snapchat" },
+        { x: 2, y: 3, cat: "Social Media", val: 600, q: "ByteDance-owned short video platform.", a: "TikTok" },
+        { x: 2, y: 4, cat: "Social Media", val: 800, q: "Photo-sharing app Facebook bought in 2012.", a: "Instagram" },
+        { x: 2, y: 5, cat: "Social Media", val: 1000, q: "Reddit's main moderator badge color.", a: "green" },
+        { x: 3, y: 1, cat: "Movies", val: 200, q: "Wizarding school in the Harry Potter series.", a: "Hogwarts" },
+        { x: 3, y: 2, cat: "Movies", val: 400, q: "Spider-Man actor in the 2002 original Sam Raimi film.", a: "Tobey Maguire" },
+        { x: 3, y: 3, cat: "Movies", val: 600, q: "Marvel film where Thanos snaps his fingers.", a: "Infinity War" },
+        { x: 3, y: 4, cat: "Movies", val: 800, q: "Pixar movie about emotions inside a kid's head.", a: "Inside Out" },
+        { x: 3, y: 5, cat: "Movies", val: 1000, q: "Best Picture winner of 2020 from Bong Joon-ho.", a: "Parasite" },
+      ],
+      final: [
+        {
+          cat: "Internet",
+          q: "Streaming site started in 2005 with the first uploaded video, 'Me at the zoo'.",
+          a: "YouTube",
+        },
+      ],
+    },
+  },
+  {
+    id: "college-bowl",
+    number: 400,
+    title: "College Championship",
+    theme: "college-championship",
+    data: {
+      episodeNumber: "C-1",
+      airDate: "2026-03-20",
+      info: "University-level academic clues",
+      title: "College Championship",
+      jeopardy: [
+        { x: 1, y: 1, cat: "Philosophy", val: 200, q: "Greek philosopher who taught Aristotle.", a: "Plato" },
+        { x: 1, y: 2, cat: "Philosophy", val: 400, q: "He wrote 'I think, therefore I am'.", a: "Descartes" },
+        { x: 1, y: 3, cat: "Philosophy", val: 600, q: "Categorical imperative philosopher from Königsberg.", a: "Kant" },
+        { x: 1, y: 4, cat: "Philosophy", val: 800, q: "Existentialist who wrote 'Being and Nothingness'.", a: "Sartre" },
+        { x: 1, y: 5, cat: "Philosophy", val: 1000, q: "She wrote 'The Second Sex' in 1949.", a: "Simone de Beauvoir" },
+        { x: 2, y: 1, cat: "Chemistry", val: 200, q: "Atomic number of carbon.", a: "6" },
+        { x: 2, y: 2, cat: "Chemistry", val: 400, q: "Noble gas filling neon signs.", a: "neon" },
+        { x: 2, y: 3, cat: "Chemistry", val: 600, q: "pH below 7 means this.", a: "acidic" },
+        { x: 2, y: 4, cat: "Chemistry", val: 800, q: "Avogadro's number is roughly six times ten to this power.", a: "23" },
+        { x: 2, y: 5, cat: "Chemistry", val: 1000, q: "Bond that shares electrons between atoms.", a: "covalent" },
+        { x: 3, y: 1, cat: "World History", val: 200, q: "Year the Berlin Wall fell.", a: "1989" },
+        { x: 3, y: 2, cat: "World History", val: 400, q: "Egyptian queen who allied with Caesar and Mark Antony.", a: "Cleopatra" },
+        { x: 3, y: 3, cat: "World History", val: 600, q: "Treaty that ended World War I in 1919.", a: "Treaty of Versailles" },
+        { x: 3, y: 4, cat: "World History", val: 800, q: "Mongol leader who founded the largest contiguous empire.", a: "Genghis Khan" },
+        { x: 3, y: 5, cat: "World History", val: 1000, q: "Year Constantinople fell to the Ottomans.", a: "1453" },
+      ],
+      final: [
+        {
+          cat: "Economics",
+          q: "Scottish author of 'The Wealth of Nations' in 1776.",
+          a: "Adam Smith",
+        },
+      ],
+    },
+  },
 ];
+
+export const themeLabels: Record<SampleTheme, string> = {
+  standard: "Standard",
+  "kids-week": "Kids Week",
+  "teen-tournament": "Teen Tournament",
+  "college-championship": "College Championship",
+  "tournament-of-champions": "Tournament of Champions",
+};
+
+export function pickRandomEpisode(rng: () => number = Math.random): SampleEpisode {
+  const index = Math.floor(rng() * sampleEpisodes.length);
+  return sampleEpisodes[index];
+}

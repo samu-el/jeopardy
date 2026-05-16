@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { baselineBotProfiles, type BotProfile } from "@/lib/foundation/game-contracts";
+import type { BotProfile } from "@/lib/foundation/game-contracts";
 import type { GameEvent, PublicGameState } from "@/lib/game";
 import { LocalRoomRuntime, type ChatMessage } from "@/lib/runtime";
 import { sampleEpisodes } from "@/lib/sample-games";
@@ -13,7 +13,7 @@ import {
 } from "@/lib/data";
 import { defaultAvatarHostProfile, type AvatarHostCue } from "@/lib/ai";
 
-export type ScreenName = "lobby" | "play" | "results";
+export type ScreenName = "landing" | "lobby" | "play" | "results";
 
 export interface UiPreferences {
   captionsEnabled: boolean;
@@ -75,18 +75,7 @@ export interface GameStoreState {
   appendChat: (message: ChatMessage) => void;
 }
 
-const initialBots: LobbyBotConfig[] = [
-  {
-    id: "bot-casual",
-    name: "Casey (Casual)",
-    profile: baselineBotProfiles[1],
-  },
-  {
-    id: "bot-champion",
-    name: "Champ (Champion)",
-    profile: baselineBotProfiles[2],
-  },
-];
+const initialBots: LobbyBotConfig[] = [];
 
 const stableHostId = "you";
 
@@ -95,7 +84,7 @@ function makeId(prefix: string) {
 }
 
 export const useGameStore = create<GameStoreState>((set, get) => ({
-  screen: "lobby",
+  screen: "landing",
   preferences: {
     captionsEnabled: true,
     reducedMotion: false,

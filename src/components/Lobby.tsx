@@ -25,6 +25,7 @@ import ScienceIcon from "@mui/icons-material/Science";
 import BuildIcon from "@mui/icons-material/BuildCircleOutlined";
 import LibraryIcon from "@mui/icons-material/LibraryBooksOutlined";
 import AddIcon from "@mui/icons-material/AddOutlined";
+import ShuffleIcon from "@mui/icons-material/ShuffleOutlined";
 import { baselineBotProfiles } from "@/lib/foundation/game-contracts";
 import { useGameStore } from "@/lib/state/game-store";
 import { sampleEpisodes } from "@/lib/sample-games";
@@ -33,6 +34,7 @@ import { primeAudio } from "@/lib/ai";
 import { SettingsPanel } from "./SettingsPanel";
 import { CustomGameBuilder } from "./CustomGameBuilder";
 import { EpisodeBrowser } from "./EpisodeBrowser";
+import { GamePicker } from "./GamePicker";
 
 const sampleCsv = `round,cat,q,a,dd
 jeopardy,Warmup,The first month of the year.,January,false
@@ -60,6 +62,7 @@ export function Lobby() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [builderOpen, setBuilderOpen] = useState(false);
   const [browserOpen, setBrowserOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const totalPlayers = 1 + lobby.extraHumans.length + lobby.bots.length;
   const canStart =
@@ -134,6 +137,21 @@ export function Lobby() {
               useFlexGap
               sx={{ mt: 1.5, flexWrap: "wrap" }}
             >
+              <Tooltip title="New game">
+                <IconButton size="small" onClick={() => setPickerOpen(true)}>
+                  <ShuffleIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Browse">
+                <IconButton size="small" onClick={() => setBrowserOpen(true)}>
+                  <LibraryIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Build">
+                <IconButton size="small" onClick={() => setBuilderOpen(true)}>
+                  <BuildIcon />
+                </IconButton>
+              </Tooltip>
               <Tooltip title="Upload CSV">
                 <IconButton component="label" size="small">
                   <UploadFileIcon />
@@ -146,16 +164,6 @@ export function Lobby() {
                       if (file) handleFile(file);
                     }}
                   />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Build">
-                <IconButton size="small" onClick={() => setBuilderOpen(true)}>
-                  <BuildIcon />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Browse">
-                <IconButton size="small" onClick={() => setBrowserOpen(true)}>
-                  <LibraryIcon />
                 </IconButton>
               </Tooltip>
               <Tooltip title="Sample">
@@ -323,6 +331,7 @@ export function Lobby() {
       <SettingsPanel />
       <CustomGameBuilder open={builderOpen} onClose={() => setBuilderOpen(false)} />
       <EpisodeBrowser open={browserOpen} onClose={() => setBrowserOpen(false)} />
+      <GamePicker open={pickerOpen} onClose={() => setPickerOpen(false)} />
     </Box>
   );
 }

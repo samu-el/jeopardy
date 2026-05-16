@@ -31,7 +31,10 @@ export function Chat() {
   }
 
   return (
-    <Paper variant="outlined" sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+    <Paper
+      variant="outlined"
+      sx={{ display: "flex", flexDirection: "column", maxHeight: 220 }}
+    >
       <Box
         ref={scrollRef}
         sx={{

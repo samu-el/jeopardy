@@ -2,9 +2,6 @@
 
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
@@ -13,20 +10,11 @@ import UndoIcon from "@mui/icons-material/UndoOutlined";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { useGameStore } from "@/lib/state/game-store";
 import { Board } from "./Board";
-import { Scoreboard } from "./Scoreboard";
 import { ClueStage } from "./ClueStage";
 import { Chat } from "./Chat";
 import { ResultsView } from "./ResultsView";
 import { AvatarHostController } from "./AvatarHostController";
-
-const roundLabels: Record<string, string> = {
-  lobby: "Lobby",
-  jeopardy: "Jeopardy",
-  "double-jeopardy": "Double Jeopardy",
-  "triple-jeopardy": "Triple Jeopardy",
-  "final-jeopardy": "Final",
-  complete: "Complete",
-};
+import { Podium } from "./Podium";
 
 export function GameView() {
   const publicState = useGameStore((s) => s.publicState);
@@ -63,19 +51,12 @@ export function GameView() {
       <Stack
         direction="row"
         spacing={1}
-        useFlexGap
         sx={{
           justifyContent: "space-between",
           alignItems: "center",
-          flexWrap: "wrap",
         }}
       >
-        <Chip
-          color="primary"
-          label={roundLabels[publicState.round] ?? publicState.round}
-          sx={{ fontWeight: 700 }}
-        />
-        <Stack direction="row" spacing={1}>
+        <Box>
           {isHost && showLobbyStart ? (
             <Button
               variant="contained"
@@ -85,6 +66,8 @@ export function GameView() {
               Begin
             </Button>
           ) : null}
+        </Box>
+        <Stack direction="row" spacing={1}>
           {isHost ? (
             <Tooltip title="Undo">
               <IconButton
@@ -102,47 +85,64 @@ export function GameView() {
         </Stack>
       </Stack>
 
+      {/* 75/25 vertical split — board on top, podiums on bottom */}
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: { xs: "1fr", lg: "minmax(0, 2.2fr) minmax(260px, 1fr)" },
+          gridTemplateRows: "minmax(0, 3fr) minmax(0, 1fr)",
           gap: 2,
+          minHeight: { md: "calc(100vh - 160px)" },
         }}
       >
-        <Stack spacing={2}>
-          <ClueStage state={publicState} currentClientId={lobby.hostId} />
-          <Card variant="outlined">
-            <CardContent sx={{ p: { xs: 1, sm: 2 } }}>
-              <Board
-                state={publicState}
-                canPick={canPick}
-                onPick={(clueId) =>
-                  runtime.sendCommand(lobby.hostId, { type: "pick-clue", clueId })
-                }
-              />
-            </CardContent>
-          </Card>
-        </Stack>
+        <Box sx={{ position: "relative", minHeight: 320 }}>
+          <Box sx={{ width: "100%", maxWidth: 1200, mx: "auto" }}>
+            <Board
+              state={publicState}
+              canPick={canPick}
+              onPick={(clueId) =>
+                runtime.sendCommand(lobby.hostId, { type: "pick-clue", clueId })
+              }
+            />
+          </Box>
+          {publicState.currentClue ? (
+            <Box
+              role="dialog"
+              aria-modal="false"
+              sx={{
+                position: "absolute",
+                inset: 0,
+                background: "linear-gradient(180deg, #060d2a 0%, #02061b 100%)",
+                zIndex: 2,
+                display: "flex",
+                flexDirection: "column",
+                borderRadius: 1,
+              }}
+            >
+              <ClueStage state={publicState} currentClientId={lobby.hostId} />
+            </Box>
+          ) : null}
+        </Box>
 
-        <Stack
-          spacing={2}
+        <Box
           sx={{
-            display: "flex",
-            flexDirection: "column",
-            height: { lg: "calc(100vh - 220px)" },
-            minHeight: 480,
+            display: "grid",
+            gap: 1.5,
+            gridTemplateColumns: `repeat(${Math.max(1, publicState.players.length)}, minmax(0, 1fr))`,
+            alignItems: "end",
           }}
         >
-          <Card variant="outlined" sx={{ flexShrink: 0 }}>
-            <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
-              <Scoreboard state={publicState} currentClientId={lobby.hostId} />
-            </CardContent>
-          </Card>
-          <Box sx={{ flex: 1, minHeight: 200 }}>
-            <Chat />
-          </Box>
-        </Stack>
+          {publicState.players.map((player) => (
+            <Podium
+              key={player.id}
+              player={player}
+              state={publicState}
+              isYou={player.id === lobby.hostId}
+            />
+          ))}
+        </Box>
       </Box>
+
+      <Chat />
     </Stack>
   );
 }

@@ -280,12 +280,14 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
     <Paper
       variant="outlined"
       sx={{
-        p: { xs: 2, md: 3 },
+        p: { xs: 2, md: 4 },
+        flex: 1,
         display: "flex",
         flexDirection: "column",
         gap: 2,
-        minHeight: { xs: 320, md: 360 },
-        background: "linear-gradient(135deg, rgba(31,63,191,0.25) 0%, rgba(8,11,18,0.6) 100%)",
+        background: "transparent",
+        border: "none",
+        boxShadow: "none",
         position: "relative",
       }}
     >

@@ -835,6 +835,7 @@ function canBuzz(active: ActiveClueState, now: number) {
     !active.dailyDoublePlayerId &&
     active.round !== "final-jeopardy" &&
     active.waitingForWager.length === 0 &&
+    Object.keys(active.buzzes).length === 0 &&
     Boolean(active.readoutEndsAt) &&
     now >= (active.readoutEndsAt ?? Number.POSITIVE_INFINITY) &&
     now <= (active.answerWindowEndsAt ?? Number.NEGATIVE_INFINITY)
