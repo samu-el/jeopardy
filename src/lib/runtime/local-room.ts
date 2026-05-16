@@ -206,14 +206,9 @@ export class LocalRoomRuntime {
           });
           break;
         }
-        case "buzz-accepted": {
-          const player = state.players[event.actorId];
-          this.pushChat({
-            kind: "system",
-            text: `${player?.displayName ?? event.actorId} · ${event.reactionTimeMs}ms`,
-          });
+        case "buzz-accepted":
+          // Visualised on the scoreboard via animated light bar; no chat noise.
           break;
-        }
         case "answer-judged": {
           const player = state.players[event.targetPlayerId];
           this.pushChat({

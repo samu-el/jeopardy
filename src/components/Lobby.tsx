@@ -29,6 +29,7 @@ import { baselineBotProfiles } from "@/lib/foundation/game-contracts";
 import { useGameStore } from "@/lib/state/game-store";
 import { sampleEpisodes } from "@/lib/sample-games";
 import { normalizeCustomCsvGame } from "@/lib/data";
+import { primeAudio } from "@/lib/ai";
 import { SettingsPanel } from "./SettingsPanel";
 import { CustomGameBuilder } from "./CustomGameBuilder";
 import { EpisodeBrowser } from "./EpisodeBrowser";
@@ -310,7 +311,10 @@ export function Lobby() {
           size="large"
           startIcon={<PlayArrowIcon />}
           disabled={!canStart}
-          onClick={startGame}
+          onClick={() => {
+            primeAudio();
+            startGame();
+          }}
           sx={{ alignSelf: "flex-start", px: 4, py: 1.4 }}
         >
           Start

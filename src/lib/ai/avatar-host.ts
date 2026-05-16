@@ -6,6 +6,8 @@ import {
 
 export type AvatarHostCueType =
   | "intro"
+  | "intro-categories"
+  | "clue-selected"
   | "clue-readout"
   | "buzzer-unlocked"
   | "answer-correct"
@@ -33,6 +35,7 @@ export interface AvatarHostInput {
     score?: number;
     clueText?: string;
     correctResponse?: string;
+    categories?: string[];
   };
   profile?: AvatarHostProfile;
   mode?: AvatarHostMode;
@@ -62,6 +65,33 @@ export function generateAvatarHostCue(input: AvatarHostInput): AvatarHostCue {
         speak,
         animationHint: "lean-in",
       };
+    case "intro-categories": {
+      const categories = input.context?.categories ?? [];
+      const list = formatCategoryList(categories);
+      return {
+        id: `cats-${Date.now()}`,
+        type: "intro-categories",
+        text: categories.length === 0
+          ? "Here are your categories."
+          : `Today's categories are: ${list}.`,
+        speak,
+        animationHint: "lean-in",
+      };
+    }
+    case "clue-selected": {
+      const category = input.context?.category;
+      const value = input.context?.value;
+      const text = category && value !== undefined
+        ? `${category}, for ${value}.`
+        : category ?? `${value ?? ""}`;
+      return {
+        id: `pick-${Date.now()}`,
+        type: "clue-selected",
+        text,
+        speak,
+        animationHint: "lean-in",
+      };
+    }
     case "clue-readout":
       return {
         id: `clue-${Date.now()}`,
@@ -74,8 +104,8 @@ export function generateAvatarHostCue(input: AvatarHostInput): AvatarHostCue {
       return {
         id: `buzz-${Date.now()}`,
         type: "buzzer-unlocked",
-        text: "Buzzers are open.",
-        speak: speak && profile.allowRuleReminders,
+        text: "",
+        speak: false,
         animationHint: "idle",
       };
     case "answer-correct":
@@ -147,6 +177,13 @@ function greeting(profile: AvatarHostProfile) {
     case "dry-commentator":
       return `Welcome. It's a game show. You know the rules. (Tone: ${tone}.)`;
   }
+}
+
+function formatCategoryList(categories: string[]): string {
+  if (categories.length === 0) return "";
+  if (categories.length === 1) return categories[0];
+  if (categories.length === 2) return `${categories[0]} and ${categories[1]}`;
+  return `${categories.slice(0, -1).join(", ")}, and ${categories[categories.length - 1]}`;
 }
 
 function humanRoundName(round: string) {

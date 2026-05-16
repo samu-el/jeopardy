@@ -6,7 +6,7 @@ describe("AvatarNarrator", () => {
   it("speaks intro through the voice adapter when mode is on", () => {
     const speak = vi.fn();
     const narrator = new AvatarNarrator({
-      voice: { speak, cancel: () => {}, isSupported: () => true, listVoices: () => [] },
+      voice: { speak, cancel: () => {}, isSupported: () => true, listVoices: () => [], listDiscoveredVoices: () => [], refreshVoices: () => {} },
       getProfile: () => baselineAvatarHostProfiles[0],
       getMode: () => "voice-only",
       getVoiceProfileId: () => "browser-default",
@@ -20,7 +20,7 @@ describe("AvatarNarrator", () => {
   it("does not speak when host mode is off", () => {
     const speak = vi.fn();
     const narrator = new AvatarNarrator({
-      voice: { speak, cancel: () => {}, isSupported: () => true, listVoices: () => [] },
+      voice: { speak, cancel: () => {}, isSupported: () => true, listVoices: () => [], listDiscoveredVoices: () => [], refreshVoices: () => {} },
       getProfile: () => baselineAvatarHostProfiles[0],
       getMode: () => "off",
       getVoiceProfileId: () => "browser-default",
@@ -34,7 +34,7 @@ describe("AvatarNarrator", () => {
   it("does not double-speak the same cue twice in a row", () => {
     const speak = vi.fn();
     const narrator = new AvatarNarrator({
-      voice: { speak, cancel: () => {}, isSupported: () => true, listVoices: () => [] },
+      voice: { speak, cancel: () => {}, isSupported: () => true, listVoices: () => [], listDiscoveredVoices: () => [], refreshVoices: () => {} },
       getProfile: () => baselineAvatarHostProfiles[1],
       getMode: () => "voice-only",
       getVoiceProfileId: () => "browser-default",

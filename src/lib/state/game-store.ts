@@ -100,7 +100,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     captionsEnabled: true,
     reducedMotion: false,
     soundEnabled: true,
-    voiceProfileId: "browser-default",
+    voiceProfileId: "female-natural",
     avatarHostProfileId: defaultAvatarHostProfile().id,
     avatarHostMode: "voice-only",
   },

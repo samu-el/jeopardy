@@ -14,7 +14,8 @@ import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import SpaceBarIcon from "@mui/icons-material/SpaceBar";
 import type { PublicGameState } from "@/lib/game";
 import { useGameStore } from "@/lib/state/game-store";
-import { createVoiceAdapter, judgeAnswer as fuzzyJudge } from "@/lib/ai";
+import { createVoiceAdapter, judgeAnswer as fuzzyJudge, playSfx, primeAudio } from "@/lib/ai";
+import { MicAnswerField } from "./MicAnswerField";
 
 interface ClueStageProps {
   state: PublicGameState;
@@ -78,6 +79,39 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
 
   const clueRevealed = currentClue?.clue !== undefined;
   const answerRevealed = currentClue?.correctResponse !== undefined;
+
+  // Timeout sound: when the answer window passes without anyone submitting
+  // an answer, play a buzzer. Fires once per clue.
+  const timeoutPlayed = useRef<string | null>(null);
+  useEffect(() => {
+    if (!currentClue) return;
+    if (!preferences.soundEnabled) return;
+    if (answerRevealed) return;
+    const endsAt = currentClue.answerWindowEndsAt;
+    if (!endsAt) return;
+    const buzzedCount = Object.keys(currentClue.buzzes).length;
+    const submittedCount = Object.keys(currentClue.answers).length;
+    if (buzzedCount === 0) return;
+    if (submittedCount >= buzzedCount) return;
+    if (timeoutPlayed.current === currentClue.clueId) return;
+    const remaining = endsAt - Date.now();
+    if (remaining > 5_000) return;
+    if (remaining <= 0) {
+      timeoutPlayed.current = currentClue.clueId;
+      playSfx("timeout");
+      return;
+    }
+    const id = setTimeout(() => {
+      timeoutPlayed.current = currentClue.clueId;
+      playSfx("timeout");
+    }, remaining);
+    return () => clearTimeout(id);
+  }, [
+    currentClue,
+    answerRevealed,
+    preferences.soundEnabled,
+    tickNow,
+  ]);
   const isHostId = state.settings.hostId === currentClientId;
   const canAdvanceNow = Boolean(currentClue?.canAdvance);
   const judgeTarget = currentClue?.currentJudgePlayerId;
@@ -186,6 +220,7 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
   }
 
   function handleBuzz() {
+    primeAudio();
     runtime?.sendCommand(currentClientId, { type: "buzz" });
   }
 
@@ -421,20 +456,13 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
               spacing={1}
               sx={{ alignItems: "center", flex: 1 }}
             >
-              <TextField
-                fullWidth
-                size="small"
+              <MicAnswerField
                 label="Answer"
                 value={answerInput}
-                onChange={(event) => setAnswerInput(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    handleSubmitAnswer();
-                  }
-                }}
-                autoFocus
+                onChange={setAnswerInput}
+                onSubmit={handleSubmitAnswer}
                 disabled={Boolean(submittedAnswer)}
+                autoFocus
               />
               <Button
                 variant="contained"
@@ -455,18 +483,13 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
           spacing={1}
           sx={{ alignItems: { sm: "center" } }}
         >
-          <TextField
-            fullWidth
+          <MicAnswerField
             label="Final answer"
             value={answerInput}
-            onChange={(event) => setAnswerInput(event.target.value)}
+            onChange={setAnswerInput}
+            onSubmit={handleSubmitAnswer}
             disabled={Boolean(submittedAnswer)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                handleSubmitAnswer();
-              }
-            }}
+            size="small"
           />
           <Button
             variant="contained"

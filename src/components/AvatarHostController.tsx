@@ -7,7 +7,7 @@ import Typography from "@mui/material/Typography";
 import SpeakerNotesIcon from "@mui/icons-material/SpeakerNotesOutlined";
 import { useGameStore } from "@/lib/state/game-store";
 import { AvatarNarrator, findAvatarProfile } from "@/lib/runtime";
-import { createVoiceAdapter, type AvatarHostCue } from "@/lib/ai";
+import { createVoiceAdapter, playSfx, type AvatarHostCue } from "@/lib/ai";
 import type { GameEvent, PublicGameState } from "@/lib/game";
 
 const voiceAdapter = typeof window === "undefined" ? null : createVoiceAdapter();
@@ -39,12 +39,23 @@ export function AvatarHostController() {
 
   useEffect(() => {
     if (!narratorRef.current) return;
-    if (preferences.avatarHostMode === "off") return;
+    const soundEnabled = preferences.soundEnabled;
     for (const event of events) {
+      if (soundEnabled) {
+        const sfx = sfxForEvent(event);
+        if (sfx) playSfx(sfx);
+      }
+      if (preferences.avatarHostMode === "off") continue;
       const cue = handleEvent(narratorRef.current, event, publicState);
       if (cue) setLastCue(cue);
     }
-  }, [events, preferences.avatarHostMode, publicState, setLastCue]);
+  }, [
+    events,
+    preferences.avatarHostMode,
+    preferences.soundEnabled,
+    publicState,
+    setLastCue,
+  ]);
 
   if (preferences.avatarHostMode === "off") return null;
   if (!lastCue) return null;
@@ -92,7 +103,7 @@ function handleEvent(
   switch (event.type) {
     case "game-started":
       return narrator.emit({ type: "intro" });
-    case "round-advanced":
+    case "round-advanced": {
       if (event.round === "final-jeopardy") {
         return narrator.emit({ type: "final-prompt" });
       }
@@ -103,27 +114,29 @@ function handleEvent(
           context: { playerName: winner?.displayName },
         });
       }
+      const categories = uniqueCategories(state);
       return narrator.emit({
-        type: "round-advance",
-        context: { round: event.round },
+        type: "intro-categories",
+        context: { round: event.round, categories },
       });
-    case "clue-revealed": {
+    }
+    case "clue-picked": {
+      // Real Jeopardy: host echoes "Science, four hundred" when the
+      // player makes a selection — before reading the clue itself.
       const active = state.currentClue;
-      if (!active?.clue) return null;
+      const category = active?.category;
+      const value = active?.value;
+      if (!category) return null;
       return narrator.emit({
-        type: "clue-readout",
-        context: { clueText: active.clue, category: active.category },
+        type: "clue-selected",
+        context: { category, value },
       });
     }
-    case "buzz-accepted": {
-      const player = state.players.find((p) => p.id === event.actorId);
-      const first = Object.keys(state.currentClue?.buzzes ?? {}).length === 1;
-      if (!first) return null;
-      return narrator.emit({
-        type: "buzzer-unlocked",
-        context: { playerName: player?.displayName },
-      });
-    }
+    case "clue-revealed":
+      // Clue text is read aloud directly by ClueStage so we don't speak it
+      // here. We let the toast show nothing extra; the on-screen text is
+      // the caption.
+      return null;
     case "answer-judged": {
       const player = state.players.find((p) => p.id === event.targetPlayerId);
       if (event.correct === true) {
@@ -143,4 +156,28 @@ function handleEvent(
     default:
       return null;
   }
+}
+
+function sfxForEvent(event: GameEvent): Parameters<typeof playSfx>[0] | null {
+  switch (event.type) {
+    case "buzz-accepted":
+      return "buzz";
+    case "answer-judged":
+      if (event.correct === true) return "correct";
+      if (event.correct === false) return "incorrect";
+      return null;
+    default:
+      return null;
+  }
+}
+
+function uniqueCategories(state: PublicGameState): string[] {
+  const order: string[] = [];
+  const seen = new Set<string>();
+  for (const clue of state.board) {
+    if (seen.has(clue.category)) continue;
+    seen.add(clue.category);
+    order.push(clue.category);
+  }
+  return order;
 }
