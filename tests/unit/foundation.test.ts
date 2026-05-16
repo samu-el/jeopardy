@@ -8,7 +8,7 @@ import {
 } from "@/lib/foundation/project";
 
 describe("foundation project metadata", () => {
-  it("pins the intended modern stack", () => {
+  it("pins the intended stack", () => {
     expect(toolchain).toEqual({
       manager: "proto",
       runtime: "bun",

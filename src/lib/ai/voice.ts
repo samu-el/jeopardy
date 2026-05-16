@@ -36,8 +36,8 @@ export interface VoiceAdapter {
 }
 
 // Heuristics to rank a SpeechSynthesisVoice for natural-sounding output.
-// Modern browsers ship engines that vary wildly in quality. The score
-// favours network/neural voices ("Online (Natural)" from Edge, Google's
+// Browser TTS engines vary wildly in quality; the score favours
+// network/neural voices ("Online (Natural)" from Edge, Google's
 // "WaveNet"-style voices, Apple's "Enhanced" / "Premium" downloads).
 function scoreVoice(voice: SpeechSynthesisVoice): {
   score: number;

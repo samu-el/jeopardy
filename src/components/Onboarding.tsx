@@ -6,7 +6,7 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-const STORAGE_KEY = "jeopardy-modern.onboarded.v1";
+const STORAGE_KEY = "jeopardy.onboarded.v1";
 
 function readSeenOnce(): boolean {
   if (typeof window === "undefined") return true;

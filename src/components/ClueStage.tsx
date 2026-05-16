@@ -294,7 +294,6 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
 
   const buzzed = currentClue.buzzes[currentClientId] !== undefined;
   const iSubmitted = Boolean(currentClue.submitted[currentClientId]);
-  const submittedAnswer = iSubmitted ? (currentClue.answers[currentClientId] ?? "") : undefined;
   const inReadout = tickNow < (currentClue.readoutEndsAt ?? Number.POSITIVE_INFINITY);
   const buzzWindowOpen =
     tickNow >= (currentClue.readoutEndsAt ?? Number.POSITIVE_INFINITY) &&

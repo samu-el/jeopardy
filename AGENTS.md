@@ -1,6 +1,6 @@
 # Agent Instructions
 
-This repo is a modern Jeopardy web app rebuild. The upstream reference is `https://github.com/howardchung/jeopardy`, but do not copy UI code directly. Preserve the product behavior while reimplementing with the modern stack and local architecture.
+This repo is a Jeopardy web app rebuild. The upstream reference is `https://github.com/howardchung/jeopardy`, but do not copy UI code directly. Preserve the product behavior while reimplementing with the local stack and architecture.
 
 ## Non-Negotiables
 

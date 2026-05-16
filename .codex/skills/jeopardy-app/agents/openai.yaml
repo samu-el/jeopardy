@@ -1,0 +1,4 @@
+interface:
+  display_name: "Jeopardy App"
+  short_description: "Build the Jeopardy web app"
+  default_prompt: "Use $jeopardy-app to implement the next scoped feature for the Jeopardy app."

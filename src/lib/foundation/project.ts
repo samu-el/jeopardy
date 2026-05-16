@@ -54,7 +54,7 @@ export const featureBacklog = [
   {
     id: "responsive-game-room",
     name: "Fast responsive multiplayer game room",
-    phase: "modernization",
+    phase: "implementation",
   },
   {
     id: "host-control-center",

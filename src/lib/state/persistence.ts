@@ -2,7 +2,7 @@
 
 import type { LobbyConfig, UiPreferences } from "./game-store";
 
-const STORAGE_KEY = "jeopardy-modern.lobby.v1";
+const STORAGE_KEY = "jeopardy.lobby.v1";
 
 export interface PersistedLobby {
   lobby: LobbyConfig;

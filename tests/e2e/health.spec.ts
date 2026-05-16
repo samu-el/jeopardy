@@ -13,7 +13,7 @@ test("health route reports foundation phase", async ({ request }) => {
 
   expect(body).toMatchObject({
     ok: true,
-    service: "jeopardy-modern",
+    service: "jeopardy",
     phase: "foundation",
     uiImplemented: false,
   });

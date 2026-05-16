@@ -64,9 +64,6 @@ export function Landing() {
           }}
         >
           <Wordmark size="sm" />
-          <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)" }}>
-            modern web edition
-          </Typography>
         </Stack>
 
         <Box

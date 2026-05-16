@@ -29,6 +29,6 @@ Reviewed on 2026-05-16 from a fresh clone.
 - Local gzipped clue data loaded from `jeopardy.json.gz`.
 - Browser text-to-speech plus optional generated audio.
 
-## Modernization Direction
+## Rebuild Direction
 
 The rebuild should preserve the behavior, not the implementation style. Future agents should use the upstream code as a requirements reference and reimplement with the architecture in `docs/02-architecture.md`.

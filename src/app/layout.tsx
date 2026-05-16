@@ -4,12 +4,12 @@ import { AppProviders } from "./providers";
 import { AnalyticsGate } from "@/components/AnalyticsGate";
 
 export const metadata: Metadata = {
-  title: "Jeopardy Modern",
-  description: "A modern multiplayer Jeopardy game with AI bots, voice readout, and host controls.",
+  title: "Jeopardy",
+  description: "Multiplayer Jeopardy with AI bots, voice readout, and host controls.",
   manifest: "/manifest.webmanifest",
   icons: { icon: "/icon.svg" },
-  applicationName: "Jeopardy Modern",
-  appleWebApp: { title: "Jeopardy Modern", capable: true, statusBarStyle: "black-translucent" },
+  applicationName: "Jeopardy",
+  appleWebApp: { title: "Jeopardy", capable: true, statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {

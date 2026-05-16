@@ -1,7 +1,7 @@
 {
-  "name": "Jeopardy Modern",
+  "name": "Jeopardy",
   "short_name": "Jeopardy",
-  "description": "A modern multiplayer Jeopardy game with AI bots and host.",
+  "description": "Multiplayer Jeopardy with AI bots and host.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#070a16",

@@ -2,7 +2,7 @@
 
 import type { GameCommand, GameEvent } from "@/lib/game";
 
-const STORAGE_KEY = "jeopardy-modern.replay.v1";
+const STORAGE_KEY = "jeopardy.replay.v1";
 const MAX_ENTRIES = 4_000;
 
 export interface ReplayEntry {

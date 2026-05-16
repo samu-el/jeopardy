@@ -2,7 +2,7 @@
 
 ## Goal
 
-Build a fast, responsive, modern web app for playing Jeopardy with friends or AI opponents. The app should feel reliable in live multiplayer rooms, pleasant on desktop and mobile, and easier to host than the predecessor.
+Build a fast, responsive web app for playing Jeopardy with friends or AI opponents. The app should feel reliable in live multiplayer rooms, pleasant on desktop and mobile, and easier to host than the predecessor.
 
 ## Baseline Features To Preserve
 

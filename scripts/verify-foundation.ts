@@ -42,7 +42,7 @@ const requiredFiles = [
   "docs/02-architecture.md",
   "docs/03-agent-playbook.md",
   "docs/05-pre-ui-readiness.md",
-  ".codex/skills/jeopardy-modern-app/SKILL.md",
+  ".codex/skills/jeopardy-app/SKILL.md",
   "src/app/api/health/route.ts",
   "src/lib/data/contracts.ts",
   "src/lib/data/normalize.ts",

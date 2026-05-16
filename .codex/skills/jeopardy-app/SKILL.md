@@ -1,9 +1,9 @@
 ---
-name: jeopardy-modern-app
-description: Use when implementing, reviewing, or planning features in this repo for the modern Jeopardy web app rebuild. Covers Bun, Next.js App Router, Material UI, Zustand client state, proto toolchain usage, game-engine boundaries, AI bots, voice readout selection, optional avatar AI host, multiplayer rooms, and agent handoff expectations.
+name: jeopardy-app
+description: Use when implementing, reviewing, or planning features in this repo for the Jeopardy web app. Covers Bun, Next.js App Router, Material UI, Zustand client state, proto toolchain usage, game-engine boundaries, AI bots, voice readout selection, optional avatar AI host, multiplayer rooms, and agent handoff expectations.
 ---
 
-# Jeopardy Modern App
+# Jeopardy App
 
 ## Quick Start
 

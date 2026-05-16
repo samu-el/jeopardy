@@ -3,7 +3,7 @@
 Use this when handing the repo to another model for a scoped feature:
 
 ```text
-You are implementing one scoped feature in the Jeopardy Modern repo.
+You are implementing one scoped feature in the Jeopardy repo.
 
 Read AGENTS.md, docs/01-product-brief.md, docs/02-architecture.md, and docs/03-agent-playbook.md before editing.
 

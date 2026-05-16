@@ -25,5 +25,5 @@ try {
 }
 
 server.listen(port, hostname, () => {
-  console.log(`> Jeopardy Modern ready on http://${hostname}:${port}`);
+  console.log(`> Jeopardy ready on http://${hostname}:${port}`);
 });
