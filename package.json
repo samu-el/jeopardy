@@ -13,6 +13,8 @@
     "build": "next build",
     "start": "next start",
     "start:socket": "node server.mjs",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -40,6 +42,9 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
+    "@storybook/nextjs": "^10.4.0",
+    "@storybook/react": "^10.4.0",
+    "@storybook/test": "^10.4.0",
     "@types/node": "^25.8.0",
     "@types/papaparse": "^5.5.2",
     "@types/react": "^19.2.7",
@@ -47,6 +52,7 @@
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.6",
     "prettier": "^3.8.3",
+    "storybook": "^10.4.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.6"
   }

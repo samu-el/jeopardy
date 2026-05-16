@@ -52,6 +52,14 @@ export function clearBridgeRoom(roomId: string) {
   rooms.delete(roomId);
 }
 
+export function hasBridgeRoom(roomId: string): boolean {
+  return rooms.has(roomId);
+}
+
+export function listBridgeRoomIds(): string[] {
+  return Array.from(rooms.keys());
+}
+
 let io: SocketServer | undefined;
 
 export function attachSocketServer(server: HttpServer): SocketServer {

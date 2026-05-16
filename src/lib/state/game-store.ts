@@ -73,6 +73,12 @@ export interface GameStoreState {
   runtime: LocalRoomRuntime | null;
   lastEvents: GameEvent[];
   lastCue: AvatarHostCue | null;
+  /**
+   * Set when the app is opened with ?room=<id>. The landing page shows
+   * the join flow when this is non-null.
+   */
+  pendingRoomId: string | null;
+  setPendingRoomId: (id: string | null) => void;
   setScreen: (screen: ScreenName) => void;
   setHostName: (name: string) => void;
   setPlayerAvatar: (
@@ -133,6 +139,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   runtime: null,
   lastEvents: [],
   lastCue: null,
+  pendingRoomId: null,
+  setPendingRoomId: (id) => set({ pendingRoomId: id }),
   setScreen: (screen) => set({ screen }),
   setHostName: (name) =>
     set((state) => ({
