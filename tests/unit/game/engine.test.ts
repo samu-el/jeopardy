@@ -280,4 +280,31 @@ describe("game engine", () => {
       reason: "not-authorized",
     });
   });
+
+  it("separates the buzz window from the per-buzz answer window", () => {
+    let state = createSampleGame();
+    state = run(state, { type: "start-game", actorId: "p1" }, 10).state;
+    state = run(state, { type: "pick-clue", actorId: "p1", clueId: "j-200" }, 20).state;
+
+    const afterPick = getPublicGameState(state, 50).currentClue!;
+    // Before readout ends: no answer deadline yet, buzz window already set.
+    expect(afterPick.readoutEndsAt).toBe(120);
+    expect(afterPick.buzzWindowEndsAt).toBeGreaterThan(afterPick.readoutEndsAt!);
+    expect(afterPick.answerWindowEndsAt).toBeUndefined();
+
+    state = run(state, { type: "buzz", actorId: "p2" }, 150).state;
+    const afterBuzz = getPublicGameState(state, 150).currentClue!;
+    // Buzzing closes the ring-in window and starts a fresh answer deadline.
+    expect(afterBuzz.buzzWindowEndsAt).toBe(150);
+    expect(afterBuzz.answerWindowEndsAt).toBe(1_150); // 150 + answerTimeoutMs (1_000)
+    expect(afterBuzz.submitted).toEqual({});
+
+    state = run(
+      state,
+      { type: "submit-answer", actorId: "p2", answer: "Mars" },
+      200,
+    ).state;
+    const afterSubmit = getPublicGameState(state, 200).currentClue!;
+    expect(afterSubmit.submitted).toEqual({ p2: true });
+  });
 });

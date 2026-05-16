@@ -42,7 +42,10 @@ export interface GameStats {
 }
 
 export interface GameSettings {
+  /** Per-buzz answer deadline once a player rings in. */
   answerTimeoutMs: number;
+  /** How long after the readout ends that players can ring in. */
+  buzzWindowMs: number;
   finalTimeoutMs: number;
   buzzUnlockDelayMs: number;
   allowMultipleCorrect: boolean;
@@ -62,6 +65,9 @@ export interface ActiveClueState {
   dailyDouble: boolean;
   dailyDoublePlayerId?: string;
   readoutEndsAt?: number;
+  /** Until when players can ring in. Closes the buzzer when reached. */
+  buzzWindowEndsAt?: number;
+  /** Deadline for the currently-buzzed player to submit an answer. */
   answerWindowEndsAt?: number;
   wagerWindowEndsAt?: number;
   waitingForWager: string[];
@@ -121,11 +127,14 @@ export interface PublicActiveClueState {
   dailyDouble: boolean;
   dailyDoublePlayerId?: string;
   readoutEndsAt?: number;
+  buzzWindowEndsAt?: number;
   answerWindowEndsAt?: number;
   wagerWindowEndsAt?: number;
   waitingForWager: string[];
   canBuzz: boolean;
   buzzes: Record<string, number>;
+  /** Which players have submitted an answer (content withheld until reveal). */
+  submitted: Record<string, boolean>;
   answers: Record<string, string>;
   wagers: Record<string, number>;
   judges: Record<string, boolean | null>;

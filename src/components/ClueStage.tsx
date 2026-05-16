@@ -278,32 +278,37 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
 
   const now = tickNow;
   const buzzReadyAt = currentClue.readoutEndsAt ?? now;
+  const buzzWindowEndsAt = currentClue.buzzWindowEndsAt ?? now;
   const answerEndsAt = currentClue.answerWindowEndsAt ?? now;
   const wagerEndsAt = currentClue.wagerWindowEndsAt ?? now;
 
   const readoutProgress = clampProgress(buzzReadyAt - now, 3_000);
-  const answerProgress = clampProgress(
-    answerEndsAt - now,
-    Math.max(answerEndsAt - buzzReadyAt, 1),
+  const buzzCountdownTotal = Math.max(buzzWindowEndsAt - buzzReadyAt, 1);
+  const buzzProgress = clampProgress(buzzWindowEndsAt - now, buzzCountdownTotal);
+  const answerCountdownTotal = Math.max(
+    answerEndsAt - (currentClue.buzzes[currentClientId] ?? now),
+    1,
   );
+  const answerProgress = clampProgress(answerEndsAt - now, answerCountdownTotal);
   const wagerProgress = clampProgress(wagerEndsAt - now, 30_000);
 
   const buzzed = currentClue.buzzes[currentClientId] !== undefined;
+  const iSubmitted = Boolean(currentClue.submitted[currentClientId]);
+  const submittedAnswer = iSubmitted ? (currentClue.answers[currentClientId] ?? "") : undefined;
+  const inReadout = tickNow < (currentClue.readoutEndsAt ?? Number.POSITIVE_INFINITY);
+  const buzzWindowOpen =
+    tickNow >= (currentClue.readoutEndsAt ?? Number.POSITIVE_INFINITY) &&
+    tickNow <= (currentClue.buzzWindowEndsAt ?? Number.NEGATIVE_INFINITY) &&
+    Object.keys(currentClue.buzzes).length === 0;
   const canIBuzz =
     !buzzed &&
     currentClue.round !== "final-jeopardy" &&
     !currentClue.dailyDouble &&
     currentClue.waitingForWager.length === 0 &&
-    Object.keys(currentClue.buzzes).length === 0 &&
     clueRevealed &&
     !answerRevealed &&
     currentClue.judges[currentClientId] === undefined &&
-    Boolean(currentClue.readoutEndsAt) &&
-    tickNow >= (currentClue.readoutEndsAt ?? Number.POSITIVE_INFINITY) &&
-    tickNow <= (currentClue.answerWindowEndsAt ?? Number.NEGATIVE_INFINITY);
-  const submittedAnswer =
-    currentClue.answers[currentClientId] ??
-    (state.currentClue?.buzzes[currentClientId] === undefined ? undefined : "");
+    buzzWindowOpen;
 
   const wagerSubmittedByMe =
     currentClue.wagers[currentClientId] !== undefined ||
@@ -406,16 +411,21 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
         </Box>
       )}
 
-      {clueRevealed && !answerRevealed ? (
+      {clueRevealed && !answerRevealed && !iSubmitted && !isFinal ? (
         <Box>
-          {readoutProgress > 0 ? (
-            <LinearProgress
-              variant="determinate"
-              value={100 - readoutProgress}
-              color="info"
-              sx={{ height: 6, borderRadius: 3 }}
-            />
-          ) : (
+          {inReadout ? (
+            <>
+              <LinearProgress
+                variant="determinate"
+                value={100 - readoutProgress}
+                color="info"
+                sx={{ height: 6, borderRadius: 3 }}
+              />
+              <Typography variant="caption" color="text.secondary">
+                Reading…
+              </Typography>
+            </>
+          ) : buzzed ? (
             <>
               <LinearProgress
                 variant="determinate"
@@ -424,10 +434,36 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
                 sx={{ height: 6, borderRadius: 3 }}
               />
               <Typography variant="caption" color="text.secondary">
-                {Math.max(0, Math.ceil((answerEndsAt - now) / 1000))}s
+                Answer: {Math.max(0, Math.ceil((answerEndsAt - now) / 1000))}s
+              </Typography>
+            </>
+          ) : (
+            <>
+              <LinearProgress
+                variant="determinate"
+                value={100 - buzzProgress}
+                color="secondary"
+                sx={{ height: 6, borderRadius: 3 }}
+              />
+              <Typography variant="caption" color="text.secondary">
+                Buzz: {Math.max(0, Math.ceil((buzzWindowEndsAt - now) / 1000))}s
               </Typography>
             </>
           )}
+        </Box>
+      ) : null}
+
+      {clueRevealed && !answerRevealed && isFinal && !iSubmitted ? (
+        <Box>
+          <LinearProgress
+            variant="determinate"
+            value={100 - answerProgress}
+            color="warning"
+            sx={{ height: 6, borderRadius: 3 }}
+          />
+          <Typography variant="caption" color="text.secondary">
+            {Math.max(0, Math.ceil((answerEndsAt - now) / 1000))}s
+          </Typography>
         </Box>
       ) : null}
 
@@ -489,7 +525,7 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
           >
             {buzzed ? "BUZZED" : "BUZZ"}
           </Button>
-          {buzzed && !answerRevealed ? (
+          {buzzed && !answerRevealed && !iSubmitted ? (
             <Stack
               direction="row"
               spacing={1}
@@ -500,23 +536,28 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
                 value={answerInput}
                 onChange={setAnswerInput}
                 onSubmit={handleSubmitAnswer}
-                disabled={Boolean(submittedAnswer)}
+                disabled={iSubmitted}
                 autoFocus
               />
               <Button
                 variant="contained"
                 onClick={handleSubmitAnswer}
-                disabled={!answerInput.trim() || Boolean(submittedAnswer)}
+                disabled={!answerInput.trim() || iSubmitted}
               >
                 Send
               </Button>
             </Stack>
           ) : null}
+          {iSubmitted && !answerRevealed ? (
+            <Typography variant="caption" color="text.secondary">
+              Answer locked in
+            </Typography>
+          ) : null}
         </Stack>
       ) : null}
 
       {/* Final answer input */}
-      {isFinal && !answerRevealed && clueRevealed ? (
+      {isFinal && !answerRevealed && clueRevealed && !iSubmitted ? (
         <Stack
           direction={{ xs: "column", sm: "row" }}
           spacing={1}
@@ -527,12 +568,12 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
             value={answerInput}
             onChange={setAnswerInput}
             onSubmit={handleSubmitAnswer}
-            disabled={Boolean(submittedAnswer)}
+            disabled={iSubmitted}
             size="small"
           />
           <Button
             variant="contained"
-            disabled={!answerInput.trim() || Boolean(submittedAnswer)}
+            disabled={!answerInput.trim() || iSubmitted}
             onClick={handleSubmitAnswer}
           >
             Lock in

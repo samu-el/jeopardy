@@ -31,6 +31,7 @@ function makeState(
           waitingForWager: [],
           canBuzz: false,
           buzzes: {},
+          submitted: {},
           answers: {},
           wagers: {},
           judges: {},
@@ -73,7 +74,31 @@ export const Reading: Story = {
     state: makeState({
       clue: "Red planet with the largest volcano in the solar system.",
       readoutEndsAt: Date.now() + 2_000,
-      answerWindowEndsAt: Date.now() + 17_000,
+      buzzWindowEndsAt: Date.now() + 8_000,
+    }),
+  },
+};
+
+export const Buzzing: Story = {
+  args: {
+    currentClientId: "p1",
+    state: makeState({
+      clue: "Red planet with the largest volcano in the solar system.",
+      readoutEndsAt: Date.now() - 1_000,
+      buzzWindowEndsAt: Date.now() + 4_000,
+    }),
+  },
+};
+
+export const Answering: Story = {
+  args: {
+    currentClientId: "p1",
+    state: makeState({
+      clue: "Red planet with the largest volcano in the solar system.",
+      readoutEndsAt: Date.now() - 5_000,
+      buzzWindowEndsAt: Date.now() - 1_000,
+      answerWindowEndsAt: Date.now() + 6_000,
+      buzzes: { p1: Date.now() - 1_000 },
     }),
   },
 };

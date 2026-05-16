@@ -22,7 +22,8 @@ import {
 } from "./contracts";
 
 export const defaultGameSettings: GameSettings = {
-  answerTimeoutMs: 20_000,
+  answerTimeoutMs: 8_000,
+  buzzWindowMs: 6_000,
   finalTimeoutMs: 30_000,
   buzzUnlockDelayMs: 1_500,
   allowMultipleCorrect: false,
@@ -365,6 +366,9 @@ function buzz(
   const reactionTimeMs = now - (nextActive.readoutEndsAt ?? now);
   const firstBuzz = Object.keys(nextActive.buzzes).length === 0;
   nextActive.buzzes[command.actorId] = now;
+  // Buzzing closes the ring-in window and starts the answer deadline.
+  nextActive.buzzWindowEndsAt = now;
+  nextActive.answerWindowEndsAt = now + next.settings.answerTimeoutMs;
   if (firstBuzz) {
     incrementStatFor(command.actorId, next.stats.firstBuzzByPlayer);
   }
@@ -534,12 +538,15 @@ function judgeAnswer(
       command.correct === false &&
       next.round !== "final-jeopardy" &&
       nextActive.answerWindowEndsAt &&
-      now < nextActive.answerWindowEndsAt &&
+      now <= nextActive.answerWindowEndsAt &&
       remainingActivePlayers(next, nextActive).length > 0
     ) {
-      // Reopen the clue: hide the answer again, no judge in flight, no advance.
+      // Reopen the clue: hide the answer again and re-open the buzzer
+      // for the remaining players. Give them a fresh short window.
       nextActive.answerRevealed = false;
       nextActive.canAdvance = false;
+      nextActive.buzzWindowEndsAt = now + next.settings.buzzWindowMs;
+      nextActive.answerWindowEndsAt = undefined;
     } else {
       nextActive.canAdvance = true;
     }
@@ -724,17 +731,24 @@ function revealActiveClue(
 ) {
   activeClue.clueRevealed = true;
   activeClue.readoutEndsAt = now + state.settings.buzzUnlockDelayMs;
-  activeClue.answerWindowEndsAt = activeClue.readoutEndsAt + answerTimeoutMs;
+  activeClue.buzzWindowEndsAt =
+    activeClue.readoutEndsAt + state.settings.buzzWindowMs;
+  // No active answer deadline until someone buzzes (or Daily Double / Final).
+  activeClue.answerWindowEndsAt = undefined;
   activeClue.wagerWindowEndsAt = undefined;
 
   if (activeClue.dailyDoublePlayerId) {
     activeClue.buzzes[activeClue.dailyDoublePlayerId] = activeClue.readoutEndsAt;
+    activeClue.answerWindowEndsAt = activeClue.readoutEndsAt + answerTimeoutMs;
+    activeClue.buzzWindowEndsAt = activeClue.readoutEndsAt;
   }
 
   if (activeClue.round === "final-jeopardy") {
     for (const player of getActivePlayers(state)) {
       activeClue.buzzes[player.id] = activeClue.readoutEndsAt;
     }
+    activeClue.answerWindowEndsAt = activeClue.readoutEndsAt + answerTimeoutMs;
+    activeClue.buzzWindowEndsAt = activeClue.readoutEndsAt;
   }
 }
 
@@ -842,11 +856,13 @@ function toPublicActiveClue(
     dailyDouble: active.dailyDouble,
     dailyDoublePlayerId: active.dailyDoublePlayerId,
     readoutEndsAt: active.readoutEndsAt,
+    buzzWindowEndsAt: active.buzzWindowEndsAt,
     answerWindowEndsAt: active.answerWindowEndsAt,
     wagerWindowEndsAt: active.wagerWindowEndsAt,
     waitingForWager: [...active.waitingForWager],
     canBuzz: canBuzz(active, now),
     buzzes: { ...active.buzzes },
+    submitted: { ...active.submitted },
     answers: active.answerRevealed ? { ...active.answers } : {},
     wagers: active.answerRevealed ? { ...active.wagers } : {},
     judges: { ...active.judges },
@@ -865,7 +881,7 @@ function canBuzz(active: ActiveClueState, now: number) {
     Object.keys(active.buzzes).length === 0 &&
     Boolean(active.readoutEndsAt) &&
     now >= (active.readoutEndsAt ?? Number.POSITIVE_INFINITY) &&
-    now <= (active.answerWindowEndsAt ?? Number.NEGATIVE_INFINITY)
+    now <= (active.buzzWindowEndsAt ?? Number.NEGATIVE_INFINITY)
   );
 }
 

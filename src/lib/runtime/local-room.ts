@@ -85,7 +85,8 @@ export class LocalRoomRuntime {
       settings: {
         hostId: config.hostId,
         buzzUnlockDelayMs: 1_200,
-        answerTimeoutMs: 15_000,
+        buzzWindowMs: 6_000,
+        answerTimeoutMs: 10_000,
         finalTimeoutMs: 30_000,
         ...config.settings,
       },
@@ -401,14 +402,24 @@ export class LocalRoomRuntime {
       }
     }
 
-    if (active.clueRevealed && !active.answerRevealed && active.answerWindowEndsAt) {
+    if (active.clueRevealed && !active.answerRevealed) {
       const now = Date.now();
-      const remaining = active.answerWindowEndsAt - now;
-      if (remaining > 0 && !this.autoAdvanceTimeout && state.settings.aiJudgeEnabled) {
-        this.autoAdvanceTimeout = setTimeout(() => {
+      const someoneBuzzed = Object.keys(active.buzzes).length > 0;
+      const deadline = someoneBuzzed
+        ? active.answerWindowEndsAt
+        : active.buzzWindowEndsAt;
+      if (deadline) {
+        const remaining = deadline - now;
+        if (this.autoAdvanceTimeout) {
+          clearTimeout(this.autoAdvanceTimeout);
           this.autoAdvanceTimeout = undefined;
-          this.autoRevealAndJudge();
-        }, remaining + 200);
+        }
+        if (remaining > 0 && state.settings.aiJudgeEnabled) {
+          this.autoAdvanceTimeout = setTimeout(() => {
+            this.autoAdvanceTimeout = undefined;
+            this.autoRevealAndJudge();
+          }, remaining + 200);
+        }
       }
     }
   }
