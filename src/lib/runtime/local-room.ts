@@ -22,6 +22,12 @@ import {
   type ServerRealtimeMessage,
 } from "@/lib/realtime";
 import { createChatMessage, type ChatMessage } from "./chat";
+import {
+  beginReplayLog,
+  persistReplayLog,
+  recordCommand,
+  recordEvents as recordReplayEvents,
+} from "./replay-log";
 
 export interface LocalRoomConfig {
   roomId: string;
@@ -99,6 +105,8 @@ export class LocalRoomRuntime {
       clock: { now: () => Date.now() },
     });
 
+    beginReplayLog(config.roomId);
+
     for (const player of players) {
       const session = this.room.issueSession(player.id);
       const connectionId = `conn-${player.id}`;
@@ -137,6 +145,7 @@ export class LocalRoomRuntime {
     if (!connectionId) {
       return;
     }
+    recordCommand({ ...command, actorId } as never);
     this.room.receive(connectionId, {
       type: "game-command",
       commandId: `cmd-${Math.random().toString(36).slice(2)}`,
@@ -189,6 +198,10 @@ export class LocalRoomRuntime {
       if (clientId === this.hostId) {
         this.listeners.onEvents(message.events);
         this.recordEvents(message.events);
+        recordReplayEvents(message.events);
+        if (message.events.some((event) => event.type === "round-advanced" && event.round === "complete")) {
+          persistReplayLog();
+        }
       }
     }
   }

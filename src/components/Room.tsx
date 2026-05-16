@@ -15,6 +15,8 @@ import { EpisodeBrowser } from "./EpisodeBrowser";
 import { GamePicker } from "./GamePicker";
 import { ShortcutsOverlay } from "./ShortcutsOverlay";
 import { Onboarding } from "./Onboarding";
+import { TranscriptPane } from "./TranscriptPane";
+import { ReplayView } from "./ReplayView";
 
 export function Room() {
   const lobby = useGameStore((s) => s.lobby);
@@ -25,6 +27,8 @@ export function Room() {
   const [browserOpen, setBrowserOpen] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [transcriptOpen, setTranscriptOpen] = useState(false);
+  const [replayOpen, setReplayOpen] = useState(false);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -114,6 +118,8 @@ export function Room() {
             onOpenPicker={() => setPickerOpen(true)}
             onOpenBrowser={() => setBrowserOpen(true)}
             onToggleShortcuts={() => setShortcutsOpen((value) => !value)}
+            onToggleTranscript={() => setTranscriptOpen((value) => !value)}
+            onOpenReplay={() => setReplayOpen(true)}
           />
           <ResultsView state={publicState} onPlayAgain={exitToLobby} onExit={exitToLobby} />
         </Box>
@@ -130,6 +136,8 @@ export function Room() {
           onOpenPicker={() => setPickerOpen(true)}
           onOpenBrowser={() => setBrowserOpen(true)}
           onToggleShortcuts={() => setShortcutsOpen((value) => !value)}
+          onToggleTranscript={() => setTranscriptOpen((value) => !value)}
+          onOpenReplay={() => setReplayOpen(true)}
         />
 
         <AvatarHostController />
@@ -231,6 +239,11 @@ export function Room() {
         open={shortcutsOpen}
         onClose={() => setShortcutsOpen(false)}
       />
+      <TranscriptPane
+        open={transcriptOpen}
+        onClose={() => setTranscriptOpen(false)}
+      />
+      <ReplayView open={replayOpen} onClose={() => setReplayOpen(false)} />
       <Onboarding />
     </Box>
   );

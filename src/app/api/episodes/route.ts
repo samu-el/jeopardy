@@ -3,6 +3,7 @@ import {
   getRandomEpisode,
   listEpisodes,
   loadArchive,
+  popularCategories,
   themeCounts,
 } from "@/lib/data/archive-source";
 import { fixtureEpisode } from "@/lib/data/fixture-episode";
@@ -66,6 +67,10 @@ export async function GET(request: Request) {
     }
     if (mode === "decades") {
       return Response.json({ counts: decadeCounts(archive) });
+    }
+    if (mode === "categories") {
+      const limit = Math.min(200, Number(url.searchParams.get("limit") ?? 80));
+      return Response.json({ categories: popularCategories(archive, limit) });
     }
     const theme = url.searchParams.get("theme") ?? undefined;
     const decade = url.searchParams.get("decade") ?? undefined;

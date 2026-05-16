@@ -177,6 +177,28 @@ export function listEpisodes(
   };
 }
 
+export function popularCategories(
+  archive: RawEpisodeMap,
+  limit = 50,
+): { name: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const episode of Object.values(archive)) {
+    for (const clue of [
+      ...(episode.jeopardy ?? []),
+      ...(episode.double ?? []),
+      ...(episode.triple ?? []),
+    ]) {
+      const name = (clue.cat ?? clue.category)?.trim();
+      if (!name) continue;
+      counts.set(name, (counts.get(name) ?? 0) + 1);
+    }
+  }
+  return Array.from(counts.entries())
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit);
+}
+
 export function decadeCounts(archive: RawEpisodeMap): Record<string, number> {
   const counts: Record<string, number> = { all: 0 };
   for (const episode of Object.values(archive)) {

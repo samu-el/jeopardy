@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { AppProviders } from "./providers";
+import { AnalyticsGate } from "@/components/AnalyticsGate";
 
 export const metadata: Metadata = {
   title: "Jeopardy Modern",
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body>
         <AppProviders>{children}</AppProviders>
+        <AnalyticsGate />
       </body>
     </html>
   );

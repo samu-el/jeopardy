@@ -83,6 +83,44 @@ function levenshtein(a: string, b: string) {
   return matrix[rows - 1][cols - 1];
 }
 
+export interface AmbiguousJudgeInput extends JudgeInput {
+  fuzzyVerdict: JudgeVerdict;
+}
+
+/**
+ * Hook for an env-gated higher-quality judge (e.g. an LLM tool call) when
+ * the fuzzy verdict is ambiguous. Default implementation returns null — the
+ * caller falls back to the fuzzy verdict, keeping the app free-forever.
+ *
+ * To opt in, replace this resolver at startup from a server-side module
+ * that calls an LLM only when `process.env.OPENAI_API_KEY` is set.
+ */
+export type AmbiguousJudgeResolver = (
+  input: AmbiguousJudgeInput,
+) => Promise<JudgeVerdict | null>;
+
+let resolver: AmbiguousJudgeResolver = async () => null;
+
+export function setAmbiguousJudgeResolver(next: AmbiguousJudgeResolver) {
+  resolver = next;
+}
+
+export async function judgeWithReasoning(
+  input: JudgeInput,
+): Promise<JudgeVerdict> {
+  const fuzzy = judgeAnswer(input);
+  // Only escalate when the fuzzy verdict is on the fence.
+  if (fuzzy.confidence > 0.6 && fuzzy.confidence < 0.85) {
+    try {
+      const upgraded = await resolver({ ...input, fuzzyVerdict: fuzzy });
+      if (upgraded) return upgraded;
+    } catch {
+      // ignore — fall through to fuzzy
+    }
+  }
+  return fuzzy;
+}
+
 export function judgeAnswer(input: JudgeInput): JudgeVerdict {
   const normalizedExpected = normalizeAnswer(input.expectedAnswer);
   const normalizedAnswer = normalizeAnswer(input.submittedAnswer);

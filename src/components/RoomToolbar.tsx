@@ -12,6 +12,8 @@ import Typography from "@mui/material/Typography";
 import LogoutIcon from "@mui/icons-material/LogoutOutlined";
 import ShareIcon from "@mui/icons-material/IosShareOutlined";
 import KeyboardIcon from "@mui/icons-material/KeyboardOutlined";
+import HistoryIcon from "@mui/icons-material/HistoryOutlined";
+import ReplayIconAlt from "@mui/icons-material/PlayCircleOutlineOutlined";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ReplayIcon from "@mui/icons-material/ReplayOutlined";
 import SettingsIcon from "@mui/icons-material/SettingsOutlined";
@@ -28,12 +30,16 @@ interface RoomToolbarProps {
   onOpenPicker: () => void;
   onOpenBrowser: () => void;
   onToggleShortcuts: () => void;
+  onToggleTranscript: () => void;
+  onOpenReplay: () => void;
 }
 
 export function RoomToolbar({
   onOpenPicker,
   onOpenBrowser,
   onToggleShortcuts,
+  onToggleTranscript,
+  onOpenReplay,
 }: RoomToolbarProps) {
   const setScreen = useGameStore((s) => s.setScreen);
   const startGame = useGameStore((s) => s.startGame);
@@ -133,6 +139,22 @@ export function RoomToolbar({
             sx={{ minWidth: 44, minHeight: 44 }}
           >
             <ShareIcon />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Transcript">
+          <IconButton
+            onClick={onToggleTranscript}
+            sx={{ minWidth: 44, minHeight: 44 }}
+          >
+            <HistoryIcon />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Replay last game">
+          <IconButton
+            onClick={onOpenReplay}
+            sx={{ minWidth: 44, minHeight: 44 }}
+          >
+            <ReplayIconAlt />
           </IconButton>
         </Tooltip>
         <Tooltip title="Shortcuts">
