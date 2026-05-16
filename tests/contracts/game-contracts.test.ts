@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  baselineAvatarHostProfiles,
   baselineBotProfiles,
   baselineVoiceProfiles,
   roundNames,
@@ -38,5 +39,17 @@ describe("game contracts", () => {
     expect(baselineBotProfiles.at(-1)?.minBuzzDelayMs).toBeLessThan(
       baselineBotProfiles[0].minBuzzDelayMs,
     );
+  });
+
+  it("defines optional avatar AI host profiles without making them mandatory", () => {
+    expect(baselineAvatarHostProfiles.length).toBeGreaterThanOrEqual(3);
+    expect(baselineAvatarHostProfiles.map((host) => host.defaultMode)).toContain(
+      "avatar-and-voice",
+    );
+
+    for (const host of baselineAvatarHostProfiles) {
+      expect(host.voiceProfileId).toBeTruthy();
+      expect(host.description).toContain("host");
+    }
   });
 });

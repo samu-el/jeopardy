@@ -31,6 +31,7 @@ describe("foundation project metadata", () => {
   it("tracks the required new feature directions", () => {
     expect(hasPlannedFeature("voice-selection")).toBe(true);
     expect(hasPlannedFeature("ai-bot-opponents")).toBe(true);
+    expect(hasPlannedFeature("avatar-ai-host")).toBe(true);
     expect(featureBacklog.length).toBeGreaterThanOrEqual(6);
   });
 

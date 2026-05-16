@@ -22,6 +22,7 @@ Build a fast, responsive, modern web app for playing Jeopardy with friends or AI
 
 - Add voice selection for clue readout. Players or hosts should be able to choose from browser voices, hosted voices, and future custom voice adapters.
 - Add AI bot opponents. Bots need configurable difficulty, response accuracy, wager behavior, and buzz delay ranges so they feel meaningfully different.
+- Add an optional avatar AI host for clue readout, pacing, rule reminders, and light commentary. The app must remain fully playable when this is disabled.
 - Add better host controls for pacing, undo, answer correction, room moderation, and settings.
 - Add responsive play surfaces for phones, tablets, and desktop without treating mobile as an afterthought.
 - Add accessibility-first game flow: captions, keyboard shortcuts, visible timers, reduced motion support, and screen-reader-friendly state.
@@ -39,6 +40,7 @@ Build a fast, responsive, modern web app for playing Jeopardy with friends or AI
 - Replay timeline for clue, buzz, answer, judge, and score events.
 - Analytics dashboard for buzz timing, accuracy, wagering, and category strengths.
 - AI clue readout cache with progress and fallbacks.
+- Avatar AI host with voice-only and avatar-and-voice modes.
 - AI judge explanation mode for hosts, with confidence and manual override.
 - Bot personalities that change category preference, wagering, and risk tolerance.
 - Moderation tools for chat, names, spectators, and disruptive players.

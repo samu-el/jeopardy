@@ -18,11 +18,14 @@
 6. Add UI last, using Material UI and the repo theme.
 7. Run the narrow tests, then `bun run verify`.
 
+Before starting UI, read `docs/05-pre-ui-readiness.md` and either satisfy the blocking gate or explicitly document which item the current scoped task is allowed to bypass.
+
 ## Avoid
 
 - Do not copy the upstream React components.
 - Do not put game rules into page components.
 - Do not put authoritative game rules into Zustand.
+- Do not let the optional avatar AI host become game authority.
 - Do not introduce a second package manager.
 - Do not introduce protobuf unless the user asks for it explicitly.
 - Do not make AI calls mandatory for local development or tests.

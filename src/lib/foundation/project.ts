@@ -47,6 +47,11 @@ export const featureBacklog = [
     phase: "new-feature",
   },
   {
+    id: "avatar-ai-host",
+    name: "Optional avatar AI host for pacing, clue readout, and light room guidance",
+    phase: "new-feature",
+  },
+  {
     id: "responsive-game-room",
     name: "Fast responsive multiplayer game room",
     phase: "modernization",

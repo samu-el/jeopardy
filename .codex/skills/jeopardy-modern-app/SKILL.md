@@ -1,6 +1,6 @@
 ---
 name: jeopardy-modern-app
-description: Use when implementing, reviewing, or planning features in this repo for the modern Jeopardy web app rebuild. Covers Bun, Next.js App Router, Material UI, Zustand client state, proto toolchain usage, game-engine boundaries, AI bots, voice readout selection, multiplayer rooms, and agent handoff expectations.
+description: Use when implementing, reviewing, or planning features in this repo for the modern Jeopardy web app rebuild. Covers Bun, Next.js App Router, Material UI, Zustand client state, proto toolchain usage, game-engine boundaries, AI bots, voice readout selection, optional avatar AI host, multiplayer rooms, and agent handoff expectations.
 ---
 
 # Jeopardy Modern App
@@ -13,6 +13,7 @@ Read these files before editing:
 2. `docs/01-product-brief.md`
 3. `docs/02-architecture.md`
 4. `docs/03-agent-playbook.md`
+5. `docs/05-pre-ui-readiness.md` before UI work
 
 Use `proto install` and Bun commands. In this repo, proto means the moonrepo version manager. Do not add protobuf files or a `proto/` directory unless explicitly requested by the user.
 
@@ -30,6 +31,7 @@ Use `proto install` and Bun commands. In this repo, proto means the moonrepo ver
 - Keep Jeopardy rules in pure TypeScript modules, not React components.
 - Use Zustand only for local UI/session state, preferences, and public room snapshots.
 - Keep private state separate from public room state.
+- Keep optional avatar AI host output to structured cues and allowed narration; it is never game authority.
 - Never expose unrevealed correct responses or private wagers.
 - Treat AI judging, AI bots, and generated voices as optional adapters with fakes for tests.
 - Make AI bots act through normal player commands and buzz timing.

@@ -41,14 +41,71 @@ const requiredFiles = [
   "docs/01-product-brief.md",
   "docs/02-architecture.md",
   "docs/03-agent-playbook.md",
+  "docs/05-pre-ui-readiness.md",
   ".codex/skills/jeopardy-modern-app/SKILL.md",
   "src/app/api/health/route.ts",
+  "src/lib/data/contracts.ts",
+  "src/lib/data/normalize.ts",
+  "src/lib/data/index.ts",
+  "src/lib/game/contracts.ts",
+  "src/lib/game/engine.ts",
+  "src/lib/game/index.ts",
+  "src/lib/realtime/contracts.ts",
+  "src/lib/realtime/in-memory-room.ts",
+  "src/lib/realtime/index.ts",
   "src/lib/state/app-store.ts",
   "src/lib/state/use-app-store.ts",
+  "src/lib/state/game-store.ts",
+  "src/lib/state/persistence.ts",
+  "src/lib/state/use-persisted-lobby.ts",
+  "src/lib/foundation/pre-ui-readiness.ts",
+  "src/lib/ai/index.ts",
+  "src/lib/ai/judge.ts",
+  "src/lib/ai/bots.ts",
+  "src/lib/ai/voice.ts",
+  "src/lib/ai/avatar-host.ts",
+  "src/lib/runtime/index.ts",
+  "src/lib/runtime/chat.ts",
+  "src/lib/runtime/local-room.ts",
+  "src/lib/runtime/avatar-narrator.ts",
+  "src/lib/runtime/socket-client.ts",
+  "src/lib/realtime/socket-bridge.ts",
+  "src/lib/sample-games/index.ts",
+  "src/lib/data/builder.ts",
+  "src/components/AppShell.tsx",
+  "src/components/Lobby.tsx",
+  "src/components/GameView.tsx",
+  "src/components/Board.tsx",
+  "src/components/ClueStage.tsx",
+  "src/components/Scoreboard.tsx",
+  "src/components/Chat.tsx",
+  "src/components/SettingsPanel.tsx",
+  "src/components/ResultsView.tsx",
+  "src/components/AvatarHostController.tsx",
+  "src/components/CustomGameBuilder.tsx",
+  "src/components/EpisodeBrowser.tsx",
+  "public/manifest.webmanifest",
+  "public/icon.svg",
   "tests/unit/foundation.test.ts",
   "tests/unit/app-store.test.ts",
+  "tests/unit/data/normalize.test.ts",
+  "tests/unit/data/builder.test.ts",
+  "tests/unit/game/engine.test.ts",
+  "tests/unit/realtime/in-memory-room.test.ts",
+  "tests/unit/runtime/local-room.test.ts",
+  "tests/unit/ai/judge.test.ts",
+  "tests/unit/ai/bots.test.ts",
+  "tests/unit/ai/avatar-host.test.ts",
+  "tests/unit/ai/avatar-narrator.test.ts",
+  "tests/contracts/data-normalization.test.ts",
   "tests/contracts/game-contracts.test.ts",
+  "tests/contracts/game/public-state-privacy.test.ts",
+  "tests/contracts/pre-ui-readiness.test.ts",
+  "tests/contracts/realtime/command-mapping.test.ts",
+  "tests/contracts/ai/privacy.test.ts",
   "tests/e2e/health.spec.ts",
+  "tests/e2e/round.spec.ts",
+  ".github/workflows/ci.yml",
 ];
 
 for (const file of requiredFiles) {
@@ -74,5 +131,46 @@ assert(dependencies?.zustand, "Zustand must be installed as the client state lay
 const productBrief = readFileSync(join(root, "docs/01-product-brief.md"), "utf8");
 assert(productBrief.includes("voice selection"), "product brief must mention voice selection");
 assert(productBrief.includes("AI bot"), "product brief must mention AI bot opponents");
+assert(productBrief.includes("avatar AI host"), "product brief must mention avatar AI host");
+
+const preUiReadiness = readFileSync(join(root, "docs/05-pre-ui-readiness.md"), "utf8");
+assert(
+  preUiReadiness.includes("Avatar AI Host"),
+  "pre-UI readiness doc must include avatar AI host",
+);
+assert(
+  preUiReadiness.includes("Zustand"),
+  "pre-UI readiness doc must include Zustand client state",
+);
+
+const gameEngine = readFileSync(join(root, "src/lib/game/engine.ts"), "utf8");
+for (const forbidden of ["react", "zustand", "ioredis", "socket.io", "openai"]) {
+  const imports = gameEngine
+    .split("\n")
+    .filter((line) => line.trim().startsWith("import "))
+    .join("\n");
+  assert(!imports.includes(forbidden), `game engine must not import ${forbidden}`);
+}
+
+const dataNormalizer = readFileSync(join(root, "src/lib/data/normalize.ts"), "utf8");
+const dataImports = dataNormalizer
+  .split("\n")
+  .filter((line) => line.trim().startsWith("import "))
+  .join("\n");
+for (const forbidden of ["react", "zustand", "ioredis", "socket.io", "openai"]) {
+  assert(!dataImports.includes(forbidden), `data normalizer must not import ${forbidden}`);
+}
+
+const realtimeRoom = readFileSync(
+  join(root, "src/lib/realtime/in-memory-room.ts"),
+  "utf8",
+);
+const realtimeImports = realtimeRoom
+  .split("\n")
+  .filter((line) => line.trim().startsWith("import "))
+  .join("\n");
+for (const forbidden of ["react", "zustand", "ioredis", "socket.io", "openai"]) {
+  assert(!realtimeImports.includes(forbidden), `realtime room must not import ${forbidden}`);
+}
 
 console.log("Foundation verification passed.");

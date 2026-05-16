@@ -6,5 +6,6 @@
 - Game rules have unit tests before UI work.
 - Zustand usage is limited to local UI/session state or public snapshots.
 - AI, Redis, and realtime dependencies have local fakes or graceful fallbacks.
+- Optional avatar AI host behavior is scoped as cues only, not game authority.
 - Accessibility requirements are listed for any UI surface.
 - `bun run verify` passes or the failure is documented.

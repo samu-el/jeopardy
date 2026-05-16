@@ -13,6 +13,13 @@ export type PlayerKind = "human" | "ai-bot";
 
 export type BotDifficulty = "rookie" | "casual" | "champion" | "legend";
 
+export type AvatarHostMode = "off" | "voice-only" | "avatar-and-voice";
+
+export type AvatarHostPersona =
+  | "classic-host"
+  | "friendly-coach"
+  | "dry-commentator";
+
 export interface Player {
   id: string;
   displayName: string;
@@ -50,14 +57,27 @@ export interface BotProfile {
   wagerAggression: number;
 }
 
+export interface AvatarHostProfile {
+  id: string;
+  label: string;
+  persona: AvatarHostPersona;
+  defaultMode: AvatarHostMode;
+  voiceProfileId: string;
+  allowCommentary: boolean;
+  allowRuleReminders: boolean;
+  description: string;
+}
+
 export interface GameRoomSettings {
   answerTimeoutMs: number;
   finalTimeoutMs: number;
   allowMultipleCorrect: boolean;
   hostId?: string;
   voiceProfileId?: string;
+  avatarHostProfileId?: string;
   aiJudgeEnabled: boolean;
   aiBotsEnabled: boolean;
+  aiAvatarHostEnabled: boolean;
 }
 
 export const baselineVoiceProfiles: VoiceProfile[] = [
@@ -120,5 +140,38 @@ export const baselineBotProfiles: BotProfile[] = [
     maxBuzzDelayMs: 420,
     targetAccuracy: 0.88,
     wagerAggression: 0.9,
+  },
+];
+
+export const baselineAvatarHostProfiles: AvatarHostProfile[] = [
+  {
+    id: "classic-host",
+    label: "Classic Host",
+    persona: "classic-host",
+    defaultMode: "avatar-and-voice",
+    voiceProfileId: "classic-host",
+    allowCommentary: false,
+    allowRuleReminders: true,
+    description: "A restrained game-show host that reads clues and handles pacing.",
+  },
+  {
+    id: "friendly-coach",
+    label: "Friendly Coach",
+    persona: "friendly-coach",
+    defaultMode: "voice-only",
+    voiceProfileId: "studio-neutral",
+    allowCommentary: true,
+    allowRuleReminders: true,
+    description: "A warmer host for solo practice, onboarding, and casual rooms.",
+  },
+  {
+    id: "dry-commentator",
+    label: "Dry Commentator",
+    persona: "dry-commentator",
+    defaultMode: "voice-only",
+    voiceProfileId: "studio-neutral",
+    allowCommentary: true,
+    allowRuleReminders: false,
+    description: "A low-interruption host for light table-talk between clues.",
   },
 ];

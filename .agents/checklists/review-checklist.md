@@ -8,6 +8,8 @@
 - No answer keys exposed before reveal.
 - Host-only commands are enforced outside the client.
 - Buzz timing uses server authority.
+- Realtime commands do not trust client-supplied actor ids.
 - Voice selection has a fallback.
 - AI bots use normal player commands.
+- Avatar AI host cannot reveal hidden state or override game authority.
 - `bun run verify` result is included in handoff.

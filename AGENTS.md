@@ -12,6 +12,8 @@ This repo is a modern Jeopardy web app rebuild. The upstream reference is `https
 - Keep game logic out of React components. Prefer pure state-machine modules with tests.
 - Do not put authoritative game rules or private room state in Zustand.
 - Treat multiplayer events, AI judging, readout voices, and bots as typed service boundaries.
+- Treat the optional avatar AI host as a cue/voice adapter, never as game authority.
+- Realtime clients send intent only; server-side adapters stamp `actorId` from authenticated sessions.
 - Preserve accessibility and responsiveness as first-class requirements.
 - Do not implement broad UI surfaces without a scoped feature request.
 
@@ -22,7 +24,8 @@ Before implementation work, read:
 1. `docs/01-product-brief.md`
 2. `docs/02-architecture.md`
 3. `docs/03-agent-playbook.md`
-4. The relevant checklist in `.agents/checklists/`
+4. `docs/05-pre-ui-readiness.md` before any UI work
+5. The relevant checklist in `.agents/checklists/`
 
 ## Expected Workflow
 
