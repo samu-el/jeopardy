@@ -369,7 +369,6 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
               fontWeight: 700,
               maxWidth: 720,
               lineHeight: 1.25,
-              visibility: preferences.captionsEnabled ? "visible" : "hidden",
             }}
           >
             {currentClue.clue}
