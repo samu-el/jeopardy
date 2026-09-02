@@ -71,6 +71,20 @@ export class NetworkRoomRuntime implements RoomRuntime {
           case "session-rejected":
             this.listeners.onStatus?.("rejected", message.message);
             break;
+          case "connection-status":
+            // The room keeps one connection per player: a second tab takes
+            // the seat and this one has to say so rather than sit on stale
+            // state.
+            if (
+              message.clientId === this.selfId &&
+              message.status === "replaced"
+            ) {
+              this.listeners.onStatus?.(
+                "rejected",
+                "This room was opened in another tab.",
+              );
+            }
+            break;
           case "message-rejected":
             this.listeners.onEvents([
               {

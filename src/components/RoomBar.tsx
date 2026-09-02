@@ -38,9 +38,9 @@ export function RoomBar() {
             setOpening(false);
           }
         }}
-        sx={{ color: "rgba(255,255,255,0.75)" }}
+        sx={{ color: "rgba(255,255,255,0.75)", whiteSpace: "nowrap", minWidth: "auto" }}
       >
-        {opening ? "Opening…" : "Invite players"}
+        {opening ? "Opening…" : "Invite"}
       </Button>
     );
   }
@@ -111,9 +111,18 @@ export function RoomBar() {
         size="small"
         label={`${connectedCount} in room`}
         variant="outlined"
-        sx={{ color: "rgba(255,255,255,0.7)", borderColor: "rgba(255,255,255,0.2)" }}
+        sx={{
+          color: "rgba(255,255,255,0.7)",
+          borderColor: "rgba(255,255,255,0.2)",
+          display: { xs: "none", sm: "flex" },
+        }}
       />
-      <Button size="small" color="inherit" onClick={leaveOnlineRoom} sx={{ opacity: 0.7 }}>
+      <Button
+        size="small"
+        color="inherit"
+        onClick={leaveOnlineRoom}
+        sx={{ opacity: 0.7, display: { xs: "none", sm: "inline-flex" } }}
+      >
         Leave
       </Button>
     </Stack>

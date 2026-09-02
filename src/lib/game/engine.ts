@@ -28,6 +28,7 @@ export const defaultGameSettings: GameSettings = {
   answerTimeoutMs: 8_000,
   buzzWindowMs: 6_000,
   finalTimeoutMs: 30_000,
+  wagerTimeoutMs: 15_000,
   buzzUnlockDelayMs: 1_500,
   readoutPerCharMs: 0,
   allowMultipleCorrect: false,
@@ -281,7 +282,8 @@ function pickClue(
   if (clue.dailyDouble && !state.settings.allowMultipleCorrect) {
     activeClue.dailyDoublePlayerId = command.actorId;
     activeClue.waitingForWager = [command.actorId];
-    activeClue.wagerWindowEndsAt = now + state.settings.answerTimeoutMs;
+    activeClue.wagerWindowStartsAt = now;
+    activeClue.wagerWindowEndsAt = now + state.settings.wagerTimeoutMs;
     events.push({
       type: "wager-requested",
       clueId: clue.id,
@@ -1218,6 +1220,7 @@ function revealActiveClue(
     activeClue.readoutEndsAt + state.settings.buzzWindowMs;
   // No active answer deadline until someone buzzes (or Daily Double / Final).
   activeClue.answerWindowEndsAt = undefined;
+  activeClue.wagerWindowStartsAt = undefined;
   activeClue.wagerWindowEndsAt = undefined;
 
   if (activeClue.dailyDoublePlayerId) {
@@ -1257,6 +1260,7 @@ function advanceToNextRound(
     if (finalClueId) {
       const activeClue = createActiveClue(state.cluesById[finalClueId]);
       activeClue.waitingForWager = getActivePlayers(state).map((player) => player.id);
+      activeClue.wagerWindowStartsAt = now + state.settings.roundIntroMs;
       activeClue.wagerWindowEndsAt =
         now + state.settings.roundIntroMs + state.settings.finalTimeoutMs;
       state.activeClue = activeClue;
@@ -1343,6 +1347,7 @@ function toPublicActiveClue(
     readoutEndsAt: active.readoutEndsAt,
     buzzWindowEndsAt: active.buzzWindowEndsAt,
     answerWindowEndsAt: active.answerWindowEndsAt,
+    wagerWindowStartsAt: active.wagerWindowStartsAt,
     wagerWindowEndsAt: active.wagerWindowEndsAt,
     waitingForWager: [...active.waitingForWager],
     canBuzz: canBuzz(active, now),

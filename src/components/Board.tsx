@@ -40,7 +40,11 @@ export function Board({ state, onPick, canPick = false, overlay }: BoardProps) {
 
   if (byCategory.length === 0) {
     return (
-      <BoardFrame ref={containerRef} ratio={boardRatio(boardColumns, boardRows)}>
+      <BoardFrame
+        ref={containerRef}
+        ratio={boardRatio(boardColumns, boardRows)}
+        tall={Boolean(overlay)}
+      >
         <BoardGrid columns={boardColumns} rows={boardRows}>
           {Array.from({ length: boardColumns }).map((_, col) => (
             <CategoryCell
@@ -80,7 +84,11 @@ export function Board({ state, onPick, canPick = false, overlay }: BoardProps) {
   const rowCount = Math.max(...byCategory.map((column) => column.clues.length));
 
   return (
-    <BoardFrame ref={containerRef} ratio={boardRatio(byCategory.length, rowCount)}>
+    <BoardFrame
+      ref={containerRef}
+      ratio={boardRatio(byCategory.length, rowCount)}
+      tall={Boolean(overlay)}
+    >
       <BoardGrid columns={byCategory.length} rows={rowCount}>
         {byCategory.map((column, columnIndex) => (
           <CategoryCell
@@ -171,10 +179,13 @@ function BoardFrame({
   children,
   ref,
   ratio,
+  tall,
 }: {
   children: ReactNode;
   ref: React.Ref<HTMLDivElement>;
   ratio: number;
+  /** A clue panel needs more vertical room than the grid does on a phone. */
+  tall?: boolean;
 }) {
   return (
     <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
@@ -184,11 +195,14 @@ function BoardFrame({
         sx={{
           position: "relative",
           "--board-height": {
-            xs: "min(46vh, 420px)",
+            xs: tall ? "min(64vh, 540px)" : "min(46vh, 420px)",
             md: "min(62vh, 660px)",
           },
           width: `min(100%, calc(var(--board-height) * ${ratio}))`,
-          aspectRatio: `${ratio}`,
+          // The grid keeps the set's proportions. A clue panel on a phone
+          // does not — it needs height for the buzzer and the answer field.
+          aspectRatio: tall ? { xs: "auto", md: `${ratio}` } : `${ratio}`,
+          height: tall ? { xs: "min(66vh, 560px)", md: "auto" } : "auto",
           // Cell type is sized from the board, not the viewport, so a
           // six-category board and a two-category one both read correctly.
           containerType: "inline-size",
@@ -263,8 +277,8 @@ function CategoryCell({
         textShadow: jeopardyTextShadow,
         fontSize: categoryFontSize(columns),
         overflow: "hidden",
-        overflowWrap: "anywhere",
-        hyphens: "auto",
+        // Break inside a word only when a long category can't fit otherwise.
+        overflowWrap: "break-word",
         animation: reducedMotion ? "none" : `board-drop 420ms ${delayMs}ms both ease-out`,
         "@keyframes board-drop": {
           from: { opacity: 0, transform: "translateY(-18px)" },

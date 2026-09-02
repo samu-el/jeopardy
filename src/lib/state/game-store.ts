@@ -338,10 +338,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set((state) => ({
       lobby: { ...state.lobby, soloMode: solo },
     })),
-  setHostSpectator: (spectator) =>
-    set((state) => ({
-      lobby: { ...state.lobby, hostSpectator: spectator },
-    })),
+  setHostSpectator: (spectator) => {
+    set((state) => ({ lobby: { ...state.lobby, hostSpectator: spectator } }));
+    const { runtime, online, lobby } = get();
+    if (runtime && online) {
+      runtime.sendCommand(lobby.hostId, { type: "set-player-profile", spectator });
+    }
+  },
   setPreference: (key, value) => {
     set((state) => ({ preferences: { ...state.preferences, [key]: value } }));
     if (key === "buzzWindowSeconds") {
@@ -414,7 +417,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     return true;
   },
   leaveOnlineRoom: () => {
-    const { runtime } = get();
+    const { runtime, online, lobby } = get();
+    if (runtime && online) {
+      // Give the seat back explicitly — a dropped socket mid-game is held
+      // open for a reconnect, which isn't what "leave" means.
+      runtime.sendCommand(lobby.hostId, { type: "leave-game" });
+    }
     if (runtime) runtime.destroy();
     set({
       runtime: null,

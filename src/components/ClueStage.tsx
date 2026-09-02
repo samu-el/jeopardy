@@ -208,6 +208,10 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
   const buzzWindowEndsAt = currentClue.buzzWindowEndsAt ?? now;
   const answerEndsAt = currentClue.answerWindowEndsAt ?? now;
   const wagerEndsAt = currentClue.wagerWindowEndsAt ?? now;
+  const wagerWindowMs = Math.max(
+    1,
+    wagerEndsAt - (currentClue.wagerWindowStartsAt ?? wagerEndsAt - 20_000),
+  );
 
   const inReadout = now < readoutEndsAt;
   const buzzedIds = Object.keys(currentClue.buzzes);
@@ -232,7 +236,7 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
 
   const lightsRemaining = (() => {
     if (currentClue.waitingForWager.length > 0) {
-      return fraction(wagerEndsAt - now, 30_000);
+      return fraction(wagerEndsAt - now, wagerWindowMs);
     }
     if (someoneBuzzed || isFinal || currentClue.dailyDouble) {
       const total = isFinal ? 30_000 : 10_000;
@@ -266,8 +270,10 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
         display: "flex",
         flexDirection: "column",
         position: "relative",
-        px: { xs: 2, md: 5 },
-        py: { xs: 2, md: 3 },
+        px: { xs: 1.5, md: 5 },
+        py: { xs: 1.5, md: 3 },
+        // Keep the buzzer reachable when a long clue fills a small screen.
+        overflowY: "auto",
         background: `linear-gradient(180deg, ${jeopardyPalette.board} 0%, ${jeopardyPalette.boardShade} 100%)`,
       }}
     >

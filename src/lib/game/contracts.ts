@@ -53,6 +53,8 @@ export interface GameSettings {
   /** How long after the readout ends that players can ring in. */
   buzzWindowMs: number;
   finalTimeoutMs: number;
+  /** How long a Daily Double wager stays open. */
+  wagerTimeoutMs: number;
   /** Minimum time the readout occupies (lockout for the buzzer). */
   buzzUnlockDelayMs: number;
   /**
@@ -94,6 +96,8 @@ export interface ActiveClueState {
   buzzWindowEndsAt?: number;
   /** Deadline for the currently-buzzed player to submit an answer. */
   answerWindowEndsAt?: number;
+  /** When the wager prompt opened, so a client can size its countdown. */
+  wagerWindowStartsAt?: number;
   wagerWindowEndsAt?: number;
   waitingForWager: string[];
   buzzes: Record<string, number>;
@@ -164,6 +168,7 @@ export interface PublicActiveClueState {
   readoutEndsAt?: number;
   buzzWindowEndsAt?: number;
   answerWindowEndsAt?: number;
+  wagerWindowStartsAt?: number;
   wagerWindowEndsAt?: number;
   waitingForWager: string[];
   canBuzz: boolean;

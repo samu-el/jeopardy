@@ -21,6 +21,7 @@ export const showTimings: Pick<
   | "buzzWindowMs"
   | "answerTimeoutMs"
   | "finalTimeoutMs"
+  | "wagerTimeoutMs"
   | "earlyBuzzLockoutMs"
   | "autoAdvanceMs"
   | "roundIntroMs"
@@ -34,6 +35,8 @@ export const showTimings: Pick<
   buzzWindowMs: 6_000,
   answerTimeoutMs: 10_000,
   finalTimeoutMs: 30_000,
+  // Long enough to think about a Daily Double bet and type it.
+  wagerTimeoutMs: 20_000,
   // The show's quarter-second penalty for ringing in early.
   earlyBuzzLockoutMs: 250,
   autoAdvanceMs: 3_500,

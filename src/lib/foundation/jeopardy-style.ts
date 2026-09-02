@@ -33,7 +33,7 @@ export const jeopardyPalette = {
  */
 export const jeopardyFonts = {
   display:
-    '"Swiss 911", "Oswald", "Archivo Narrow", "Arial Narrow", Impact, sans-serif',
+    '"Swiss 911", "Oswald", "Archivo Narrow", "Arial Narrow", "Liberation Sans Narrow", "DejaVu Sans Condensed", "Helvetica Neue Condensed", Impact, sans-serif',
   clue: '"Korinna", "Bookman Old Style", "Bitter", Georgia, "Times New Roman", serif',
 } as const;
 

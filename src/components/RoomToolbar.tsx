@@ -47,6 +47,7 @@ export function RoomToolbar({
   onOpenReplay,
 }: RoomToolbarProps) {
   const setScreen = useGameStore((s) => s.setScreen);
+  const leaveOnlineRoom = useGameStore((s) => s.leaveOnlineRoom);
   const startGame = useGameStore((s) => s.startGame);
   const lobby = useGameStore((s) => s.lobby);
   const publicState = useGameStore((s) => s.publicState);
@@ -66,11 +67,15 @@ export function RoomToolbar({
   return (
     <Stack
       direction="row"
+      useFlexGap
       sx={{
         py: 1.5,
         alignItems: "center",
         justifyContent: "space-between",
         gap: 1,
+        // A phone can't hold the whole strip on one line; wrap rather than
+        // pushing the page into a horizontal scroll.
+        flexWrap: { xs: "wrap", sm: "nowrap" },
       }}
     >
       <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
@@ -103,12 +108,17 @@ export function RoomToolbar({
             label={`#${lobby.loadedEpisode.id}${lobby.loadedEpisode.airDate ? ` · ${lobby.loadedEpisode.airDate}` : ""}`}
             size="small"
             variant="outlined"
-            sx={{ ml: 1, color: "text.secondary" }}
+            sx={{ ml: 1, color: "text.secondary", display: { xs: "none", md: "flex" } }}
           />
         ) : null}
       </Stack>
 
-      <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+      <Stack
+        direction="row"
+        spacing={0.5}
+        useFlexGap
+        sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}
+      >
         <Tooltip title="New game">
           <IconButton onClick={onOpenPicker} sx={{ minWidth: 44, minHeight: 44 }}>
             <ShuffleIcon />
@@ -168,7 +178,16 @@ export function RoomToolbar({
           </Typography>
         )}
         <Tooltip title={online ? "Leave room" : "Home"}>
-          <IconButton color="error" onClick={() => setScreen("landing")}>
+          <IconButton
+            color="error"
+            aria-label={online ? "Leave room" : "Home"}
+            onClick={() => {
+              // Leaving for real: hand the seat back rather than holding a
+              // socket open behind the landing page.
+              if (online) leaveOnlineRoom();
+              setScreen("landing");
+            }}
+          >
             <LogoutIcon />
           </IconButton>
         </Tooltip>

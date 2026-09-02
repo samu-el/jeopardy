@@ -156,7 +156,7 @@ export function Room() {
   }
 
   return (
-    <Box sx={{ minHeight: "100vh", background: "#000" }}>
+    <Box sx={{ minHeight: "100vh", background: "#000", overflowX: "hidden" }}>
       <ConnectionBanner />
       <Box sx={{ maxWidth: 1400, mx: "auto", px: { xs: 1.5, md: 3 } }}>
         {toolbar}

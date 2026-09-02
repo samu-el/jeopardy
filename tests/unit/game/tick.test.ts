@@ -181,3 +181,13 @@ describe("early buzz lockout", () => {
     expect(early.state.activeClue?.lockouts).toEqual({});
   });
 });
+
+describe("wager windows", () => {
+  it("gives a Daily Double its own window and reports when it opened", () => {
+    const state = playClue(room({ wagerTimeoutMs: 20_000 }), "j-dd", 1_000);
+    const active = state.activeClue!;
+
+    expect(active.wagerWindowStartsAt).toBe(1_000);
+    expect(active.wagerWindowEndsAt).toBe(21_000);
+  });
+});
