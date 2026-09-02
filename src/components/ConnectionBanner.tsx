@@ -33,14 +33,17 @@ export function ConnectionBanner() {
       aria-live="polite"
       data-testid="connection-banner"
       sx={{
+        // Sits along the bottom so it never covers the toolbar, and only the
+        // action inside it takes clicks.
         position: "fixed",
-        top: 0,
+        bottom: 0,
         left: 0,
         right: 0,
         zIndex: 20,
+        pointerEvents: "none",
         background:
           online.status === "rejected" ? "rgba(180,25,40,0.95)" : "rgba(20,28,70,0.95)",
-        borderBottom: "1px solid rgba(255,255,255,0.15)",
+        borderTop: "1px solid rgba(255,255,255,0.15)",
         px: 2,
         py: 1,
       }}
@@ -52,7 +55,13 @@ export function ConnectionBanner() {
       >
         <Typography sx={{ fontSize: 14, color: "#fff" }}>{message}</Typography>
         {online.status === "rejected" ? (
-          <Button size="small" variant="outlined" color="inherit" onClick={leaveOnlineRoom}>
+          <Button
+            size="small"
+            variant="outlined"
+            color="inherit"
+            sx={{ pointerEvents: "auto" }}
+            onClick={leaveOnlineRoom}
+          >
             Play solo
           </Button>
         ) : null}

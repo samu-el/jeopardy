@@ -145,7 +145,7 @@ export function RoomToolbar({
               </IconButton>
             </Tooltip>
           ) : null
-        ) : (
+        ) : isRoomHost ? (
           <Button
             variant="contained"
             startIcon={<PlayArrowIcon />}
@@ -159,6 +159,13 @@ export function RoomToolbar({
           >
             Begin
           </Button>
+        ) : (
+          <Typography
+            variant="caption"
+            sx={{ ml: 1, color: "text.secondary", whiteSpace: "nowrap" }}
+          >
+            Waiting for the host
+          </Typography>
         )}
         <Tooltip title={online ? "Leave room" : "Home"}>
           <IconButton color="error" onClick={() => setScreen("landing")}>

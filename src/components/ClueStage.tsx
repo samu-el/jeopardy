@@ -10,6 +10,7 @@ import type { PublicGameState } from "@/lib/game";
 import { useGameStore } from "@/lib/state/game-store";
 import {
   judgeAnswer as fuzzyJudge,
+  playSfx,
   primeAudio,
   primeSpeech,
   startFinalTheme,
@@ -64,6 +65,7 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
   if (shouldTriggerDdSplash && currentClue) {
     setDdSplashId(currentClue.clueId);
     setDdSplashVisible(true);
+    if (preferences.soundEnabled) playSfx("daily-double");
   }
   useEffect(() => {
     if (!ddSplashVisible) return;
@@ -557,6 +559,7 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
           target={currentClue.currentJudgePlayerId}
           answer={currentClue.answers[currentClue.currentJudgePlayerId] ?? ""}
           expected={currentClue.correctResponse ?? ""}
+          wager={currentClue.wagers[currentClue.currentJudgePlayerId]}
           onJudge={handleJudge}
         />
       ) : null}
@@ -579,12 +582,14 @@ function JudgePanel({
   target,
   answer,
   expected,
+  wager,
   onJudge,
 }: {
   state: PublicGameState;
   target: string;
   answer: string;
   expected: string;
+  wager?: number;
   onJudge: (correct: boolean | null) => void;
 }) {
   const verdict = fuzzyJudge({ submittedAnswer: answer, expectedAnswer: expected });
@@ -604,6 +609,14 @@ function JudgePanel({
         >
           {Math.round(verdict.confidence * 100)}%
         </Box>
+        {wager !== undefined ? (
+          <Box
+            component="span"
+            sx={{ fontSize: 13, color: jeopardyPalette.gold, ml: 1 }}
+          >
+            wagered ${wager}
+          </Box>
+        ) : null}
       </Typography>
       <Stack
         direction="row"

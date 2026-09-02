@@ -55,10 +55,15 @@ export function AvatarHostController() {
   useEffect(() => {
     if (!narratorRef.current) return;
     const soundEnabled = preferences.soundEnabled;
+    const playedCues = new Set<string>();
     for (const event of events) {
       if (soundEnabled) {
         const sfx = sfxForEvent(event);
-        if (sfx) playSfx(sfx);
+        // One batch can carry a timeout per player; the cue plays once.
+        if (sfx && !playedCues.has(sfx)) {
+          playedCues.add(sfx);
+          playSfx(sfx);
+        }
       }
       if (preferences.avatarHostMode === "off") continue;
       const cue = handleEvent(narratorRef.current, event, publicState);

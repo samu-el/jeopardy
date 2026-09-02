@@ -166,10 +166,17 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     return runtime?.selfId ?? lobby.hostId;
   },
   setScreen: (screen) => set({ screen }),
-  setHostName: (name) =>
-    set((state) => ({
-      lobby: { ...state.lobby, hostName: name.trim() || "You" },
-    })),
+  setHostName: (name) => {
+    const trimmed = name.trim() || "You";
+    set((state) => ({ lobby: { ...state.lobby, hostName: trimmed } }));
+    const { runtime, online, lobby } = get();
+    if (runtime && online) {
+      runtime.sendCommand(lobby.hostId, {
+        type: "set-player-profile",
+        displayName: trimmed,
+      });
+    }
+  },
   setPlayerAvatar: (id, avatar) =>
     set((state) => {
       const patch = (
@@ -190,6 +197,14 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       });
       if (id === state.lobby.hostId) {
         const next = patch({ emoji: state.lobby.hostEmoji, color: state.lobby.hostColor });
+        const { runtime, online } = get();
+        if (runtime && online) {
+          runtime.sendCommand(id, {
+            type: "set-player-profile",
+            emoji: next.emoji,
+            color: next.color,
+          });
+        }
         return {
           lobby: { ...state.lobby, hostEmoji: next.emoji, hostColor: next.color },
         };
@@ -211,14 +226,16 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       };
     }),
   setLoadedEpisode: (loaded) => {
-    const { runtime } = get();
-    if (runtime) runtime.destroy();
+    const { runtime, online } = get();
+    // Staging a different board must never drop a shared room: the host
+    // pushes it to the server on Begin instead.
+    if (runtime && !online) runtime.destroy();
     set((state) => ({
-      runtime: null,
-      publicState: null,
-      chat: [],
-      lastEvents: [],
-      lastCue: null,
+      runtime: online ? state.runtime : null,
+      publicState: online ? state.publicState : null,
+      chat: online ? state.chat : [],
+      lastEvents: online ? state.lastEvents : [],
+      lastCue: online ? state.lastCue : null,
       lobby: {
         ...state.lobby,
         loadedEpisode: loaded,
@@ -227,14 +244,15 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     }));
   },
   setCustomGame: (game, issues) => {
-    const { runtime } = get();
-    if (runtime && game) runtime.destroy();
+    const { runtime, online } = get();
+    const reset = Boolean(game) && !online;
+    if (runtime && reset) runtime.destroy();
     set((state) => ({
-      runtime: game ? null : state.runtime,
-      publicState: game ? null : state.publicState,
-      chat: game ? [] : state.chat,
-      lastEvents: game ? [] : state.lastEvents,
-      lastCue: game ? null : state.lastCue,
+      runtime: reset ? null : state.runtime,
+      publicState: reset ? null : state.publicState,
+      chat: reset ? [] : state.chat,
+      lastEvents: reset ? [] : state.lastEvents,
+      lastCue: reset ? null : state.lastCue,
       lobby: {
         ...state.lobby,
         customGame: game,
@@ -243,27 +261,35 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       },
     }));
   },
-  addBot: (profile) =>
-    set((state) => ({
-      lobby: {
-        ...state.lobby,
-        bots: [
-          ...state.lobby.bots,
-          {
-            id: makeId("bot"),
-            name: `${profile.label} #${state.lobby.bots.length + 1}`,
-            profile,
-          },
-        ],
-      },
-    })),
-  removeBot: (id) =>
+  addBot: (profile) => {
+    const state = get();
+    const bot = {
+      id: makeId("bot"),
+      name: `${profile.label} #${state.lobby.bots.length + 1}`,
+      profile,
+    };
+    set({ lobby: { ...state.lobby, bots: [...state.lobby.bots, bot] } });
+    // In a shared room the bot has to exist on the server to play at all.
+    if (state.online && state.runtime instanceof NetworkRoomRuntime) {
+      state.runtime.addBot({
+        id: bot.id,
+        displayName: bot.name,
+        profileId: profile.id,
+      });
+    }
+  },
+  removeBot: (id) => {
+    const { online, runtime, lobby } = get();
+    if (online && runtime) {
+      runtime.sendCommand(lobby.hostId, { type: "leave-game", targetPlayerId: id });
+    }
     set((state) => ({
       lobby: {
         ...state.lobby,
         bots: state.lobby.bots.filter((bot) => bot.id !== id),
       },
-    })),
+    }));
+  },
   renameBot: (id, name) =>
     set((state) => ({
       lobby: {
@@ -401,14 +427,21 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     if (online && runtime) {
       // The room already exists on the server: load the board, then start.
       runtime.sendCommand(lobby.hostId, { type: "load-game", clues });
-      for (const bot of lobby.bots) {
-        (runtime as NetworkRoomRuntime).addBot?.({
-          id: bot.id,
-          displayName: bot.name,
-          profileId: bot.profile.id,
-          emoji: bot.emoji,
-          color: bot.color,
-        });
+      if (runtime instanceof NetworkRoomRuntime) {
+        // Re-assert the bot roster: load-game keeps players, and a bot added
+        // before this client reconnected may not be seated any more.
+        const seated = new Set(
+          (get().publicState?.players ?? []).map((player) => player.id),
+        );
+        for (const bot of lobby.bots.filter((candidate) => !seated.has(candidate.id))) {
+          runtime.addBot({
+            id: bot.id,
+            displayName: bot.name,
+            profileId: bot.profile.id,
+            emoji: bot.emoji,
+            color: bot.color,
+          });
+        }
       }
       runtime.sendCommand(lobby.hostId, { type: "start-game" });
       set({ screen: "play" });
@@ -516,8 +549,16 @@ function connectToRoom(
   isHost: boolean,
 ) {
   const { lobby } = get();
+  // "You" is fine on your own screen but useless when three people share a
+  // board, so give an unnamed player something the room can tell apart.
+  const displayName =
+    lobby.hostName.trim() && lobby.hostName.trim() !== "You"
+      ? lobby.hostName.trim()
+      : `Player ${lobby.hostId.replace(/^p-/, "").slice(0, 3).toUpperCase()}`;
+
   set({
     online: { roomId, status: "connecting", isHost },
+    lobby: { ...lobby, hostName: displayName },
     publicState: null,
     chat: [],
     lastEvents: [],
@@ -529,7 +570,7 @@ function connectToRoom(
     {
       roomId,
       clientId: lobby.hostId,
-      displayName: lobby.hostName,
+      displayName,
       emoji: lobby.hostEmoji,
       color: lobby.hostColor,
       spectator: lobby.hostSpectator,

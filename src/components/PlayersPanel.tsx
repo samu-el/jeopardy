@@ -18,6 +18,10 @@ import { AvatarPicker } from "./AvatarPicker";
 
 export function PlayersPanel() {
   const lobby = useGameStore((s) => s.lobby);
+  const online = useGameStore((s) => s.online);
+  const publicState = useGameStore((s) => s.publicState);
+  const selfId = useGameStore((s) => s.selfId)();
+  const runtime = useGameStore((s) => s.runtime);
   const setHostName = useGameStore((s) => s.setHostName);
   const addBot = useGameStore((s) => s.addBot);
   const removeBot = useGameStore((s) => s.removeBot);
@@ -80,20 +84,70 @@ export function PlayersPanel() {
               </IconButton>
             </Stack>
           ))}
-          {lobby.extraHumans.map((human) => (
-            <Stack key={human.id} direction="row" spacing={1} sx={{ alignItems: "center" }}>
-              <AvatarPicker
-                playerId={human.id}
-                emoji={human.emoji}
-                color={human.color}
-                size={32}
-              />
-              <Chip label={human.name} sx={{ flex: 1, justifyContent: "flex-start" }} />
-              <IconButton size="small" onClick={() => removeHuman(human.id)}>
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Stack>
-          ))}
+          {online
+            ? (publicState?.players ?? [])
+                .filter((player) => player.kind === "human" && player.id !== selfId)
+                .map((player) => (
+                  <Stack
+                    key={player.id}
+                    direction="row"
+                    spacing={1}
+                    sx={{ alignItems: "center" }}
+                  >
+                    <Box
+                      aria-hidden
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: "50%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: player.color ?? "rgba(255,255,255,0.08)",
+                      }}
+                    >
+                      {player.emoji ?? ""}
+                    </Box>
+                    <Chip
+                      label={player.displayName}
+                      sx={{ flex: 1, justifyContent: "flex-start" }}
+                      variant={player.connected ? "filled" : "outlined"}
+                    />
+                    {publicState?.settings.hostId === selfId ? (
+                      <IconButton
+                        size="small"
+                        aria-label={`Remove ${player.displayName}`}
+                        onClick={() =>
+                          runtime?.sendCommand(selfId, {
+                            type: "leave-game",
+                            targetPlayerId: player.id,
+                          })
+                        }
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    ) : null}
+                  </Stack>
+                ))
+            : lobby.extraHumans.map((human) => (
+                <Stack
+                  key={human.id}
+                  direction="row"
+                  spacing={1}
+                  sx={{ alignItems: "center" }}
+                >
+                  <AvatarPicker
+                    playerId={human.id}
+                    emoji={human.emoji}
+                    color={human.color}
+                    size={32}
+                  />
+                  <Chip label={human.name} sx={{ flex: 1, justifyContent: "flex-start" }} />
+                  <IconButton size="small" onClick={() => removeHuman(human.id)}>
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Stack>
+              ))}
         </Stack>
 
         <Stack direction="row" spacing={1} useFlexGap sx={{ mt: 1.5, flexWrap: "wrap" }}>
@@ -110,7 +164,11 @@ export function PlayersPanel() {
           ))}
         </Stack>
 
-        <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{ mt: 1.5, display: online ? "none" : "flex" }}
+        >
           <TextField
             size="small"
             placeholder="Add player"

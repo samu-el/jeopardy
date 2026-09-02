@@ -231,9 +231,13 @@ function pickClue(
   command: Extract<GameCommand, { type: "pick-clue" }>,
   now: number,
 ): GameEngineResult {
-  const playerCheck = requireActivePlayer(state, command.actorId, command);
-  if (playerCheck) {
-    return playerCheck;
+  // A host who isn't playing still runs the board, so only non-host
+  // spectators are turned away here.
+  if (state.settings.hostId !== command.actorId) {
+    const playerCheck = requireActivePlayer(state, command.actorId, command);
+    if (playerCheck) {
+      return playerCheck;
+    }
   }
   if (state.round === "lobby" || state.round === "complete") {
     return reject(state, command, "game-not-started", "Game is not in a playable round.");
@@ -545,8 +549,12 @@ function revealAnswer(
     }
   }
   nextActive.answerRevealed = true;
-  nextActive.judgeQueue = Object.keys(nextActive.answers).sort(
-    (a, b) => (nextActive.buzzes[a] ?? 0) - (nextActive.buzzes[b] ?? 0),
+  // Ring-in order everywhere except Final Jeopardy, which the show reveals
+  // from the lowest score up.
+  nextActive.judgeQueue = Object.keys(nextActive.answers).sort((a, b) =>
+    nextActive.round === "final-jeopardy"
+      ? (next.scores[a] ?? 0) - (next.scores[b] ?? 0) || a.localeCompare(b)
+      : (nextActive.buzzes[a] ?? 0) - (nextActive.buzzes[b] ?? 0),
   );
   nextActive.currentJudgePlayerId = nextActive.judgeQueue[0];
   nextActive.canAdvance = nextActive.judgeQueue.length === 0;
@@ -1386,8 +1394,11 @@ function clampWager(amount: number, round: GameRound, score: number) {
 }
 
 function selectPicker(state: GameState) {
-  if (state.settings.hostId) {
-    return state.settings.hostId;
+  const hostId = state.settings.hostId;
+  // A host at a lectern keeps the board; a host who only runs the game hands
+  // the pick to a contestant, lowest score first the way a round opens.
+  if (hostId && state.players[hostId] && !state.players[hostId].spectator) {
+    return hostId;
   }
   const activePlayers = getActivePlayers(state);
   return activePlayers
