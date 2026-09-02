@@ -10,6 +10,6 @@ test.describe("Landing & room", () => {
     await expect(page.getByRole("button", { name: "New game" })).toBeVisible({
       timeout: 5_000,
     });
-    await expect(page.getByRole("button", { name: "Begin" })).toBeDisabled();
+    await expect(page.getByTestId("begin")).toBeDisabled();
   });
 });

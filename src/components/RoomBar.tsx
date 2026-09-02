@@ -30,6 +30,10 @@ export function RoomBar() {
         size="small"
         startIcon={<GroupAddIcon />}
         disabled={opening}
+        // The label is shortened for narrow screens; the accessible name
+        // stays the full action.
+        aria-label="Invite players"
+        data-testid="invite-players"
         onClick={async () => {
           setOpening(true);
           try {
@@ -80,6 +84,7 @@ export function RoomBar() {
               })
               .catch(() => {});
           }}
+          data-testid="room-code"
           sx={{
             display: "inline-flex",
             alignItems: "center",

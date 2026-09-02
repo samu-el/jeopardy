@@ -14,9 +14,9 @@ test.describe("Shared room", () => {
       await expect(room.guest.getByTestId(/^podium-/)).toHaveCount(2);
 
       // Starting the game belongs to the host alone.
-      await expect(room.guest.getByRole("button", { name: "Begin" })).toHaveCount(0);
+      await expect(room.guest.getByTestId("begin")).toHaveCount(0);
       await expect(room.guest.getByText("Waiting for the host")).toBeVisible();
-      await expect(room.host.getByRole("button", { name: "Begin" })).toBeVisible();
+      await expect(room.host.getByTestId("begin")).toBeVisible();
     } finally {
       await room.close();
     }
@@ -44,8 +44,8 @@ test.describe("Shared room", () => {
 
       await host.getByRole("button", { name: "New game" }).click();
       await host.getByRole("button", { name: "Shuffle" }).click();
-      await expect(host.getByRole("button", { name: "Begin" })).toBeEnabled();
-      await host.getByRole("button", { name: "Begin" }).click();
+      await expect(host.getByTestId("begin")).toBeEnabled();
+      await host.getByTestId("begin").click();
 
       // The guest's board comes from the server — it has no game state of its own.
       await expect(guest.getByTestId("board").getByText("Math")).toBeVisible();
@@ -95,9 +95,9 @@ async function openSharedRoom(browser: Browser): Promise<SharedRoom> {
   await host.goto("/");
   await host.getByRole("button", { name: "New room" }).click();
   await dismissOnboarding(host);
-  await host.getByRole("button", { name: "Invite players" }).click();
+  await host.getByTestId("invite-players").click();
 
-  const codeChip = host.getByRole("button", { name: /Copy invite link/ });
+  const codeChip = host.getByTestId("room-code");
   await expect(codeChip).toBeVisible();
   const code = ((await codeChip.textContent()) ?? "").trim();
   expect(code).toMatch(/^[A-Z0-9]{4}$/);

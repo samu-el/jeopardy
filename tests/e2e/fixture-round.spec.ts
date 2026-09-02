@@ -12,17 +12,15 @@ test.describe("Fixture round", () => {
     await dismissOnboarding(page);
 
     // Empty board is visible until an episode is loaded
-    await expect(page.getByRole("button", { name: "Begin" })).toBeDisabled();
+    await expect(page.getByTestId("begin")).toBeDisabled();
 
     // Open the picker and shuffle
     await page.getByRole("button", { name: "New game" }).click();
     await page.getByRole("button", { name: "Shuffle" }).click();
 
     // Begin should enable once an episode is loaded
-    await expect(page.getByRole("button", { name: "Begin" })).toBeEnabled({
-      timeout: 15_000,
-    });
-    await page.getByRole("button", { name: "Begin" }).click();
+    await expect(page.getByTestId("begin")).toBeEnabled({ timeout: 15_000 });
+    await page.getByTestId("begin").click();
 
     // The round title card runs before the board goes live.
     await expect(page.getByTestId("round-intro")).toBeVisible();

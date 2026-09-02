@@ -158,6 +158,7 @@ export function RoomToolbar({
         ) : isRoomHost ? (
           <Button
             variant="contained"
+            data-testid="begin"
             startIcon={<PlayArrowIcon />}
             disabled={!canBegin}
             onClick={() => {
