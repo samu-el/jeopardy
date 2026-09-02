@@ -14,6 +14,7 @@ import EmojiEventsIcon from "@mui/icons-material/EmojiEventsOutlined";
 import HomeIcon from "@mui/icons-material/HomeOutlined";
 import ReplayIcon from "@mui/icons-material/ReplayOutlined";
 import type { PublicGameState } from "@/lib/game";
+import { jeopardyFonts, jeopardyPalette } from "@/lib/foundation/jeopardy-style";
 
 interface ResultsViewProps {
   state: PublicGameState;
@@ -33,20 +34,25 @@ export function ResultsView({ state, onPlayAgain, onExit }: ResultsViewProps) {
       <Card
         elevation={6}
         sx={{
-          background:
-            "linear-gradient(135deg, rgba(59,108,255,0.45), rgba(255,195,74,0.25))",
+          background: `linear-gradient(180deg, ${jeopardyPalette.board} 0%, ${jeopardyPalette.boardShade} 100%)`,
           border: "1px solid rgba(255,255,255,0.12)",
           textAlign: "center",
         }}
       >
         <CardContent sx={{ py: { xs: 4, md: 6 } }}>
-          <EmojiEventsIcon sx={{ fontSize: { xs: 64, md: 96 }, color: "secondary.main" }} />
+          <EmojiEventsIcon
+            sx={{ fontSize: { xs: 56, md: 84 }, color: jeopardyPalette.goldBright }}
+          />
           <Typography
             variant="h2"
             sx={{
               mt: 1,
-              fontWeight: 900,
-              fontSize: { xs: 32, md: 56 },
+              fontFamily: jeopardyFonts.display,
+              fontWeight: 700,
+              letterSpacing: "0.02em",
+              textTransform: "uppercase",
+              fontSize: { xs: 32, md: 60 },
+              textShadow: "0.04em 0.04em 0 rgba(0,0,0,0.7)",
               wordBreak: "break-word",
             }}
           >
@@ -54,10 +60,16 @@ export function ResultsView({ state, onPlayAgain, onExit }: ResultsViewProps) {
           </Typography>
           {winner ? (
             <Typography
-              variant="h4"
-              sx={{ mt: 1, color: "secondary.main", fontWeight: 700 }}
+              sx={{
+                mt: 1,
+                fontFamily: jeopardyFonts.display,
+                color: jeopardyPalette.goldBright,
+                fontWeight: 700,
+                fontSize: { xs: 26, md: 40 },
+                textShadow: "0.04em 0.04em 0 rgba(0,0,0,0.7)",
+              }}
             >
-              ${winner.score}
+              {winner.score < 0 ? `-$${Math.abs(winner.score)}` : `$${winner.score}`}
             </Typography>
           ) : null}
           <Stack

@@ -174,10 +174,9 @@ export class RoomHost {
             this.room.postChat({ kind: "system", text: `${event.displayName} joined` });
           }
           break;
-        case "player-left": {
-          this.room.postChat({ kind: "system", text: `A player left the room` });
+        case "player-left":
+          this.room.postChat({ kind: "system", text: `${event.displayName} left` });
           break;
-        }
         case "buzz-window-closed":
           this.room.postChat({ kind: "host", text: "No takers." });
           break;

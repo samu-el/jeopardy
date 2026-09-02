@@ -27,6 +27,11 @@ export interface UiPreferences {
   voiceProfileId: string;
   avatarHostProfileId: string;
   avatarHostMode: "off" | "voice-only" | "avatar-and-voice";
+  /**
+   * How long the buzzer stays open after the readout, in seconds. The show
+   * runs tight; a longer window helps a mixed table or a slow connection.
+   */
+  buzzWindowSeconds: number;
 }
 
 export interface LobbyBotConfig {
@@ -142,6 +147,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     voiceProfileId: "female-natural",
     avatarHostProfileId: defaultAvatarHostProfile().id,
     avatarHostMode: "voice-only",
+    buzzWindowSeconds: 6,
   },
   lobby: {
     hostName: "You",
@@ -336,10 +342,19 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set((state) => ({
       lobby: { ...state.lobby, hostSpectator: spectator },
     })),
-  setPreference: (key, value) =>
-    set((state) => ({
-      preferences: { ...state.preferences, [key]: value },
-    })),
+  setPreference: (key, value) => {
+    set((state) => ({ preferences: { ...state.preferences, [key]: value } }));
+    if (key === "buzzWindowSeconds") {
+      const { runtime, lobby, publicState } = get();
+      const isHost = !publicState?.settings.hostId || publicState.settings.hostId === lobby.hostId;
+      if (runtime && isHost) {
+        runtime.sendCommand(lobby.hostId, {
+          type: "update-settings",
+          settings: { buzzWindowMs: Number(value) * 1_000 },
+        });
+      }
+    }
+  },
   hostOnlineRoom: async () => {
     const { lobby, runtime } = get();
     if (runtime) runtime.destroy();
@@ -427,6 +442,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     if (online && runtime) {
       // The room already exists on the server: load the board, then start.
       runtime.sendCommand(lobby.hostId, { type: "load-game", clues });
+      runtime.sendCommand(lobby.hostId, {
+        type: "update-settings",
+        settings: {
+          aiJudgeEnabled: lobby.aiJudgeEnabled,
+          buzzWindowMs: get().preferences.buzzWindowSeconds * 1_000,
+        },
+      });
       if (runtime instanceof NetworkRoomRuntime) {
         // Re-assert the bot roster: load-game keeps players, and a bot added
         // before this client reconnected may not be seated any more.
@@ -477,6 +499,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
           aiJudgeEnabled: lobby.aiJudgeEnabled,
           aiBotsEnabled: lobby.bots.length > 0,
           aiAvatarHostEnabled: get().preferences.avatarHostMode !== "off",
+          buzzWindowMs: get().preferences.buzzWindowSeconds * 1_000,
         },
       },
       {

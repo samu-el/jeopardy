@@ -25,7 +25,7 @@ test.describe("Fixture round", () => {
     await page.getByRole("button", { name: "Begin" }).click();
 
     // The round title card runs before the board goes live.
-    await expect(page.getByText("JEOPARDY!", { exact: true })).toBeVisible();
+    await expect(page.getByTestId("round-intro")).toBeVisible();
 
     // The fixture has $200 clues — pick the first one once the board opens.
     await page.getByRole("button", { name: /\$200/ }).first().click({ timeout: 15_000 });

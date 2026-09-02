@@ -38,6 +38,10 @@ test.describe("Shared room", () => {
     const room = await openSharedRoom(browser);
     const { host, guest } = room;
     try {
+      // A cold dev server can eat most of the show's six-second window, so
+      // play this one at the relaxed pace the settings panel offers.
+      await setBuzzWindow(host, "20 seconds — relaxed");
+
       await host.getByRole("button", { name: "New game" }).click();
       await host.getByRole("button", { name: "Shuffle" }).click();
       await expect(host.getByRole("button", { name: "Begin" })).toBeEnabled();
@@ -63,6 +67,15 @@ test.describe("Shared room", () => {
     }
   });
 });
+
+/** Picks a buzz window from the settings panel, as the host would. */
+async function setBuzzWindow(page: Page, option: string) {
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByLabel("Buzz window").click();
+  await page.getByRole("option", { name: option }).click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "Settings" })).toBeVisible();
+}
 
 interface SharedRoom {
   host: Page;

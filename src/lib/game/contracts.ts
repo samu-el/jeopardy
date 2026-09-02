@@ -435,6 +435,7 @@ export type GameEvent =
   | {
       type: "player-left";
       playerId: string;
+      displayName: string;
     }
   | {
       type: "player-updated";

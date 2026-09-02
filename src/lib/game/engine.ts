@@ -918,7 +918,12 @@ function leaveGame(
     ),
     now,
   );
-  return { state: next, events: [{ type: "player-left", playerId: targetId }] };
+  return {
+    state: next,
+    events: [
+      { type: "player-left", playerId: targetId, displayName: player.displayName },
+    ],
+  };
 }
 
 function setPlayerProfile(

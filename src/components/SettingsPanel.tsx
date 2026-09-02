@@ -123,6 +123,23 @@ export function SettingsPanel() {
               }
               label="Reduced motion"
             />
+
+            <FormControl fullWidth size="small">
+              <InputLabel id="buzz-window">Buzz window</InputLabel>
+              <Select
+                labelId="buzz-window"
+                label="Buzz window"
+                value={preferences.buzzWindowSeconds}
+                onChange={(event) =>
+                  setPreference("buzzWindowSeconds", Number(event.target.value))
+                }
+              >
+                <MenuItem value={5}>5 seconds — show pace</MenuItem>
+                <MenuItem value={6}>6 seconds</MenuItem>
+                <MenuItem value={10}>10 seconds</MenuItem>
+                <MenuItem value={20}>20 seconds — relaxed</MenuItem>
+              </Select>
+            </FormControl>
           </Stack>
         </CardContent>
       </Card>

@@ -418,30 +418,47 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
       ) : null}
 
       {myWagerOpen && !wagerSubmittedByMe && !ddSplashVisible ? (
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{ alignItems: "center", justifyContent: "center", mb: 1 }}
-        >
-          <TextField
-            label={`Wager $${wagerLimits.min}–${wagerLimits.max}`}
-            type="number"
-            value={wagerInput}
-            onChange={(event) => setWagerInput(event.target.value)}
-            slotProps={{ htmlInput: { min: wagerLimits.min, max: wagerLimits.max } }}
-            size="small"
-            autoFocus
-            sx={wagerFieldSx}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                handleSubmitWager();
-              }
-            }}
-          />
-          <Button variant="contained" onClick={handleSubmitWager}>
-            Wager
-          </Button>
+        <Stack spacing={1} sx={{ alignItems: "center", mb: 1 }}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+            <TextField
+              label="Wager"
+              type="number"
+              value={wagerInput}
+              onChange={(event) => setWagerInput(event.target.value)}
+              helperText={`$${wagerLimits.min} – $${wagerLimits.max}`}
+              slotProps={{ htmlInput: { min: wagerLimits.min, max: wagerLimits.max } }}
+              size="small"
+              autoFocus
+              sx={wagerFieldSx}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  handleSubmitWager();
+                }
+              }}
+            />
+            <Button variant="contained" onClick={handleSubmitWager} sx={{ mb: 2.5 }}>
+              Wager
+            </Button>
+          </Stack>
+          <Stack direction="row" spacing={1}>
+            {!isFinal ? (
+              <Button
+                size="small"
+                sx={hostButtonSx}
+                onClick={() => setWagerInput(String(currentClue.value))}
+              >
+                ${currentClue.value}
+              </Button>
+            ) : null}
+            <Button
+              size="small"
+              sx={hostButtonSx}
+              onClick={() => setWagerInput(String(wagerLimits.max))}
+            >
+              {isFinal ? "Everything" : "True Daily Double"}
+            </Button>
+          </Stack>
         </Stack>
       ) : null}
 
@@ -645,8 +662,10 @@ const hostButtonSx = {
 } as const;
 
 const wagerFieldSx = {
+  width: 190,
   "& .MuiInputBase-root": { background: "rgba(0,0,0,0.25)" },
   "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
+  "& .MuiFormHelperText-root": { color: "rgba(255,255,255,0.65)" },
   "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.3)" },
 } as const;
 

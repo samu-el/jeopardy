@@ -40,10 +40,15 @@ export function Board({ state, onPick, canPick = false, overlay }: BoardProps) {
 
   if (byCategory.length === 0) {
     return (
-      <BoardFrame ref={containerRef} ratio={boardColumns / (boardRows + 0.8)}>
+      <BoardFrame ref={containerRef} ratio={boardRatio(boardColumns, boardRows)}>
         <BoardGrid columns={boardColumns} rows={boardRows}>
           {Array.from({ length: boardColumns }).map((_, col) => (
-            <CategoryCell key={`hdr-${col}`} column={col + 1} label="" />
+            <CategoryCell
+              key={`hdr-${col}`}
+              column={col + 1}
+              columns={boardColumns}
+              label=""
+            />
           ))}
           {Array.from({ length: boardColumns }).flatMap((_, col) =>
             PLACEHOLDER_VALUES.map((value, row) => (
@@ -57,7 +62,7 @@ export function Board({ state, onPick, canPick = false, overlay }: BoardProps) {
                   alignItems: "center",
                   justifyContent: "center",
                   fontFamily: jeopardyFonts.display,
-                  fontSize: "clamp(18px, 3.2vw, 44px)",
+                  fontSize: valueFontSize(boardColumns),
                   fontWeight: 700,
                   color: "rgba(214,159,76,0.16)",
                 }}
@@ -75,15 +80,13 @@ export function Board({ state, onPick, canPick = false, overlay }: BoardProps) {
   const rowCount = Math.max(...byCategory.map((column) => column.clues.length));
 
   return (
-    <BoardFrame
-      ref={containerRef}
-      ratio={byCategory.length / (rowCount + 0.8)}
-    >
+    <BoardFrame ref={containerRef} ratio={boardRatio(byCategory.length, rowCount)}>
       <BoardGrid columns={byCategory.length} rows={rowCount}>
         {byCategory.map((column, columnIndex) => (
           <CategoryCell
             key={`hdr-${column.category}`}
             column={columnIndex + 1}
+            columns={byCategory.length}
             label={column.category}
             delayMs={reducedMotion ? 0 : columnIndex * 70}
             animationKey={roundKey}
@@ -97,6 +100,7 @@ export function Board({ state, onPick, canPick = false, overlay }: BoardProps) {
               clue={clue}
               column={columnIndex + 1}
               row={rowIndex + 2}
+              columns={byCategory.length}
               disabled={!canPick || clue.revealed}
               hidden={clue.id === activeClueId}
               reducedMotion={reducedMotion}
@@ -134,6 +138,25 @@ export function Board({ state, onPick, canPick = false, overlay }: BoardProps) {
   );
 }
 
+/**
+ * Board proportions. Cells on the set are landscape, so the whole board is
+ * far wider than the raw column/row count suggests.
+ */
+const cellAspect = 1.6;
+
+function boardRatio(columns: number, rows: number): number {
+  return (columns / (rows + 0.8)) * cellAspect;
+}
+
+/** Type that scales with the cell, expressed against the board's width. */
+function valueFontSize(columns: number): string {
+  return `clamp(11px, ${(25 / columns).toFixed(2)}cqw, 46px)`;
+}
+
+function categoryFontSize(columns: number): string {
+  return `clamp(7px, ${(9.5 / columns).toFixed(2)}cqw, 18px)`;
+}
+
 const cellSurface = {
   background: `linear-gradient(180deg, ${jeopardyPalette.board} 0%, ${jeopardyPalette.boardDeep} 100%)`,
   boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.05)",
@@ -161,11 +184,14 @@ function BoardFrame({
         sx={{
           position: "relative",
           "--board-height": {
-            xs: "min(52vh, 460px)",
-            md: "min(60vh, 620px)",
+            xs: "min(46vh, 420px)",
+            md: "min(62vh, 660px)",
           },
           width: `min(100%, calc(var(--board-height) * ${ratio}))`,
           aspectRatio: `${ratio}`,
+          // Cell type is sized from the board, not the viewport, so a
+          // six-category board and a two-category one both read correctly.
+          containerType: "inline-size",
           background: jeopardyPalette.gap,
           p: { xs: 0.5, sm: 0.75 },
           overflow: "hidden",
@@ -203,12 +229,14 @@ function BoardGrid({
 
 function CategoryCell({
   column,
+  columns,
   label,
   delayMs = 0,
   animationKey,
   reducedMotion,
 }: {
   column: number;
+  columns: number;
   label: string;
   delayMs?: number;
   animationKey?: string;
@@ -233,8 +261,10 @@ function CategoryCell({
         lineHeight: 1.05,
         color: jeopardyPalette.categoryText,
         textShadow: jeopardyTextShadow,
-        fontSize: "clamp(9px, 1.15vw, 17px)",
+        fontSize: categoryFontSize(columns),
         overflow: "hidden",
+        overflowWrap: "anywhere",
+        hyphens: "auto",
         animation: reducedMotion ? "none" : `board-drop 420ms ${delayMs}ms both ease-out`,
         "@keyframes board-drop": {
           from: { opacity: 0, transform: "translateY(-18px)" },
@@ -250,6 +280,7 @@ function CategoryCell({
 function ClueTile({
   clue,
   column,
+  columns,
   row,
   disabled,
   hidden,
@@ -261,6 +292,7 @@ function ClueTile({
 }: {
   clue: PublicBoardClue;
   column: number;
+  columns: number;
   row: number;
   disabled: boolean;
   hidden: boolean;
@@ -287,7 +319,7 @@ function ClueTile({
         justifyContent: "center",
         fontFamily: jeopardyFonts.display,
         fontWeight: 700,
-        fontSize: "clamp(18px, 3.1vw, 46px)",
+        fontSize: valueFontSize(columns),
         color: jeopardyPalette.gold,
         textShadow: jeopardyTextShadow,
         opacity: hidden ? 0 : 1,
