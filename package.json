@@ -9,10 +9,10 @@
     "bun": "1.3.6"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "bun server.mjs",
     "build": "next build",
-    "start": "next start",
-    "start:socket": "node server.mjs",
+    "start": "NODE_ENV=production bun server.mjs",
+    "start:socket": "NODE_ENV=production bun server.mjs",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "lint": "eslint .",
@@ -21,7 +21,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "foundation:verify": "bun run scripts/verify-foundation.ts",
-    "verify": "bun run typecheck && bun run lint && bun run test && bun run build && bun run foundation:verify"
+    "verify": "bun run typecheck && bun run lint && bun run test && bun run build && bun run foundation:verify",
+    "dev:next": "next dev"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",

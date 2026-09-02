@@ -14,7 +14,6 @@ import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import LogoutIcon from "@mui/icons-material/LogoutOutlined";
-import ShareIcon from "@mui/icons-material/IosShareOutlined";
 import KeyboardIcon from "@mui/icons-material/KeyboardOutlined";
 import HistoryIcon from "@mui/icons-material/HistoryOutlined";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -28,6 +27,7 @@ import LibraryIcon from "@mui/icons-material/LibraryBooksOutlined";
 import { useGameStore } from "@/lib/state/game-store";
 import { primeAudio, primeSpeech } from "@/lib/ai";
 import { Wordmark } from "./Wordmark";
+import { RoomBar } from "./RoomBar";
 import { SettingsPanel } from "./SettingsPanel";
 import { PlayersPanel } from "./PlayersPanel";
 
@@ -57,7 +57,10 @@ export function RoomToolbar({
   const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
   const closeMore = () => setMoreAnchor(null);
 
-  const canBegin = Boolean(lobby.loadedEpisode || lobby.customGame);
+  const online = useGameStore((s) => s.online);
+  const selfId = useGameStore((s) => s.selfId)();
+  const isRoomHost = !publicState?.settings.hostId || publicState.settings.hostId === selfId;
+  const canBegin = Boolean(lobby.loadedEpisode || lobby.customGame) && isRoomHost;
   const inGame = Boolean(runtime && publicState && publicState.round !== "lobby");
 
   return (
@@ -111,22 +114,7 @@ export function RoomToolbar({
             <ShuffleIcon />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Share">
-          <IconButton
-            onClick={() => {
-              const url = new URL(window.location.href);
-              if (publicState?.roomId) {
-                url.searchParams.set("room", publicState.roomId);
-              }
-              if (navigator.clipboard) {
-                navigator.clipboard.writeText(url.toString()).catch(() => {});
-              }
-            }}
-            sx={{ minWidth: 44, minHeight: 44 }}
-          >
-            <ShareIcon />
-          </IconButton>
-        </Tooltip>
+        <RoomBar />
         <Tooltip title="Settings">
           <IconButton
             onClick={(event) => setSettingsAnchor(event.currentTarget)}
@@ -145,16 +133,18 @@ export function RoomToolbar({
           </IconButton>
         </Tooltip>
         {inGame ? (
-          <Tooltip title="Restart">
-            <IconButton
-              color="warning"
-              onClick={() => {
-                exitToLobby();
-              }}
-            >
-              <ReplayIcon />
-            </IconButton>
-          </Tooltip>
+          isRoomHost ? (
+            <Tooltip title="Restart">
+              <IconButton
+                color="warning"
+                onClick={() => {
+                  exitToLobby();
+                }}
+              >
+                <ReplayIcon />
+              </IconButton>
+            </Tooltip>
+          ) : null
         ) : (
           <Button
             variant="contained"
@@ -170,7 +160,7 @@ export function RoomToolbar({
             Begin
           </Button>
         )}
-        <Tooltip title="Leave">
+        <Tooltip title={online ? "Leave room" : "Home"}>
           <IconButton color="error" onClick={() => setScreen("landing")}>
             <LogoutIcon />
           </IconButton>

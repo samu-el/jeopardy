@@ -1,3 +1,6 @@
+// Custom Next.js server: same HTTP listener serves the app and the Socket.IO
+// room bridge, so shared rooms work in `dev` and in production alike.
+// Run with Bun (`bun server.mjs`) — the bridge is TypeScript.
 import { createServer } from "node:http";
 import next from "next";
 
@@ -13,14 +16,11 @@ await app.prepare();
 const server = createServer((req, res) => handle(req, res));
 
 try {
-  const bridge = await import("./.next/server/chunks/socket-bridge.cjs").catch(() => null);
-  if (bridge?.attachSocketServer) {
-    bridge.attachSocketServer(server);
-  } else {
-    const fallback = await import("./src/lib/realtime/socket-bridge.ts").catch(() => null);
-    fallback?.attachSocketServer?.(server);
-  }
+  const { attachSocketServer } = await import("./src/lib/realtime/socket-bridge.ts");
+  attachSocketServer(server);
+  console.log("> Socket.IO room bridge attached at /api/socket");
 } catch (error) {
+  // The app still serves solo play without the bridge; shared rooms won't work.
   console.warn("Socket.IO bridge not available:", error);
 }
 

@@ -36,7 +36,11 @@ export function AvatarHostController() {
           const runtime = store.runtime;
           const currentClueId = store.publicState?.currentClue?.clueId;
           if (!runtime || !currentClueId) return;
-          runtime.sendCommand(store.lobby.hostId, {
+          // Only the room host opens the buzzer early: every client reads the
+          // clue at its own pace, and the window must open once for everyone.
+          const selfId = store.selfId();
+          if (store.publicState?.settings.hostId !== selfId) return;
+          runtime.sendCommand(selfId, {
             type: "readout-complete",
             clueId: currentClueId,
           });
@@ -180,6 +184,11 @@ function sfxForEvent(event: GameEvent): Parameters<typeof playSfx>[0] | null {
       if (event.correct === true) return "correct";
       if (event.correct === false) return "incorrect";
       return null;
+    case "buzz-window-closed":
+    case "answer-timed-out":
+      return "timeout";
+    case "round-advanced":
+      return event.round === "complete" ? "applause" : "round-start";
     default:
       return null;
   }

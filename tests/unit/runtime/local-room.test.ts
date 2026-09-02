@@ -68,6 +68,8 @@ describe("LocalRoomRuntime", () => {
   it("drives a full clue cycle: start, bot pick, bot buzz, auto-judge", async () => {
     const { runtime, chats } = makeRuntime();
     runtime.sendCommand("host", { type: "start-game" });
+    // The board is dark while the round title card runs.
+    await vi.advanceTimersByTimeAsync(3_000);
     runtime.sendCommand("host", { type: "pick-clue", clueId: "j-1" });
 
     // Allow timers for readout + bot buzz + bot answer + auto-judge to fire
@@ -91,6 +93,7 @@ describe("LocalRoomRuntime", () => {
   it("destroy clears pending timers without leaking", async () => {
     const { runtime } = makeRuntime();
     runtime.sendCommand("host", { type: "start-game" });
+    await vi.advanceTimersByTimeAsync(3_000);
     runtime.sendCommand("host", { type: "pick-clue", clueId: "j-1" });
     runtime.destroy();
     await vi.advanceTimersByTimeAsync(20_000);

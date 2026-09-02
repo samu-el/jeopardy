@@ -1,39 +1,42 @@
-import { getOrCreateBridgeRoom, type BridgeRoomInit } from "@/lib/realtime/socket-bridge";
+import {
+  createRoom,
+  listRoomIds,
+  roomSummary,
+  type CreateRoomInput,
+} from "@/lib/realtime/room-registry";
+import { socketPath } from "@/lib/realtime/socket-path";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 interface CreateBody {
-  hostId: string;
-  hostName: string;
-  players: BridgeRoomInit["players"];
-  clues: BridgeRoomInit["clues"];
-  settings?: BridgeRoomInit["settings"];
-}
-
-function makeRoomId(): string {
-  // Short, easy-to-share room code.
-  const random = Math.random().toString(36).slice(2, 8);
-  return `r-${random}`;
+  hostId?: string;
+  clues?: CreateRoomInput["clues"];
+  settings?: CreateRoomInput["settings"];
 }
 
 export async function POST(request: Request) {
-  let body: CreateBody;
+  let body: CreateBody = {};
   try {
-    body = (await request.json()) as CreateBody;
+    const text = await request.text();
+    body = text ? (JSON.parse(text) as CreateBody) : {};
   } catch {
     return Response.json({ error: "invalid-body" }, { status: 400 });
   }
-  if (!body.hostId || !Array.isArray(body.clues) || body.clues.length === 0) {
-    return Response.json({ error: "invalid-body" }, { status: 400 });
-  }
-  const roomId = makeRoomId();
-  getOrCreateBridgeRoom({
-    roomId,
+
+  const room = createRoom({
     hostId: body.hostId,
-    players: body.players,
     clues: body.clues,
     settings: body.settings,
   });
-  return Response.json({ roomId, socketPath: "/api/socket" });
+
+  return Response.json({
+    roomId: room.roomId,
+    socketPath,
+    room: roomSummary(room),
+  });
+}
+
+export function GET() {
+  return Response.json({ rooms: listRoomIds() });
 }

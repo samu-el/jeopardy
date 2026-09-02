@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { PublicGameState, PublicPlayerState } from "@/lib/game";
+import { jeopardyFonts, jeopardyPalette } from "@/lib/foundation/jeopardy-style";
 
 interface PodiumProps {
   player: PublicPlayerState;
@@ -13,41 +15,54 @@ interface PodiumProps {
   color?: string;
 }
 
+/**
+ * A contestant lectern: name plate on top, the score display below, and the
+ * ring-in light that flashes when they beat everyone to the buzzer.
+ */
 export function Podium({ player, state, isYou, emoji, color }: PodiumProps) {
   const active = state.currentClue;
   const buzzedAt = active?.buzzes[player.id];
   const isBuzzed = buzzedAt !== undefined;
   const isFirstBuzzer =
-    isBuzzed &&
-    Object.values(active?.buzzes ?? {}).every((time) => time >= buzzedAt);
+    isBuzzed && Object.values(active?.buzzes ?? {}).every((time) => time >= buzzedAt);
   const judgeResult = active?.judges[player.id];
   const isPicker = state.pickerId === player.id;
+  const isHost = state.settings.hostId === player.id;
+  const lockedOut = (active?.lockouts[player.id] ?? 0) > state.serverTime;
+  const flash = useScoreFlash(player.score);
 
   const lightColor =
     judgeResult === true
-      ? "#33d684"
+      ? jeopardyPalette.correct
       : judgeResult === false
-        ? "#ff5a6e"
+        ? jeopardyPalette.incorrect
         : isFirstBuzzer
-          ? "#5b8cff"
+          ? jeopardyPalette.buzzLight
           : isBuzzed
             ? "rgba(255,255,255,0.4)"
             : "transparent";
 
+  const accent = color ?? (isYou ? jeopardyPalette.podiumEdge : "rgba(255,255,255,0.16)");
+
   return (
     <Box
+      data-testid={`podium-${player.id}`}
       sx={{
         position: "relative",
         width: "100%",
-        maxWidth: 180,
+        maxWidth: 190,
         mx: "auto",
         display: "flex",
         flexDirection: "column",
-        alignItems: "stretch",
-        filter: isPicker ? "drop-shadow(0 0 12px rgba(255,210,59,0.45))" : "none",
+        opacity: player.connected ? 1 : 0.55,
+        filter: isFirstBuzzer
+          ? "drop-shadow(0 0 14px rgba(255,255,255,0.5))"
+          : isPicker
+            ? `drop-shadow(0 0 10px ${jeopardyPalette.gold}66)`
+            : "none",
+        transition: "filter 160ms ease, opacity 200ms ease",
       }}
     >
-      {/* Avatar disc above the plate */}
       {(emoji || color) && (
         <Box
           aria-hidden
@@ -61,7 +76,7 @@ export function Podium({ player, state, isYou, emoji, color }: PodiumProps) {
             height: 32,
             borderRadius: "50%",
             background: color ?? "rgba(255,255,255,0.08)",
-            border: "2px solid #0c0c10",
+            border: "2px solid #000",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -72,109 +87,111 @@ export function Podium({ player, state, isYou, emoji, color }: PodiumProps) {
         </Box>
       )}
 
-      {/* Front face — main pillar with name and score */}
       <Box
         sx={{
           position: "relative",
-          background: isYou
-            ? "linear-gradient(180deg, #1b3792 0%, #0a1949 100%)"
-            : "linear-gradient(180deg, #1a2b6e 0%, #07103a 100%)",
-          borderTop: "2px solid",
-          borderLeft: "1px solid",
-          borderRight: "1px solid",
-          borderColor: isPicker ? "#ffd23b" : color ?? "rgba(255,255,255,0.16)",
-          borderRadius: "12px 12px 4px 4px",
-          px: 1.25,
+          background: `linear-gradient(180deg, ${jeopardyPalette.podium} 0%, #0A0D3A 100%)`,
+          borderTop: `2px solid ${accent}`,
+          borderLeft: "1px solid rgba(255,255,255,0.10)",
+          borderRight: "1px solid rgba(255,255,255,0.10)",
+          borderRadius: "6px 6px 2px 2px",
+          px: 1,
           pt: emoji || color ? 2.25 : 1,
-          pb: 1.5,
+          pb: 1.25,
           textAlign: "center",
-          // Subtle inner highlight to feel like the show's gloss
-          boxShadow:
-            "inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -2px 8px rgba(0,0,0,0.5)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10), inset 0 -2px 10px rgba(0,0,0,0.55)",
         }}
       >
         <Typography
           noWrap
           sx={{
+            fontFamily: jeopardyFonts.display,
             color: "rgba(255,255,255,0.92)",
             textTransform: "uppercase",
-            letterSpacing: 0.6,
-            fontWeight: 700,
-            fontSize: { xs: 10, sm: 11 },
+            letterSpacing: "0.08em",
+            fontWeight: 600,
+            fontSize: { xs: 10, sm: 12 },
             mb: 0.75,
-            lineHeight: 1.2,
           }}
         >
           {player.displayName}
         </Typography>
 
-        {/* Score plate — dark inset rectangle with yellow digital-style numerals */}
+        {/* Score display: white digits on black, red when in the hole. */}
         <Box
           sx={{
             mx: "auto",
-            background: "#04081d",
-            borderRadius: 1,
-            border: "1px solid rgba(255,210,59,0.18)",
-            py: 0.6,
+            background: "#000",
+            borderRadius: 0.5,
+            border: "1px solid rgba(255,255,255,0.14)",
+            py: 0.5,
             px: 1,
-            minHeight: 36,
+            minHeight: 38,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: "inset 0 2px 6px rgba(0,0,0,0.7)",
+            boxShadow: "inset 0 2px 8px rgba(0,0,0,0.9)",
           }}
         >
           <Typography
+            data-testid={`score-${player.id}`}
             sx={{
-              fontWeight: 900,
+              fontFamily: jeopardyFonts.display,
+              fontWeight: 700,
               fontSize: { xs: 20, sm: 26 },
-              color: player.score < 0 ? "#ff7a8a" : "#ffd23b",
+              color:
+                player.score < 0
+                  ? jeopardyPalette.scoreNegative
+                  : jeopardyPalette.scorePositive,
               lineHeight: 1,
-              letterSpacing: -0.5,
-              textShadow: "0 0 6px rgba(255,210,59,0.35)",
               fontVariantNumeric: "tabular-nums",
+              animation: flash ? `score-${flash} 620ms ease-out` : "none",
+              "@keyframes score-up": {
+                "0%": { transform: "scale(1)", color: jeopardyPalette.correct },
+                "35%": { transform: "scale(1.22)", color: jeopardyPalette.correct },
+                "100%": { transform: "scale(1)" },
+              },
+              "@keyframes score-down": {
+                "0%": { transform: "translateX(0)", color: jeopardyPalette.incorrect },
+                "25%": { transform: "translateX(-4px)", color: jeopardyPalette.incorrect },
+                "75%": { transform: "translateX(4px)", color: jeopardyPalette.incorrect },
+                "100%": { transform: "translateX(0)" },
+              },
             }}
           >
-            ${player.score}
+            {player.score < 0 ? `-$${Math.abs(player.score)}` : `$${player.score}`}
           </Typography>
         </Box>
       </Box>
 
-      {/* Angled base — gives it the lectern silhouette */}
       <Box
         aria-hidden
         sx={{
           height: 14,
-          background: isYou
-            ? "linear-gradient(180deg, #0a1949 0%, #050a26 100%)"
-            : "linear-gradient(180deg, #07103a 0%, #02061b 100%)",
+          background: "linear-gradient(180deg, #0A0D3A 0%, #04061F 100%)",
           clipPath: "polygon(6% 0, 94% 0, 100% 100%, 0 100%)",
-          borderBottomLeftRadius: 2,
-          borderBottomRightRadius: 2,
         }}
       />
 
-      {/* Buzzer status light */}
       <Box
         aria-hidden
+        data-testid={`buzz-light-${player.id}`}
         sx={{
           mt: 0.5,
           mx: "auto",
-          width: "60%",
+          width: "62%",
           height: 6,
           borderRadius: 99,
           background: isBuzzed ? lightColor : "rgba(255,255,255,0.05)",
-          boxShadow: isBuzzed
-            ? `0 0 16px 2px ${lightColor}`
-            : "inset 0 0 0 1px rgba(255,255,255,0.04)",
-          transition: "background 0.15s ease, box-shadow 0.15s ease",
+          boxShadow: isBuzzed ? `0 0 16px 2px ${lightColor}` : "inset 0 0 0 1px rgba(255,255,255,0.04)",
+          transition: "background 120ms ease, box-shadow 120ms ease",
           animation:
             isFirstBuzzer && judgeResult === undefined
-              ? "podium-pulse 0.9s ease-in-out infinite"
+              ? "podium-pulse 0.7s ease-in-out infinite"
               : "none",
           "@keyframes podium-pulse": {
             "0%, 100%": { opacity: 1 },
-            "50%": { opacity: 0.5 },
+            "50%": { opacity: 0.45 },
           },
         }}
       />
@@ -183,27 +200,42 @@ export function Podium({ player, state, isYou, emoji, color }: PodiumProps) {
         direction="row"
         spacing={0.5}
         useFlexGap
-        sx={{ mt: 0.75, justifyContent: "center", flexWrap: "wrap" }}
+        sx={{
+          mt: 0.6,
+          justifyContent: "center",
+          flexWrap: "wrap",
+          fontFamily: jeopardyFonts.display,
+          letterSpacing: "0.1em",
+          fontSize: 9,
+        }}
       >
-        {isPicker ? (
-          <Box
-            sx={{
-              fontSize: 9,
-              color: "#ffd23b",
-              letterSpacing: 1,
-              fontWeight: 700,
-            }}
-          >
-            PICKER
-          </Box>
-        ) : null}
+        {isHost ? <Box sx={{ color: jeopardyPalette.gold }}>HOST</Box> : null}
+        {isPicker ? <Box sx={{ color: jeopardyPalette.goldBright }}>PICKS</Box> : null}
+        {lockedOut ? <Box sx={{ color: jeopardyPalette.incorrect }}>LOCKED</Box> : null}
         {player.spectator ? (
-          <Box sx={{ fontSize: 9, color: "rgba(255,255,255,0.4)" }}>SPECTATOR</Box>
+          <Box sx={{ color: "rgba(255,255,255,0.4)" }}>SPECTATOR</Box>
         ) : null}
         {!player.connected ? (
-          <Box sx={{ fontSize: 9, color: "rgba(255,255,255,0.4)" }}>OFFLINE</Box>
+          <Box sx={{ color: "rgba(255,255,255,0.4)" }}>OFFLINE</Box>
         ) : null}
       </Stack>
     </Box>
   );
+}
+
+/** Returns "up"/"down" for one animation frame after the score moves. */
+function useScoreFlash(score: number): "up" | "down" | null {
+  const previous = useRef(score);
+  const [flash, setFlash] = useState<"up" | "down" | null>(null);
+
+  useEffect(() => {
+    if (score === previous.current) return;
+    const direction = score > previous.current ? "up" : "down";
+    previous.current = score;
+    setFlash(direction);
+    const id = setTimeout(() => setFlash(null), 650);
+    return () => clearTimeout(id);
+  }, [score]);
+
+  return flash;
 }
