@@ -22,6 +22,52 @@ test.describe("Shared room", () => {
     }
   });
 
+  test("a guest joins through the invite link and plays on the same board", async ({
+    browser,
+  }) => {
+    const hostContext = await browser.newContext();
+    const guestContext = await browser.newContext();
+    const host = await hostContext.newPage();
+    const guest = await guestContext.newPage();
+
+    try {
+      await routeFixtureEpisodes(host);
+      await host.goto("/");
+      await host.getByRole("button", { name: "New room" }).click();
+      await dismissOnboarding(host);
+      await host.getByTestId("invite-players").click();
+      await expect(host.getByTestId("room-code")).toBeVisible();
+      const code = ((await host.getByTestId("room-code").textContent()) ?? "").trim();
+
+      // Exactly the link the invite strip copies to the clipboard.
+      await guest.goto(`/?room=${code}`);
+      await expect(guest.getByRole("dialog", { name: "Join room" })).toBeVisible();
+      await guest.getByLabel("Your name").fill("Guest");
+      await guest.getByRole("button", { name: "Join" }).click();
+      await dismissOnboarding(guest);
+
+      // Seated in the host's room, under the name they typed.
+      await expect(guest.getByTestId(/^podium-/)).toHaveCount(2);
+      await expect(host.getByText("Guest", { exact: true })).toBeVisible();
+
+      // And playing the host's board, not one of their own.
+      await setBuzzWindow(host, "20 seconds — relaxed");
+      await host.getByRole("button", { name: "New game" }).click();
+      await host.getByRole("button", { name: "Shuffle" }).click();
+      await expect(host.getByTestId("begin")).toBeEnabled();
+      await host.getByTestId("begin").click();
+      await host.getByRole("button", { name: /\$200/ }).first().click();
+
+      const buzzer = guest.getByTestId("buzzer");
+      await expect(buzzer).toBeEnabled();
+      await buzzer.click();
+      await expect(host.getByText(/Guest rang in/)).toBeVisible();
+    } finally {
+      await hostContext.close();
+      await guestContext.close();
+    }
+  });
+
   test("chat from one player reaches the other", async ({ browser }) => {
     const room = await openSharedRoom(browser);
     try {
