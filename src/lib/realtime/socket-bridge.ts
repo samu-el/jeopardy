@@ -1,6 +1,6 @@
 import { Server as SocketServer, type Socket } from "socket.io";
 import type { Server as HttpServer } from "node:http";
-import { getRoom, getOrCreateRoom, normalizeRoomCode } from "./room-registry";
+import { getOrCreateRoom, normalizeRoomCode, resolveRoom } from "./room-registry";
 import type { RoomHost } from "./room-host";
 import { socketPath } from "./socket-path";
 import {
@@ -44,13 +44,17 @@ export function attachSocketServer(server: HttpServer): SocketServer {
   io.on("connection", (socket: Socket) => {
     let session: ActiveSession | null = null;
 
-    socket.on("join", (payload: JoinPayload) => {
+    socket.on("join", async (payload: JoinPayload) => {
       if (!payload?.roomId || !payload?.clientId) {
         socket.emit("message", rejection(socket.id, payload?.clientId ?? "", "invalid-session", "A room id and client id are required."));
         return;
       }
       const roomId = normalizeRoomCode(payload.roomId);
-      const room = payload.create ? getOrCreateRoom(roomId) : getRoom(roomId);
+      // A room the process doesn't hold may still be in the store: after a
+      // restart, or after it was evicted for sitting idle.
+      const room = payload.create
+        ? await getOrCreateRoom(roomId)
+        : await resolveRoom(roomId);
       if (!room) {
         socket.emit(
           "message",
@@ -75,6 +79,11 @@ export function attachSocketServer(server: HttpServer): SocketServer {
         sink,
       );
       if (!result.ok) return;
+      if (socket.disconnected) {
+        // The client gave up while the room was loading.
+        room.room.disconnect(socket.id);
+        return;
+      }
 
       session = { room, clientId: payload.clientId, connectionId: socket.id };
       void socket.join(roomId);

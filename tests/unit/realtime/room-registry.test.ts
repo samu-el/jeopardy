@@ -32,11 +32,11 @@ describe("room registry", () => {
     expect(normalizeRoomCode(" ab-3d! ")).toBe("AB-3D");
   });
 
-  it("only creates a room when asked to", () => {
+  it("only creates a room when asked to", async () => {
     expect(getRoom("NOPE")).toBeUndefined();
-    const created = getOrCreateRoom("NOPE");
+    const created = await getOrCreateRoom("NOPE");
     expect(created.roomId).toBe("NOPE");
-    expect(getOrCreateRoom("NOPE")).toBe(created);
+    expect(await getOrCreateRoom("NOPE")).toBe(created);
   });
 
   it("reports who is in a room", () => {
@@ -52,10 +52,10 @@ describe("room registry", () => {
     });
   });
 
-  it("deletes a room and tears its host down", () => {
+  it("deletes a room and tears its host down", async () => {
     const room = createRoom({ hostId: "ada" });
 
-    expect(deleteRoom(room.roomId)).toBe(true);
+    expect(await deleteRoom(room.roomId)).toBe(true);
     expect(room.isDestroyed).toBe(true);
     expect(listRoomIds()).not.toContain(room.roomId);
   });

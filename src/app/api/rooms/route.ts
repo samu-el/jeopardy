@@ -4,6 +4,7 @@ import {
   roomSummary,
   type CreateRoomInput,
 } from "@/lib/realtime/room-registry";
+import { ensureRoomStore } from "@/lib/realtime/room-store-bootstrap";
 import { socketPath } from "@/lib/realtime/socket-path";
 
 export const runtime = "nodejs";
@@ -24,6 +25,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "invalid-body" }, { status: 400 });
   }
 
+  await ensureRoomStore();
   const room = createRoom({
     hostId: body.hostId,
     clues: body.clues,
@@ -37,6 +39,7 @@ export async function POST(request: Request) {
   });
 }
 
-export function GET() {
-  return Response.json({ rooms: listRoomIds() });
+export async function GET() {
+  const store = await ensureRoomStore();
+  return Response.json({ rooms: listRoomIds(), stored: await store.list() });
 }

@@ -9,6 +9,7 @@ import {
 } from "@/lib/game";
 import { InMemoryRealtimeRoom } from "./in-memory-room";
 import { RoomDirector } from "./room-director";
+import { roomSnapshotVersion, type RoomSnapshot } from "./room-store";
 
 /**
  * Show-paced defaults. The engine itself stays timing-agnostic so unit tests
@@ -53,6 +54,12 @@ export interface RoomHostOptions {
   /** How often time-driven transitions are evaluated. 0 disables the loop. */
   tickIntervalMs?: number;
   now?: () => number;
+  /** Rebuilds a room from storage instead of dealing a fresh one. */
+  restoreFrom?: RoomSnapshot;
+  /** Called (debounced) whenever the room has changes worth storing. */
+  onDirty?: (host: RoomHost) => void;
+  /** How long to batch changes before reporting the room dirty. */
+  persistDebounceMs?: number;
 }
 
 /**
@@ -65,9 +72,13 @@ export class RoomHost {
   readonly room: InMemoryRealtimeRoom;
   readonly director: RoomDirector;
   private tickTimer: ReturnType<typeof setInterval> | undefined;
+  private persistTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly tickIntervalMs: number;
+  private readonly persistDebounceMs: number;
+  private readonly onDirty: ((host: RoomHost) => void) | undefined;
   private readonly now: () => number;
-  private readonly unsubscribe: () => void;
+  private readonly unsubscribers: (() => void)[] = [];
+  private readonly botProfiles: Record<string, BotProfile>;
   private destroyed = false;
   lastActivityAt: number;
 
@@ -75,28 +86,76 @@ export class RoomHost {
     this.roomId = options.roomId;
     this.now = options.now ?? (() => Date.now());
     this.tickIntervalMs = options.tickIntervalMs ?? 250;
+    this.persistDebounceMs = options.persistDebounceMs ?? 400;
+    this.onDirty = options.onDirty;
     this.lastActivityAt = this.now();
 
-    const initialState = createGame({
-      roomId: options.roomId,
-      players: options.players ?? [],
-      clues: options.clues ?? [],
-      now: this.now(),
-      settings: { ...showTimings, ...options.settings },
-    });
+    const restored = options.restoreFrom;
+    const initialState = restored
+      ? // Nobody is connected to a room that has just come back, whatever the
+        // snapshot said; clients flip their own seat live when they reconnect.
+        withEveryoneDisconnected(restored.state)
+      : createGame({
+          roomId: options.roomId,
+          players: options.players ?? [],
+          clues: options.clues ?? [],
+          now: this.now(),
+          settings: { ...showTimings, ...options.settings },
+        });
+
+    this.botProfiles = { ...(restored?.bots ?? options.botProfiles ?? {}) };
 
     this.room = new InMemoryRealtimeRoom({
       initialState,
       clock: { now: this.now },
+      initialChat: restored?.chat,
     });
     this.director = new RoomDirector(this.room, {
       seed: options.seed,
-      botProfiles: options.botProfiles,
+      botProfiles: this.botProfiles,
     });
-    this.unsubscribe = this.room.onChange((state, events) => {
-      this.lastActivityAt = this.now();
-      this.narrate(state, events);
-    });
+    this.unsubscribers.push(
+      this.room.onChange((state, events) => {
+        this.lastActivityAt = this.now();
+        this.narrate(state, events);
+        this.markDirty();
+      }),
+      this.room.onChat(() => {
+        this.lastActivityAt = this.now();
+        this.markDirty();
+      }),
+    );
+  }
+
+  /** Everything needed to bring this room back after a restart. */
+  snapshot(): RoomSnapshot {
+    return {
+      version: roomSnapshotVersion,
+      roomId: this.roomId,
+      state: this.room.getState(),
+      chat: this.room.getChatHistory(),
+      bots: { ...this.botProfiles },
+      savedAt: this.now(),
+    };
+  }
+
+  /** Reports the room dirty at most once per debounce window. */
+  private markDirty() {
+    if (!this.onDirty || this.destroyed || this.persistTimer) return;
+    this.persistTimer = setTimeout(() => {
+      this.persistTimer = undefined;
+      if (this.destroyed) return;
+      this.onDirty?.(this);
+    }, this.persistDebounceMs);
+    (this.persistTimer as unknown as { unref?: () => void }).unref?.();
+  }
+
+  /** Reports any pending change immediately — used before dropping a room. */
+  flush() {
+    if (!this.persistTimer) return;
+    clearTimeout(this.persistTimer);
+    this.persistTimer = undefined;
+    this.onDirty?.(this);
   }
 
   start() {
@@ -112,10 +171,14 @@ export class RoomHost {
   destroy() {
     if (this.destroyed) return;
     this.destroyed = true;
-    this.unsubscribe();
+    for (const unsubscribe of this.unsubscribers) {
+      unsubscribe();
+    }
     this.director.stop();
     if (this.tickTimer) clearInterval(this.tickTimer);
     this.tickTimer = undefined;
+    if (this.persistTimer) clearTimeout(this.persistTimer);
+    this.persistTimer = undefined;
   }
 
   get isDestroyed() {
@@ -136,6 +199,7 @@ export class RoomHost {
       type: "add-bot",
       bot: { id: input.id, displayName: input.displayName, emoji: input.emoji, color: input.color },
     });
+    this.botProfiles[input.id] = profile;
     this.director.addBot(input.id, profile);
     return profile;
   }
@@ -199,6 +263,23 @@ export class RoomHost {
       }
     }
   }
+}
+
+/**
+ * A restored room has no live connections yet. Marking everyone disconnected
+ * keeps the roster honest until each client reconnects and claims its seat.
+ */
+function withEveryoneDisconnected(state: GameState): GameState {
+  return {
+    ...state,
+    players: Object.fromEntries(
+      Object.entries(state.players).map(([id, player]) => [
+        id,
+        // Bots have no connection to lose; they resume with the room.
+        player.kind === "ai-bot" ? player : { ...player, connected: false },
+      ]),
+    ),
+  };
 }
 
 function roundLabel(round: string): string {

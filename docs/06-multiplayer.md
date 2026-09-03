@@ -14,7 +14,9 @@ five.
 | `src/lib/realtime/in-memory-room.ts` | The authoritative room: stamps the actor, applies commands, fans out public state and chat |
 | `src/lib/realtime/room-director.ts` | Bots and the AI judge — reacts to published state, never to a transport |
 | `src/lib/realtime/room-host.ts` | Room + director + the tick loop, plus show-paced timings |
-| `src/lib/realtime/room-registry.ts` | Process-wide room table (on `globalThis`), room codes, idle sweeping |
+| `src/lib/realtime/room-registry.ts` | Process-wide room table (on `globalThis`), room codes, idle eviction |
+| `src/lib/realtime/room-store.ts` | Snapshot shape and the `RoomStore` interface (memory-only by default) |
+| `src/lib/realtime/redis-room-store.ts` | Redis-backed persistence, server-only |
 | `src/lib/realtime/socket-bridge.ts` | Socket.IO endpoint at `/api/socket` |
 | `src/lib/runtime/local-room.ts` | Solo/pass-and-play: a `RoomHost` in the tab |
 | `src/lib/runtime/network-room.ts` | Shared room: the same surface over a socket |
@@ -55,7 +57,41 @@ room costs one comparison per tick and broadcasts nothing.
   with it reclaims the same seat and score.
 - Dropping **before** the game starts frees the seat; dropping **mid-game**
   keeps it (marked offline) so a refresh can reclaim it.
-- Rooms with nobody connected are swept after 30 minutes.
+- Rooms with nobody connected are swept out of memory after 30 minutes. With
+  Redis configured that is eviction, not deletion — the room comes back on the
+  next join.
+
+## Persistence
+
+Set `REDIS_URL` and rooms survive a restart. Without it nothing changes:
+rooms live in memory for the life of the process, which is fine for local
+development and solo play.
+
+A room writes itself through on every change, debounced to 400ms, plus an
+immediate write when it is created (so a restart can't hand the same code out
+twice) and a flush before it is evicted. The snapshot holds the authoritative
+state, the chat, and which seats are bots, under `jeopardy:room:<CODE>` with a
+24-hour TTL refreshed on every save.
+
+Coming back:
+
+- `getRoom()` is the synchronous in-memory lookup. `resolveRoom()` is the one
+  to use: it falls back to the store, rebuilds the room, and de-duplicates
+  concurrent restores so two clients arriving together get one room.
+- Every human is marked disconnected on restore and flips back as their client
+  reconnects; bots resume with the room.
+- Deadlines that expired while the process was down are settled by the first
+  tick, so a restored room continues rather than hanging on a dead clock.
+- A snapshot from an older shape is discarded rather than hydrated.
+
+Redis being unreachable costs durability, never the game: every store call
+swallows its error and reports "not stored", and the startup line says which
+mode you actually got (`rooms: redis` or `rooms: memory-only`).
+
+**This is durability for one instance, not horizontal scale.** A room is
+owned by whichever process holds it, and the socket layer has no cross-instance
+fan-out, so running several app instances behind a load balancer would need a
+Socket.IO Redis adapter and room ownership on top of what is here.
 
 ## Running it
 
@@ -74,7 +110,12 @@ runs each request in its own lambda can host solo play only.
 
 ## Testing
 
-- `tests/unit/realtime/` covers the room, the registry and the director.
+- `tests/unit/realtime/` covers the room, the registry, the director, and
+  persistence — snapshot round-trips, restart recovery, eviction, concurrent
+  restore, and store outages, plus the Redis adapter against a fake client.
+- `tests/unit/realtime/redis-integration.test.ts` runs the same recovery
+  against a real server when `REDIS_URL` is set, and skips itself when it
+  isn't. CI provides one.
 - `tests/unit/game/tick.test.ts` covers every time-driven transition.
 - `tests/e2e/multiplayer.spec.ts` drives two real browser contexts against one
   server-side room: join by code, roster sync, chat, and a buzz crossing

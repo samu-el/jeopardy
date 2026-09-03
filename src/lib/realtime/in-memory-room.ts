@@ -33,9 +33,12 @@ export interface InMemoryRealtimeRoomOptions {
   tokenFactory?: RealtimeTokenFactory;
   /** Chat lines kept in memory and replayed to a joining client. */
   chatHistoryLimit?: number;
+  /** Chat carried over when a room is restored from storage. */
+  initialChat?: ChatMessage[];
 }
 
 export type RoomChangeListener = (state: GameState, events: GameEvent[]) => void;
+export type RoomChatListener = (message: ChatMessage) => void;
 
 /**
  * The authoritative room. It owns the game state, stamps every command with
@@ -55,6 +58,7 @@ export class InMemoryRealtimeRoom {
   >();
   private readonly activeConnectionByClient = new Map<string, string>();
   private readonly changeListeners = new Set<RoomChangeListener>();
+  private readonly chatListeners = new Set<RoomChatListener>();
   private chat: ChatMessage[] = [];
 
   constructor({
@@ -62,11 +66,13 @@ export class InMemoryRealtimeRoom {
     clock = { now: () => Date.now() },
     tokenFactory = { createToken: defaultToken },
     chatHistoryLimit = 200,
+    initialChat = [],
   }: InMemoryRealtimeRoomOptions) {
     this.state = structuredClone(initialState);
     this.clock = clock;
     this.tokenFactory = tokenFactory;
     this.chatHistoryLimit = chatHistoryLimit;
+    this.chat = initialChat.slice(-chatHistoryLimit);
   }
 
   getState() {
@@ -90,6 +96,14 @@ export class InMemoryRealtimeRoom {
     this.changeListeners.add(listener);
     return () => {
       this.changeListeners.delete(listener);
+    };
+  }
+
+  /** Chat doesn't move game state, so persistence listens for it separately. */
+  onChat(listener: RoomChatListener): () => void {
+    this.chatListeners.add(listener);
+    return () => {
+      this.chatListeners.delete(listener);
     };
   }
 
@@ -272,6 +286,9 @@ export class InMemoryRealtimeRoom {
     });
     this.chat = [...this.chat, message].slice(-this.chatHistoryLimit);
     this.broadcast({ type: "chat", message });
+    for (const listener of this.chatListeners) {
+      listener(message);
+    }
     return message;
   }
 

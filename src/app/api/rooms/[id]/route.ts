@@ -1,4 +1,5 @@
-import { deleteRoom, getRoom, roomSummary } from "@/lib/realtime/room-registry";
+import { deleteRoom, resolveRoom, roomSummary } from "@/lib/realtime/room-registry";
+import { ensureRoomStore } from "@/lib/realtime/room-store-bootstrap";
 import { socketPath } from "@/lib/realtime/socket-path";
 
 export const runtime = "nodejs";
@@ -9,7 +10,10 @@ export async function GET(
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
-  const room = getRoom(id);
+  await ensureRoomStore();
+  // A room this process doesn't hold may still be in the store, so an invite
+  // link keeps working across a restart.
+  const room = await resolveRoom(id);
   if (!room) {
     return Response.json({ id, exists: false }, { status: 404 });
   }
@@ -26,5 +30,6 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
-  return Response.json({ id, deleted: deleteRoom(id) });
+  await ensureRoomStore();
+  return Response.json({ id, deleted: await deleteRoom(id) });
 }

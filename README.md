@@ -46,7 +46,8 @@ and `GET /api/rooms/<code>` reports who is in it.
 
 - **Shared rooms.** Open a room, share the code or link, and play together.
   The server holds the board, the buzzer and the clock; a refresh reclaims your
-  seat and score, and hosting moves on if the host drops.
+  seat and score, and hosting moves on if the host drops. Set `REDIS_URL` and
+  rooms survive a server restart too — see `docs/06-multiplayer.md`.
 - **The whole game.** Archived and custom boards, every round, Daily Doubles,
   Final Jeopardy wagers, buzz windows with the show's early-buzz lockout,
   judging (by a host or the fuzzy judge), chat, replays and stats.
