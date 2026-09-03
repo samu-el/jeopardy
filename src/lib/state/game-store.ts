@@ -2,8 +2,14 @@
 
 import { create } from "zustand";
 import type { BotProfile } from "@/lib/foundation/game-contracts";
-import type { GameEvent, PublicGameState } from "@/lib/game";
-import { LocalRoomRuntime, type ChatMessage } from "@/lib/runtime";
+import type { GameClue, GameEvent, PublicGameState } from "@/lib/game";
+import {
+  LocalRoomRuntime,
+  NetworkRoomRuntime,
+  type ChatMessage,
+  type RoomConnectionStatus,
+  type RoomRuntime,
+} from "@/lib/runtime";
 import {
   normalizeArchivedEpisode,
   type ArchivedEpisodeInput,
@@ -21,6 +27,11 @@ export interface UiPreferences {
   voiceProfileId: string;
   avatarHostProfileId: string;
   avatarHostMode: "off" | "voice-only" | "avatar-and-voice";
+  /**
+   * How long the buzzer stays open after the readout, in seconds. The show
+   * runs tight; a longer window helps a mixed table or a slow connection.
+   */
+  buzzWindowSeconds: number;
 }
 
 export interface LobbyBotConfig {
@@ -63,13 +74,22 @@ export interface LobbyConfig {
   soloMode: boolean;
 }
 
+export interface OnlineRoomState {
+  roomId: string;
+  status: RoomConnectionStatus;
+  isHost: boolean;
+  error?: string;
+}
+
 export interface GameStoreState {
   screen: ScreenName;
   preferences: UiPreferences;
   lobby: LobbyConfig;
   chat: ChatMessage[];
   publicState: PublicGameState | null;
-  runtime: LocalRoomRuntime | null;
+  runtime: RoomRuntime | null;
+  /** Non-null while this tab is in a shared (server-hosted) room. */
+  online: OnlineRoomState | null;
   lastEvents: GameEvent[];
   lastCue: AvatarHostCue | null;
   /**
@@ -78,6 +98,12 @@ export interface GameStoreState {
    */
   pendingRoomId: string | null;
   setPendingRoomId: (id: string | null) => void;
+  /** The player id this client acts as — the seat, not the room owner. */
+  selfId: () => string;
+  hostOnlineRoom: () => Promise<string | null>;
+  joinOnlineRoom: (roomId: string) => Promise<boolean>;
+  leaveOnlineRoom: () => void;
+  pushLoadedGameToRoom: () => void;
   setScreen: (screen: ScreenName) => void;
   setHostName: (name: string) => void;
   setPlayerAvatar: (
@@ -121,6 +147,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     voiceProfileId: "female-natural",
     avatarHostProfileId: defaultAvatarHostProfile().id,
     avatarHostMode: "voice-only",
+    buzzWindowSeconds: 6,
   },
   lobby: {
     hostName: "You",
@@ -135,15 +162,27 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   chat: [],
   publicState: null,
   runtime: null,
+  online: null,
   lastEvents: [],
   lastCue: null,
   pendingRoomId: null,
   setPendingRoomId: (id) => set({ pendingRoomId: id }),
+  selfId: () => {
+    const { runtime, lobby } = get();
+    return runtime?.selfId ?? lobby.hostId;
+  },
   setScreen: (screen) => set({ screen }),
-  setHostName: (name) =>
-    set((state) => ({
-      lobby: { ...state.lobby, hostName: name.trim() || "You" },
-    })),
+  setHostName: (name) => {
+    const trimmed = name.trim() || "You";
+    set((state) => ({ lobby: { ...state.lobby, hostName: trimmed } }));
+    const { runtime, online, lobby } = get();
+    if (runtime && online) {
+      runtime.sendCommand(lobby.hostId, {
+        type: "set-player-profile",
+        displayName: trimmed,
+      });
+    }
+  },
   setPlayerAvatar: (id, avatar) =>
     set((state) => {
       const patch = (
@@ -164,6 +203,14 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       });
       if (id === state.lobby.hostId) {
         const next = patch({ emoji: state.lobby.hostEmoji, color: state.lobby.hostColor });
+        const { runtime, online } = get();
+        if (runtime && online) {
+          runtime.sendCommand(id, {
+            type: "set-player-profile",
+            emoji: next.emoji,
+            color: next.color,
+          });
+        }
         return {
           lobby: { ...state.lobby, hostEmoji: next.emoji, hostColor: next.color },
         };
@@ -185,14 +232,16 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       };
     }),
   setLoadedEpisode: (loaded) => {
-    const { runtime } = get();
-    if (runtime) runtime.destroy();
+    const { runtime, online } = get();
+    // Staging a different board must never drop a shared room: the host
+    // pushes it to the server on Begin instead.
+    if (runtime && !online) runtime.destroy();
     set((state) => ({
-      runtime: null,
-      publicState: null,
-      chat: [],
-      lastEvents: [],
-      lastCue: null,
+      runtime: online ? state.runtime : null,
+      publicState: online ? state.publicState : null,
+      chat: online ? state.chat : [],
+      lastEvents: online ? state.lastEvents : [],
+      lastCue: online ? state.lastCue : null,
       lobby: {
         ...state.lobby,
         loadedEpisode: loaded,
@@ -201,14 +250,15 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     }));
   },
   setCustomGame: (game, issues) => {
-    const { runtime } = get();
-    if (runtime && game) runtime.destroy();
+    const { runtime, online } = get();
+    const reset = Boolean(game) && !online;
+    if (runtime && reset) runtime.destroy();
     set((state) => ({
-      runtime: game ? null : state.runtime,
-      publicState: game ? null : state.publicState,
-      chat: game ? [] : state.chat,
-      lastEvents: game ? [] : state.lastEvents,
-      lastCue: game ? null : state.lastCue,
+      runtime: reset ? null : state.runtime,
+      publicState: reset ? null : state.publicState,
+      chat: reset ? [] : state.chat,
+      lastEvents: reset ? [] : state.lastEvents,
+      lastCue: reset ? null : state.lastCue,
       lobby: {
         ...state.lobby,
         customGame: game,
@@ -217,27 +267,35 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       },
     }));
   },
-  addBot: (profile) =>
-    set((state) => ({
-      lobby: {
-        ...state.lobby,
-        bots: [
-          ...state.lobby.bots,
-          {
-            id: makeId("bot"),
-            name: `${profile.label} #${state.lobby.bots.length + 1}`,
-            profile,
-          },
-        ],
-      },
-    })),
-  removeBot: (id) =>
+  addBot: (profile) => {
+    const state = get();
+    const bot = {
+      id: makeId("bot"),
+      name: `${profile.label} #${state.lobby.bots.length + 1}`,
+      profile,
+    };
+    set({ lobby: { ...state.lobby, bots: [...state.lobby.bots, bot] } });
+    // In a shared room the bot has to exist on the server to play at all.
+    if (state.online && state.runtime instanceof NetworkRoomRuntime) {
+      state.runtime.addBot({
+        id: bot.id,
+        displayName: bot.name,
+        profileId: profile.id,
+      });
+    }
+  },
+  removeBot: (id) => {
+    const { online, runtime, lobby } = get();
+    if (online && runtime) {
+      runtime.sendCommand(lobby.hostId, { type: "leave-game", targetPlayerId: id });
+    }
     set((state) => ({
       lobby: {
         ...state.lobby,
         bots: state.lobby.bots.filter((bot) => bot.id !== id),
       },
-    })),
+    }));
+  },
   renameBot: (id, name) =>
     set((state) => ({
       lobby: {
@@ -280,33 +338,147 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set((state) => ({
       lobby: { ...state.lobby, soloMode: solo },
     })),
-  setHostSpectator: (spectator) =>
-    set((state) => ({
-      lobby: { ...state.lobby, hostSpectator: spectator },
-    })),
-  setPreference: (key, value) =>
-    set((state) => ({
-      preferences: { ...state.preferences, [key]: value },
-    })),
-  startGame: () => {
+  setHostSpectator: (spectator) => {
+    set((state) => ({ lobby: { ...state.lobby, hostSpectator: spectator } }));
+    const { runtime, online, lobby } = get();
+    if (runtime && online) {
+      runtime.sendCommand(lobby.hostId, { type: "set-player-profile", spectator });
+    }
+  },
+  setPreference: (key, value) => {
+    set((state) => ({ preferences: { ...state.preferences, [key]: value } }));
+    if (key === "buzzWindowSeconds") {
+      const { runtime, lobby, publicState } = get();
+      const isHost = !publicState?.settings.hostId || publicState.settings.hostId === lobby.hostId;
+      if (runtime && isHost) {
+        runtime.sendCommand(lobby.hostId, {
+          type: "update-settings",
+          settings: { buzzWindowMs: Number(value) * 1_000 },
+        });
+      }
+    }
+  },
+  hostOnlineRoom: async () => {
     const { lobby, runtime } = get();
     if (runtime) runtime.destroy();
-
-    const clues = (() => {
-      if (lobby.customGame) {
-        return lobby.customGame.clues;
-      }
-      if (!lobby.loadedEpisode) return [];
-      const normalized = normalizeArchivedEpisode(lobby.loadedEpisode.episode, {
-        id: lobby.loadedEpisode.id,
-        title: lobby.loadedEpisode.title,
+    set({ runtime: null, publicState: null, chat: [], lastEvents: [], lastCue: null });
+    try {
+      const response = await fetch("/api/rooms", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ hostId: lobby.hostId }),
       });
-      return normalized.ok ? normalized.game.clues : [];
-    })();
-
+      if (!response.ok) throw new Error("Could not open a room.");
+      const data = (await response.json()) as { roomId: string };
+      connectToRoom(set, get, data.roomId, true);
+      return data.roomId;
+    } catch (error) {
+      set({
+        online: {
+          roomId: "",
+          status: "rejected",
+          isHost: true,
+          error: (error as Error).message,
+        },
+      });
+      return null;
+    }
+  },
+  joinOnlineRoom: async (roomId) => {
+    const { runtime } = get();
+    if (runtime) runtime.destroy();
+    set({ runtime: null, publicState: null, chat: [], lastEvents: [], lastCue: null });
+    const normalized = roomId.trim().toUpperCase();
+    try {
+      const response = await fetch(`/api/rooms/${encodeURIComponent(normalized)}`);
+      if (!response.ok) {
+        set({
+          online: {
+            roomId: normalized,
+            status: "rejected",
+            isHost: false,
+            error: "That room is not open. Ask the host for a fresh code.",
+          },
+        });
+        return false;
+      }
+    } catch (error) {
+      set({
+        online: {
+          roomId: normalized,
+          status: "rejected",
+          isHost: false,
+          error: (error as Error).message,
+        },
+      });
+      return false;
+    }
+    connectToRoom(set, get, normalized, false);
+    return true;
+  },
+  leaveOnlineRoom: () => {
+    const { runtime, online, lobby } = get();
+    if (runtime && online) {
+      // Give the seat back explicitly — a dropped socket mid-game is held
+      // open for a reconnect, which isn't what "leave" means.
+      runtime.sendCommand(lobby.hostId, { type: "leave-game" });
+    }
+    if (runtime) runtime.destroy();
+    set({
+      runtime: null,
+      online: null,
+      publicState: null,
+      chat: [],
+      lastEvents: [],
+      lastCue: null,
+      screen: "play",
+    });
+  },
+  pushLoadedGameToRoom: () => {
+    const { runtime, lobby } = get();
+    const clues = resolveClues(lobby);
+    if (!runtime || clues.length === 0) return;
+    runtime.sendCommand(lobby.hostId, { type: "load-game", clues });
+  },
+  startGame: () => {
+    const { lobby, runtime, online } = get();
+    const clues = resolveClues(lobby);
     if (clues.length === 0) {
       return;
     }
+
+    if (online && runtime) {
+      // The room already exists on the server: load the board, then start.
+      runtime.sendCommand(lobby.hostId, { type: "load-game", clues });
+      runtime.sendCommand(lobby.hostId, {
+        type: "update-settings",
+        settings: {
+          aiJudgeEnabled: lobby.aiJudgeEnabled,
+          buzzWindowMs: get().preferences.buzzWindowSeconds * 1_000,
+        },
+      });
+      if (runtime instanceof NetworkRoomRuntime) {
+        // Re-assert the bot roster: load-game keeps players, and a bot added
+        // before this client reconnected may not be seated any more.
+        const seated = new Set(
+          (get().publicState?.players ?? []).map((player) => player.id),
+        );
+        for (const bot of lobby.bots.filter((candidate) => !seated.has(candidate.id))) {
+          runtime.addBot({
+            id: bot.id,
+            displayName: bot.name,
+            profileId: bot.profile.id,
+            emoji: bot.emoji,
+            color: bot.color,
+          });
+        }
+      }
+      runtime.sendCommand(lobby.hostId, { type: "start-game" });
+      set({ screen: "play" });
+      return;
+    }
+
+    if (runtime) runtime.destroy();
 
     const newRuntime = new LocalRoomRuntime(
       {
@@ -314,19 +486,28 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         hostId: lobby.hostId,
         hostName: lobby.hostName,
         humanPlayers: [
-          { id: lobby.hostId, name: lobby.hostName, spectator: lobby.hostSpectator },
+          {
+            id: lobby.hostId,
+            name: lobby.hostName,
+            spectator: lobby.hostSpectator,
+            emoji: lobby.hostEmoji,
+            color: lobby.hostColor,
+          },
           ...lobby.extraHumans,
         ],
         bots: lobby.bots.map((bot) => ({
           id: bot.id,
           name: bot.name,
           profile: bot.profile,
+          emoji: bot.emoji,
+          color: bot.color,
         })),
         clues,
         settings: {
           aiJudgeEnabled: lobby.aiJudgeEnabled,
           aiBotsEnabled: lobby.bots.length > 0,
           aiAvatarHostEnabled: get().preferences.avatarHostMode !== "off",
+          buzzWindowMs: get().preferences.buzzWindowSeconds * 1_000,
         },
       },
       {
@@ -338,6 +519,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     set({
       runtime: newRuntime,
+      online: null,
       screen: "play",
       publicState: newRuntime.getPublicState(),
       chat: [],
@@ -347,7 +529,16 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     newRuntime.sendCommand(lobby.hostId, { type: "start-game" });
   },
   exitToLobby: () => {
-    const { runtime } = get();
+    const { runtime, online, lobby } = get();
+    if (online && runtime) {
+      // Shared rooms stay open — reloading the board resets everyone at once.
+      const clues = resolveClues(lobby);
+      if (clues.length > 0) {
+        runtime.sendCommand(lobby.hostId, { type: "load-game", clues });
+      }
+      set({ screen: "play" });
+      return;
+    }
     if (runtime) runtime.destroy();
     set({
       runtime: null,
@@ -361,6 +552,84 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   appendChat: (message) =>
     set((state) => ({ chat: [...state.chat, message].slice(-200) })),
 }));
+
+type StoreSet = (
+  partial:
+    | Partial<GameStoreState>
+    | ((state: GameStoreState) => Partial<GameStoreState>),
+) => void;
+type StoreGet = () => GameStoreState;
+
+/** The clue set the lobby currently has staged, from an episode or a build. */
+function resolveClues(lobby: LobbyConfig): GameClue[] {
+  if (lobby.customGame) {
+    return lobby.customGame.clues;
+  }
+  if (!lobby.loadedEpisode) return [];
+  const normalized = normalizeArchivedEpisode(lobby.loadedEpisode.episode, {
+    id: lobby.loadedEpisode.id,
+    title: lobby.loadedEpisode.title,
+  });
+  return normalized.ok ? normalized.game.clues : [];
+}
+
+function connectToRoom(
+  set: StoreSet,
+  get: StoreGet,
+  roomId: string,
+  isHost: boolean,
+) {
+  const { lobby } = get();
+  // "You" is fine on your own screen but useless when three people share a
+  // board, so give an unnamed player something the room can tell apart.
+  const displayName =
+    lobby.hostName.trim() && lobby.hostName.trim() !== "You"
+      ? lobby.hostName.trim()
+      : `Player ${lobby.hostId.replace(/^p-/, "").slice(0, 3).toUpperCase()}`;
+
+  set({
+    online: { roomId, status: "connecting", isHost },
+    lobby: { ...lobby, hostName: displayName },
+    publicState: null,
+    chat: [],
+    lastEvents: [],
+    lastCue: null,
+    screen: "play",
+  });
+
+  const runtime = new NetworkRoomRuntime(
+    {
+      roomId,
+      clientId: lobby.hostId,
+      displayName,
+      emoji: lobby.hostEmoji,
+      color: lobby.hostColor,
+      spectator: lobby.hostSpectator,
+      create: isHost,
+    },
+    {
+      onPublicState: (state) => set({ publicState: state }),
+      onEvents: (events) => set({ lastEvents: events }),
+      onChat: (message) =>
+        set((state) => ({
+          chat: [...state.chat, message]
+            .filter(
+              (entry, index, all) =>
+                all.findIndex((candidate) => candidate.id === entry.id) === index,
+            )
+            .slice(-200),
+        })),
+      onStatus: (status, detail) =>
+        set((state) => ({
+          online: state.online
+            ? { ...state.online, status, error: detail ?? undefined }
+            : { roomId, status, isHost, error: detail },
+        })),
+    },
+  );
+
+  set({ runtime });
+}
 
 if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
   (window as unknown as { __game: typeof useGameStore }).__game = useGameStore;

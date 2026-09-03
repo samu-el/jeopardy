@@ -1,63 +1,31 @@
 import { Server as SocketServer, type Socket } from "socket.io";
 import type { Server as HttpServer } from "node:http";
-import {
-  createGame,
-  type GameClue,
-  type GamePlayer,
-  type GameSettings,
-} from "@/lib/game";
-import { InMemoryRealtimeRoom } from "./in-memory-room";
+import { getOrCreateRoom, normalizeRoomCode, resolveRoom } from "./room-registry";
+import type { RoomHost } from "./room-host";
+import { socketPath } from "./socket-path";
 import {
   type ClientGameCommand,
-  type ClientRealtimeMessage,
-  type RealtimeConnectionRecord,
   type RealtimeMessageSink,
   type ServerRealtimeMessage,
 } from "./contracts";
 
-export interface BridgeRoomInit {
+export { socketPath };
+
+export interface JoinPayload {
   roomId: string;
-  hostId: string;
-  players: GamePlayer[];
-  clues: GameClue[];
-  settings?: Partial<GameSettings>;
+  clientId: string;
+  displayName?: string;
+  emoji?: string;
+  color?: string;
+  spectator?: boolean;
+  /** Only an explicit create request may bring a room into existence. */
+  create?: boolean;
 }
 
-interface BridgeRoom {
-  room: InMemoryRealtimeRoom;
-  socketsByConnection: Map<string, Socket>;
-}
-
-const rooms = new Map<string, BridgeRoom>();
-
-export function getOrCreateBridgeRoom(init: BridgeRoomInit) {
-  let entry = rooms.get(init.roomId);
-  if (entry) return entry;
-  const game = createGame({
-    roomId: init.roomId,
-    players: init.players,
-    clues: init.clues,
-    now: Date.now(),
-    settings: init.settings,
-  });
-  entry = {
-    room: new InMemoryRealtimeRoom({ initialState: game }),
-    socketsByConnection: new Map(),
-  };
-  rooms.set(init.roomId, entry);
-  return entry;
-}
-
-export function clearBridgeRoom(roomId: string) {
-  rooms.delete(roomId);
-}
-
-export function hasBridgeRoom(roomId: string): boolean {
-  return rooms.has(roomId);
-}
-
-export function listBridgeRoomIds(): string[] {
-  return Array.from(rooms.keys());
+interface ActiveSession {
+  room: RoomHost;
+  clientId: string;
+  connectionId: string;
 }
 
 let io: SocketServer | undefined;
@@ -65,62 +33,141 @@ let io: SocketServer | undefined;
 export function attachSocketServer(server: HttpServer): SocketServer {
   if (io) return io;
   io = new SocketServer(server, {
-    path: "/api/socket",
-    cors: { origin: "*", methods: ["GET", "POST"] },
+    path: socketPath,
+    // Same-origin in practice; the app is served by this very process.
+    cors: { origin: true, methods: ["GET", "POST"] },
+    // A dropped tab should free its seat quickly enough to be visible.
+    pingTimeout: 20_000,
+    pingInterval: 10_000,
   });
 
   io.on("connection", (socket: Socket) => {
-    let activeConnection: RealtimeConnectionRecord | null = null;
-    let activeRoom: BridgeRoom | null = null;
+    let session: ActiveSession | null = null;
 
-    socket.on("join", (payload: { roomId: string; clientId: string; displayName?: string }) => {
-      const entry = rooms.get(payload.roomId);
-      if (!entry) {
-        socket.emit("message", {
-          type: "session-rejected",
-          connectionId: socket.id,
-          clientId: payload.clientId,
-          reason: "invalid-session",
-          message: "Room does not exist.",
-        } satisfies ServerRealtimeMessage);
+    socket.on("join", async (payload: JoinPayload) => {
+      if (!payload?.roomId || !payload?.clientId) {
+        socket.emit("message", rejection(socket.id, payload?.clientId ?? "", "invalid-session", "A room id and client id are required."));
         return;
       }
-      const session = entry.room.issueSession(payload.clientId);
-      const connectionId = socket.id;
-      const sink: RealtimeMessageSink = (message) => {
-        socket.emit("message", message);
-      };
-      entry.socketsByConnection.set(connectionId, socket);
-      const result = entry.room.connect(
-        { clientId: payload.clientId, sessionToken: session.sessionToken, connectionId },
+      const roomId = normalizeRoomCode(payload.roomId);
+      // A room the process doesn't hold may still be in the store: after a
+      // restart, or after it was evicted for sitting idle.
+      const room = payload.create
+        ? await getOrCreateRoom(roomId)
+        : await resolveRoom(roomId);
+      if (!room) {
+        socket.emit(
+          "message",
+          rejection(socket.id, payload.clientId, "invalid-session", "That room does not exist."),
+        );
+        return;
+      }
+
+      // A reconnect replaces the previous connection for the same client.
+      if (session && session.room !== room) {
+        session.room.room.disconnect(session.connectionId);
+      }
+
+      const issued = room.room.issueSession(payload.clientId);
+      const sink: RealtimeMessageSink = (message) => socket.emit("message", message);
+      const result = room.room.connect(
+        {
+          clientId: payload.clientId,
+          sessionToken: issued.sessionToken,
+          connectionId: socket.id,
+        },
         sink,
       );
-      activeRoom = entry;
-      activeConnection = {
-        clientId: payload.clientId,
-        sessionToken: session.sessionToken,
-        connectionId,
-        connectedAt: Date.now(),
-        status: result.ok ? "connected" : "disconnected",
-      };
+      if (!result.ok) return;
+      if (socket.disconnected) {
+        // The client gave up while the room was loading.
+        room.room.disconnect(socket.id);
+        return;
+      }
+
+      session = { room, clientId: payload.clientId, connectionId: socket.id };
+      void socket.join(roomId);
+
+      // Taking a seat is a game command so the engine owns the roster.
+      room.room.dispatch(payload.clientId, {
+        type: "join-game",
+        displayName: payload.displayName?.trim() || "Player",
+        spectator: payload.spectator,
+        emoji: payload.emoji,
+        color: payload.color,
+      });
+      socket.emit("joined", { roomId, clientId: payload.clientId });
     });
 
-    socket.on("command", (payload: { commandId: string; command: ClientGameCommand }) => {
-      if (!activeRoom || !activeConnection) return;
-      const message: ClientRealtimeMessage = {
+    socket.on("command", (payload: { commandId?: string; command: ClientGameCommand }) => {
+      if (!session || !payload?.command) return;
+      session.room.room.receive(session.connectionId, {
         type: "game-command",
-        commandId: payload.commandId,
+        commandId: payload.commandId ?? `cmd-${Math.random().toString(36).slice(2)}`,
         command: payload.command,
-      };
-      activeRoom.room.receive(activeConnection.connectionId, message);
+      });
+    });
+
+    socket.on("chat", (payload: { text?: string }) => {
+      if (!session || typeof payload?.text !== "string") return;
+      session.room.room.receive(session.connectionId, {
+        type: "chat",
+        text: payload.text,
+      });
+    });
+
+    socket.on("ai-judge", (payload: { targetPlayerId?: string }) => {
+      if (!session || !payload?.targetPlayerId) return;
+      session.room.room.receive(session.connectionId, {
+        type: "ai-judge",
+        targetPlayerId: payload.targetPlayerId,
+      });
+    });
+
+    socket.on("add-bot", (payload: { id?: string; displayName?: string; profileId?: string; emoji?: string; color?: string }) => {
+      if (!session || !payload?.id) return;
+      const state = session.room.getState();
+      if (state.settings.hostId && state.settings.hostId !== session.clientId) return;
+      session.room.addBot({
+        id: payload.id,
+        displayName: payload.displayName ?? "Bot",
+        profileId: payload.profileId,
+        emoji: payload.emoji,
+        color: payload.color,
+      });
+    });
+
+    // Round-trip probe so clients can compensate for their own latency.
+    socket.on("latency-ping", (sentAt: number) => {
+      socket.emit("latency-pong", sentAt);
     });
 
     socket.on("disconnect", () => {
-      if (!activeRoom || !activeConnection) return;
-      activeRoom.room.disconnect(activeConnection.connectionId);
-      activeRoom.socketsByConnection.delete(activeConnection.connectionId);
+      if (!session) return;
+      session.room.room.disconnect(session.connectionId);
+      session = null;
     });
   });
 
   return io;
+}
+
+export function getSocketServer(): SocketServer | undefined {
+  return io;
+}
+
+/** Test/teardown helper — detaches the server so a new one can be attached. */
+export async function closeSocketServer() {
+  if (!io) return;
+  await io.close();
+  io = undefined;
+}
+
+function rejection(
+  connectionId: string,
+  clientId: string,
+  reason: "invalid-session",
+  message: string,
+): ServerRealtimeMessage {
+  return { type: "session-rejected", connectionId, clientId, reason, message };
 }

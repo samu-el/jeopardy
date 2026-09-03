@@ -1,10 +1,12 @@
 import type {
+  GameClue,
   GameCommand,
   GameEvent,
   GamePlayer,
   GameSettings,
   PublicGameState,
 } from "@/lib/game";
+import type { ChatMessage } from "./chat";
 
 export type RealtimeConnectionStatus =
   | "connected"
@@ -75,17 +77,55 @@ export type ClientGameCommand =
   | {
       type: "add-bot";
       bot: Omit<GamePlayer, "kind" | "connected" | "spectator">;
+      /** Difficulty profile the server resolves from its baseline table. */
+      profileId?: string;
     }
   | {
       type: "configure-host";
       hostId?: string;
+    }
+  | {
+      type: "join-game";
+      displayName: string;
+      spectator?: boolean;
+      emoji?: string;
+      color?: string;
+    }
+  | {
+      type: "leave-game";
+      targetPlayerId?: string;
+    }
+  | {
+      type: "set-player-profile";
+      targetPlayerId?: string;
+      displayName?: string;
+      emoji?: string;
+      color?: string;
+      spectator?: boolean;
+    }
+  | {
+      type: "load-game";
+      clues: GameClue[];
+      keepScores?: boolean;
     };
 
-export type ClientRealtimeMessage = {
-  type: "game-command";
-  commandId: string;
-  command: ClientGameCommand;
-};
+export type ClientRealtimeMessage =
+  | {
+      type: "game-command";
+      commandId: string;
+      command: ClientGameCommand;
+    }
+  | {
+      type: "chat";
+      commandId?: string;
+      text: string;
+    }
+  | {
+      /** Ask the room to run the fuzzy judge on one queued answer. */
+      type: "ai-judge";
+      commandId?: string;
+      targetPlayerId: string;
+    };
 
 export type ServerRealtimeMessage =
   | {
@@ -94,6 +134,7 @@ export type ServerRealtimeMessage =
       clientId: string;
       sessionToken: string;
       state: PublicGameState;
+      chat: ChatMessage[];
     }
   | {
       type: "session-rejected";
@@ -116,6 +157,10 @@ export type ServerRealtimeMessage =
   | {
       type: "public-state";
       state: PublicGameState;
+    }
+  | {
+      type: "chat";
+      message: ChatMessage;
     }
   | {
       type: "message-rejected";
@@ -187,6 +232,38 @@ export function commandFromClient(
         type: "configure-host",
         actorId: clientId,
         hostId: command.hostId,
+      };
+    case "join-game":
+      return {
+        type: "join-game",
+        actorId: clientId,
+        displayName: command.displayName,
+        spectator: command.spectator,
+        emoji: command.emoji,
+        color: command.color,
+      };
+    case "leave-game":
+      return {
+        type: "leave-game",
+        actorId: clientId,
+        targetPlayerId: command.targetPlayerId,
+      };
+    case "set-player-profile":
+      return {
+        type: "set-player-profile",
+        actorId: clientId,
+        targetPlayerId: command.targetPlayerId,
+        displayName: command.displayName,
+        emoji: command.emoji,
+        color: command.color,
+        spectator: command.spectator,
+      };
+    case "load-game":
+      return {
+        type: "load-game",
+        actorId: clientId,
+        clues: command.clues,
+        keepScores: command.keepScores,
       };
   }
 }

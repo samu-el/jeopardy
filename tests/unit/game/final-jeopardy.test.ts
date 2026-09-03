@@ -125,14 +125,18 @@ describe("Final Jeopardy flow", () => {
     state = run(state, { type: "submit-answer", actorId: "p2", answer: "wrong" }, 720).state;
     state = run(state, { type: "reveal-answer", actorId: "p1" }, 740).state;
 
+    // Final Jeopardy is revealed from the lowest score up, so p2 (200) is
+    // judged before p1 (400).
+    expect(state.activeClue?.judgeQueue).toEqual(["p2", "p1"]);
+
     state = run(
       state,
-      { type: "judge-answer", actorId: "p1", targetPlayerId: "p1", correct: true },
+      { type: "judge-answer", actorId: "p1", targetPlayerId: "p2", correct: false },
       760,
     ).state;
     state = run(
       state,
-      { type: "judge-answer", actorId: "p1", targetPlayerId: "p2", correct: false },
+      { type: "judge-answer", actorId: "p1", targetPlayerId: "p1", correct: true },
       780,
     ).state;
 

@@ -15,6 +15,7 @@ export function Chat() {
   const chat = useGameStore((s) => s.chat);
   const runtime = useGameStore((s) => s.runtime);
   const lobby = useGameStore((s) => s.lobby);
+  const selfId = useGameStore((s) => s.selfId);
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -26,7 +27,7 @@ export function Chat() {
   function send() {
     const text = draft.trim();
     if (!text || !runtime) return;
-    runtime.postChat(lobby.hostId, lobby.hostName, text);
+    runtime.postChat(selfId(), lobby.hostName, text);
     setDraft("");
   }
 

@@ -2,49 +2,66 @@
 
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
+import { jeopardyFonts, jeopardyPalette } from "@/lib/foundation/jeopardy-style";
 
 interface DailyDoubleSplashProps {
   visible: boolean;
   reducedMotion?: boolean;
 }
 
+/**
+ * The card that slams over the board when a Daily Double comes up: two words
+ * stacked on the set's blue, arriving with the sting.
+ */
 export function DailyDoubleSplash({ visible, reducedMotion }: DailyDoubleSplashProps) {
   if (!visible) return null;
   return (
     <Box
       role="status"
       aria-label="Daily Double"
+      data-testid="daily-double-splash"
       sx={{
         position: "absolute",
         inset: 0,
-        zIndex: 3,
-        background:
-          "radial-gradient(circle at 50% 50%, #ffd23b 0%, #ff9a1f 70%, #b35900 100%)",
+        zIndex: 6,
+        background: `radial-gradient(circle at 50% 40%, ${jeopardyPalette.board} 0%, ${jeopardyPalette.boardShade} 70%, #01023A 100%)`,
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        textShadow: "0 6px 0 rgba(0,0,0,0.35)",
-        animation: reducedMotion ? "none" : "dd-fade-in 0.25s ease",
-        "@keyframes dd-fade-in": {
-          from: { opacity: 0, transform: "scale(1.05)" },
-          to: { opacity: 1, transform: "scale(1)" },
+        gap: { xs: 0, md: 1 },
+        animation: reducedMotion ? "none" : "dd-in 220ms ease-out",
+        "@keyframes dd-in": {
+          from: { opacity: 0 },
+          to: { opacity: 1 },
         },
       }}
     >
-      <Typography
-        sx={{
-          fontStyle: "italic",
-          fontWeight: 900,
-          color: "#0c0c10",
-          fontSize: { xs: 48, sm: 72, md: 96 },
-          letterSpacing: -2,
-          transform: "skew(-8deg)",
-          textAlign: "center",
-          lineHeight: 1,
-        }}
-      >
-        DAILY DOUBLE!
-      </Typography>
+      {["DAILY", "DOUBLE"].map((word, index) => (
+        <Typography
+          key={word}
+          sx={{
+            fontFamily: jeopardyFonts.display,
+            fontWeight: 700,
+            color: jeopardyPalette.goldBright,
+            fontSize: "clamp(34px, 9vw, 110px)",
+            lineHeight: 0.95,
+            letterSpacing: "0.02em",
+            textShadow: "0.05em 0.05em 0 rgba(0,0,0,0.75)",
+            transform: "skewX(-8deg)",
+            animation: reducedMotion
+              ? "none"
+              : `dd-slam 420ms ${index * 130}ms cubic-bezier(0.2, 0.9, 0.25, 1) both`,
+            "@keyframes dd-slam": {
+              from: { transform: "skewX(-8deg) scale(2.4)", opacity: 0 },
+              "70%": { transform: "skewX(-8deg) scale(0.94)", opacity: 1 },
+              to: { transform: "skewX(-8deg) scale(1)", opacity: 1 },
+            },
+          }}
+        >
+          {word}
+        </Typography>
+      ))}
     </Box>
   );
 }

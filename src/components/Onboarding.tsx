@@ -44,6 +44,9 @@ export function Onboarding() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        // A short phone in landscape can't fit the card; let it scroll rather
+        // than trapping the dismiss button off-screen.
+        overflowY: "auto",
         p: 2,
       }}
     >
@@ -55,6 +58,7 @@ export function Onboarding() {
           border: "1px solid rgba(255,255,255,0.12)",
           borderRadius: 2,
           p: 3,
+          my: "auto",
         }}
       >
         <Typography
@@ -69,18 +73,18 @@ export function Onboarding() {
         <Stack spacing={1.25} sx={{ mb: 3 }}>
           <Step
             num={1}
-            title="Open the picker"
-            body="Use the shuffle icon up top to load a real Jeopardy! board."
+            title="Load a board"
+            body="The shuffle icon up top pulls a real Jeopardy! board from the archive."
           />
           <Step
             num={2}
-            title="Begin"
-            body="Hit Begin to deal the board. Solo by default; add bots from Players."
+            title="Play alone or together"
+            body="Add AI opponents from Players, or hit Invite players and share the four-letter code."
           />
           <Step
             num={3}
-            title="BUZZ in"
-            body="Press Space when the bar fills, type or speak your answer, win the round."
+            title="Ring in"
+            body="Press Space the moment the lights come on, then type or speak your answer."
           />
         </Stack>
         <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end" }}>

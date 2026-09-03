@@ -1,6 +1,7 @@
 export type PreUiReadinessStatus =
   | "foundation-defined"
   | "implementation-required"
+  | "implemented"
   | "blocked";
 
 export type PreUiReadinessArea =
@@ -97,9 +98,9 @@ export const preUiReadinessChecklist: PreUiReadinessItem[] = [
     id: "redis-persistence",
     area: "persistence",
     title: "Redis persistence contract",
-    ownerModule: "src/lib/persistence",
-    status: "implementation-required",
-    blocksUi: true,
+    ownerModule: "src/lib/realtime",
+    status: "implemented",
+    blocksUi: false,
     acceptanceCriteria: [
       "Active rooms serialize and hydrate without timers firing twice.",
       "Redis is optional in local development.",

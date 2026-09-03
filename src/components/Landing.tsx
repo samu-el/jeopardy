@@ -19,27 +19,27 @@ export function Landing() {
   const setPendingRoomId = useGameStore((s) => s.setPendingRoomId);
   const setHostName = useGameStore((s) => s.setHostName);
   const hostName = useGameStore((s) => s.lobby.hostName);
+  const joinOnlineRoom = useGameStore((s) => s.joinOnlineRoom);
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
+  const [codeInput, setCodeInput] = useState("");
 
-  async function joinRoom() {
-    if (!pendingRoomId) return;
+  async function joinRoom(roomId: string) {
+    const code = roomId.trim().toUpperCase();
+    if (!code) return;
     setJoining(true);
     setJoinError(null);
     try {
-      const response = await fetch(
-        `/api/rooms/${encodeURIComponent(pendingRoomId)}`,
-      );
-      const data = (await response.json()) as { exists?: boolean };
-      if (!data.exists) {
+      const joined = await joinOnlineRoom(code);
+      if (!joined) {
         setJoinError(
-          "Room not found. Ask the host for a fresh link or start a new room.",
+          "That room is not open. Ask the host for a fresh code or start your own.",
         );
         return;
       }
-      setScreen("play");
+      setPendingRoomId(null);
     } catch (error) {
-      setJoinError((error as Error).message || "Could not check the room.");
+      setJoinError((error as Error).message || "Could not reach the room.");
     } finally {
       setJoining(false);
     }
@@ -114,7 +114,7 @@ export function Landing() {
                     <Button
                       variant="contained"
                       startIcon={joining ? <CircularProgress size={16} /> : <LoginIcon />}
-                      onClick={joinRoom}
+                      onClick={() => joinRoom(pendingRoomId)}
                       disabled={joining}
                       sx={{ background: "#5b8cff", color: "#000", fontWeight: 700 }}
                     >
@@ -150,7 +150,11 @@ export function Landing() {
                   Open the board. Buzz in. Play the categories — solo, with friends,
                   or against AI rivals.
                 </Typography>
-                <Stack direction="row" spacing={2}>
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  spacing={2}
+                  sx={{ alignItems: { sm: "center" } }}
+                >
                   <Button
                     variant="contained"
                     size="large"
@@ -165,6 +169,7 @@ export function Landing() {
                       fontSize: 18,
                       borderRadius: 999,
                       textTransform: "none",
+                      alignSelf: { xs: "flex-start", sm: "auto" },
                       "&:hover": {
                         background: "#7da5ff",
                         boxShadow: "0 8px 32px rgba(91,140,255,0.35)",
@@ -173,7 +178,39 @@ export function Landing() {
                   >
                     New room
                   </Button>
+                  <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                    <TextField
+                      size="small"
+                      label="Room code"
+                      value={codeInput}
+                      slotProps={{
+                        htmlInput: { maxLength: 6, "aria-label": "Room code" },
+                      }}
+                      onChange={(event) => setCodeInput(event.target.value.toUpperCase())}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          void joinRoom(codeInput);
+                        }
+                      }}
+                      sx={{ width: 150 }}
+                    />
+                    <Button
+                      variant="outlined"
+                      startIcon={joining ? <CircularProgress size={16} /> : <LoginIcon />}
+                      onClick={() => joinRoom(codeInput)}
+                      disabled={joining || codeInput.trim().length < 3}
+                      sx={{ borderRadius: 999, px: 3, py: 1.2 }}
+                    >
+                      Join
+                    </Button>
+                  </Stack>
                 </Stack>
+                {joinError ? (
+                  <Typography color="error" variant="caption">
+                    {joinError}
+                  </Typography>
+                ) : null}
               </>
             )}
           </Stack>

@@ -1,10 +1,21 @@
 import {
   dispatchGameCommand,
   getPublicGameState,
+  reassignRoles,
+  tickGame,
+  type GameEvent,
   type GameState,
 } from "@/lib/game";
+import { judgeAnswer as fuzzyJudge } from "@/lib/ai/judge";
+import {
+  createChatMessage,
+  sanitizeChatText,
+  type ChatMessage,
+  type ChatMessageInput,
+} from "./chat";
 import {
   commandFromClient,
+  type ClientGameCommand,
   type ClientRealtimeMessage,
   type RealtimeClock,
   type RealtimeConnectResult,
@@ -20,27 +31,48 @@ export interface InMemoryRealtimeRoomOptions {
   initialState: GameState;
   clock?: RealtimeClock;
   tokenFactory?: RealtimeTokenFactory;
+  /** Chat lines kept in memory and replayed to a joining client. */
+  chatHistoryLimit?: number;
+  /** Chat carried over when a room is restored from storage. */
+  initialChat?: ChatMessage[];
 }
 
+export type RoomChangeListener = (state: GameState, events: GameEvent[]) => void;
+export type RoomChatListener = (message: ChatMessage) => void;
+
+/**
+ * The authoritative room. It owns the game state, stamps every command with
+ * the connection's client id, and fans the resulting public state out to
+ * every listener. The same class backs solo play in the browser and the
+ * Socket.IO server, so both paths run identical rules.
+ */
 export class InMemoryRealtimeRoom {
   private state: GameState;
   private readonly clock: RealtimeClock;
   private readonly tokenFactory: RealtimeTokenFactory;
+  private readonly chatHistoryLimit: number;
   private readonly sessions = new Map<string, RealtimeSession>();
   private readonly connections = new Map<
     string,
     RealtimeConnectionRecord & { sink: RealtimeMessageSink }
   >();
   private readonly activeConnectionByClient = new Map<string, string>();
+  private readonly changeListeners = new Set<RoomChangeListener>();
+  private readonly chatListeners = new Set<RoomChatListener>();
+  private chat: ChatMessage[] = [];
 
   constructor({
     initialState,
     clock = { now: () => Date.now() },
     tokenFactory = { createToken: defaultToken },
+    chatHistoryLimit = 200,
+    initialChat = [],
   }: InMemoryRealtimeRoomOptions) {
     this.state = structuredClone(initialState);
     this.clock = clock;
     this.tokenFactory = tokenFactory;
+    this.chatHistoryLimit = chatHistoryLimit;
+    this.chat = initialChat.slice(-chatHistoryLimit);
   }
 
   getState() {
@@ -49,6 +81,30 @@ export class InMemoryRealtimeRoom {
 
   getPublicState() {
     return getPublicGameState(this.state, this.clock.now());
+  }
+
+  getChatHistory(): ChatMessage[] {
+    return [...this.chat];
+  }
+
+  /** Number of live connections, used to reap idle rooms. */
+  get connectionCount(): number {
+    return this.connections.size;
+  }
+
+  onChange(listener: RoomChangeListener): () => void {
+    this.changeListeners.add(listener);
+    return () => {
+      this.changeListeners.delete(listener);
+    };
+  }
+
+  /** Chat doesn't move game state, so persistence listens for it separately. */
+  onChat(listener: RoomChatListener): () => void {
+    this.chatListeners.add(listener);
+    return () => {
+      this.chatListeners.delete(listener);
+    };
   }
 
   issueSession(clientId: string): RealtimeSession {
@@ -82,7 +138,7 @@ export class InMemoryRealtimeRoom {
     }
 
     const previousConnectionId = this.activeConnectionByClient.get(request.clientId);
-    if (previousConnectionId) {
+    if (previousConnectionId && previousConnectionId !== request.connectionId) {
       const previous = this.connections.get(previousConnectionId);
       if (previous) {
         previous.status = "replaced";
@@ -111,6 +167,7 @@ export class InMemoryRealtimeRoom {
       clientId: request.clientId,
       sessionToken: request.sessionToken,
       state: this.getPublicState(),
+      chat: this.getChatHistory(),
     });
     this.broadcast({
       type: "connection-status",
@@ -131,7 +188,15 @@ export class InMemoryRealtimeRoom {
     this.connections.delete(connectionId);
     if (this.activeConnectionByClient.get(connection.clientId) === connectionId) {
       this.activeConnectionByClient.delete(connection.clientId);
-      this.setPlayerConnected(connection.clientId, false);
+      if (this.state.round === "lobby") {
+        // Nothing to preserve before the game starts — free the seat so the
+        // pre-game roster only lists people who are actually here.
+        this.applyCommand(connection.clientId, { type: "leave-game" });
+      } else {
+        // Mid-game the seat and score stay put so a refresh can reclaim them.
+        this.setPlayerConnected(connection.clientId, false);
+        this.migrateRolesAwayFrom(connection.clientId);
+      }
     }
 
     connection.sink({
@@ -162,30 +227,125 @@ export class InMemoryRealtimeRoom {
       return { ok: false, message: rejection };
     }
 
-    if (message.type !== "game-command") {
-      const rejection: ServerRealtimeMessage = {
-        type: "message-rejected",
-        commandId: message.commandId,
-        connectionId,
-        reason: "unknown-message",
-        message: "Realtime message type is not supported.",
-      };
-      connection.sink(rejection);
-      return { ok: false, message: rejection };
+    switch (message.type) {
+      case "game-command":
+        return this.applyCommand(connection.clientId, message.command, message.commandId);
+      case "chat": {
+        const player = this.state.players[connection.clientId];
+        this.postChat({
+          kind: "player",
+          authorId: connection.clientId,
+          authorName: player?.displayName ?? connection.clientId,
+          text: message.text,
+        });
+        return { ok: true, events: [] };
+      }
+      case "ai-judge":
+        this.runAiJudge(message.targetPlayerId);
+        return { ok: true, events: [] };
+      default: {
+        const rejection: ServerRealtimeMessage = {
+          type: "message-rejected",
+          connectionId,
+          reason: "unknown-message",
+          message: "Realtime message type is not supported.",
+        };
+        connection.sink(rejection);
+        return { ok: false, message: rejection };
+      }
     }
+  }
 
-    const command = commandFromClient(connection.clientId, message.command);
-    const result = dispatchGameCommand(this.state, command, {
+  /**
+   * Runs a command on behalf of a player without a connection — bots, the
+   * automation director, and server-side housekeeping all come through here.
+   */
+  dispatch(actorId: string, command: ClientGameCommand, commandId?: string) {
+    return this.applyCommand(actorId, command, commandId);
+  }
+
+  /** Advances every time-driven transition. Cheap when nothing is due. */
+  tick(now = this.clock.now()) {
+    const before = this.state;
+    const result = tickGame(before, now);
+    if (result.state === before && result.events.length === 0) {
+      return { ok: true, events: [] as GameEvent[] };
+    }
+    this.state = result.state;
+    this.publish(result.events);
+    return { ok: true, events: result.events };
+  }
+
+  postChat(input: ChatMessageInput) {
+    const text = sanitizeChatText(input.text);
+    if (!text) return undefined;
+    const message = createChatMessage({
+      ...input,
+      text,
+      timestamp: input.timestamp ?? this.clock.now(),
+    });
+    this.chat = [...this.chat, message].slice(-this.chatHistoryLimit);
+    this.broadcast({ type: "chat", message });
+    for (const listener of this.chatListeners) {
+      listener(message);
+    }
+    return message;
+  }
+
+  /**
+   * Scores one queued answer with the fuzzy judge and reports the verdict to
+   * the room. Runs where the state lives so every client sees the same call.
+   */
+  runAiJudge(targetPlayerId: string) {
+    const active = this.state.activeClue;
+    if (!active?.answerRevealed) return undefined;
+    if (active.judges[targetPlayerId] !== undefined) return undefined;
+    if (active.currentJudgePlayerId !== targetPlayerId) return undefined;
+
+    const clue = this.state.cluesById[active.clueId];
+    const answer = active.answers[targetPlayerId] ?? "";
+    const verdict = fuzzyJudge({
+      submittedAnswer: answer,
+      expectedAnswer: clue.correctResponse,
+    });
+    const hostId = this.state.settings.hostId ?? targetPlayerId;
+    this.applyCommand(hostId, {
+      type: "judge-answer",
+      targetPlayerId,
+      correct: verdict.correct,
+    });
+    const player = this.state.players[targetPlayerId];
+    this.postChat({
+      kind: "judge",
+      text: `${verdict.correct ? "✓" : "✗"} ${
+        player?.displayName ?? targetPlayerId
+      } · "${answer.trim() || "—"}" · ${(verdict.confidence * 100).toFixed(0)}%`,
+    });
+    return verdict;
+  }
+
+  private applyCommand(
+    actorId: string,
+    command: ClientGameCommand,
+    commandId?: string,
+  ) {
+    const gameCommand = commandFromClient(actorId, command);
+    const result = dispatchGameCommand(this.state, gameCommand, {
       now: this.clock.now(),
     });
     this.state = result.state;
-    this.broadcast({
-      type: "game-events",
-      commandId: message.commandId,
-      events: result.events,
-    });
-    this.broadcastPublicState();
+    this.publish(result.events, commandId);
     return { ok: true, events: result.events };
+  }
+
+  private publish(events: GameEvent[], commandId?: string) {
+    if (events.length > 0) {
+      this.broadcast({ type: "game-events", commandId, events });
+    }
+    this.broadcastPublicState();
+    for (const listener of this.changeListeners) {
+      listener(this.state, events);
+    }
   }
 
   private broadcast(message: ServerRealtimeMessage) {
@@ -220,6 +380,26 @@ export class InMemoryRealtimeRoom {
         },
       },
     };
+  }
+
+  /** Keeps the room playable when the host or picker drops off. */
+  private migrateRolesAwayFrom(clientId: string) {
+    if (
+      this.state.settings.hostId !== clientId &&
+      this.state.pickerId !== clientId
+    ) {
+      return;
+    }
+    const next = reassignRoles(this.state, clientId);
+    if (next === this.state) return;
+    this.state = { ...next, updatedAt: this.clock.now() };
+    const host = this.state.settings.hostId;
+    if (host && host !== clientId) {
+      this.postChat({
+        kind: "system",
+        text: `${this.state.players[host]?.displayName ?? host} is now hosting`,
+      });
+    }
   }
 }
 
