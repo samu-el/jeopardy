@@ -23,6 +23,12 @@ export interface AvatarNarratorConfig {
    * react to readout completion without estimating from text length.
    */
   onCueSpoken?: (cue: AvatarHostCue) => void;
+  /**
+   * Fires when a cue actually starts speaking. Cues queue, so this can be a
+   * long way after `emit` — which is exactly why the buzzer can't be timed
+   * from the moment the clue was picked.
+   */
+  onCueStarted?: (cue: AvatarHostCue) => void;
 }
 
 export class AvatarNarrator {
@@ -68,6 +74,7 @@ export class AvatarNarrator {
       // Queue utterances naturally so picks ("Category, for 200") finish
       // before the clue text reads. Interrupting would drop the clue text.
       interrupt: false,
+      onStart: () => this.config.onCueStarted?.(cue),
       onEnd: () => this.config.onCueSpoken?.(cue),
     });
     return cue;

@@ -124,6 +124,8 @@ export function dispatchGameCommand(
       return skip(state, command, context.now);
     case "readout-complete":
       return readoutComplete(state, command, context.now);
+    case "extend-readout":
+      return extendReadout(state, command, context.now);
     case "undo":
       return undo(state, command, context.now);
     case "update-settings":
@@ -401,6 +403,49 @@ function readoutComplete(
   const nextActive = next.activeClue!;
   nextActive.readoutEndsAt = now;
   nextActive.buzzWindowEndsAt = now + next.settings.buzzWindowMs;
+  return { state: touch(next, now), events: [] };
+}
+
+/**
+ * How far ahead a client may hold the buzzer. A readout that claims to run
+ * longer than this is a broken or hostile client, not a wordy clue.
+ */
+export const maxReadoutHoldMs = 60_000;
+
+function extendReadout(
+  state: GameState,
+  command: Extract<GameCommand, { type: "extend-readout" }>,
+  now: number,
+): GameEngineResult {
+  const active = state.activeClue;
+  if (!active || active.clueId !== command.clueId) {
+    return reject(state, command, "not-found", "Clue is not active.");
+  }
+  if (!isHostOrOpenRoom(state, command.actorId)) {
+    return reject(state, command, "not-authorized", "Only the host paces the readout.");
+  }
+  // Wagered clues and Final Jeopardy have no ring-in window to hold.
+  if (active.dailyDoublePlayerId || active.round === "final-jeopardy") {
+    return { state, events: [] };
+  }
+  if (
+    !active.clueRevealed ||
+    active.answerRevealed ||
+    Object.keys(active.buzzes).length > 0
+  ) {
+    return { state, events: [] };
+  }
+
+  const endsAt = Math.min(command.endsAt, now + maxReadoutHoldMs);
+  // Only ever later: bringing the window forward is `readout-complete`'s job.
+  if (endsAt <= (active.readoutEndsAt ?? now)) {
+    return { state, events: [] };
+  }
+
+  const next = clone(state);
+  const nextActive = next.activeClue!;
+  nextActive.readoutEndsAt = endsAt;
+  nextActive.buzzWindowEndsAt = endsAt + next.settings.buzzWindowMs;
   return { state: touch(next, now), events: [] };
 }
 

@@ -181,8 +181,8 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
     runtime?.sendCommand(currentClientId, { type: "buzz" });
   }
 
-  function handleSubmitAnswer() {
-    const text = answerInput.trim();
+  function handleSubmitAnswer(dictated?: string) {
+    const text = (dictated ?? answerInput).trim();
     if (!text) return;
     runtime?.sendCommand(currentClientId, { type: "submit-answer", answer: text });
     setAnswerInput("");
@@ -267,19 +267,28 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
       sx={{
         flex: 1,
         width: "100%",
+        // A column of three parts: header, the clue, and the controls. Only
+        // the clue may grow, and it scrolls inside its own space so a long
+        // one never pushes the lights or the buzzer off the panel.
         display: "flex",
         flexDirection: "column",
+        minHeight: 0,
+        overflow: "hidden",
         position: "relative",
         px: { xs: 1.5, md: 5 },
-        py: { xs: 1.5, md: 3 },
-        // Keep the buzzer reachable when a long clue fills a small screen.
-        overflowY: "auto",
+        py: { xs: 1.5, md: 2 },
+        gap: { xs: 0.5, md: 1 },
         background: `linear-gradient(180deg, ${jeopardyPalette.board} 0%, ${jeopardyPalette.boardShade} 100%)`,
       }}
     >
       <Stack
         direction="row"
-        sx={{ justifyContent: "space-between", alignItems: "baseline", gap: 1 }}
+        sx={{
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          gap: 1,
+          flexShrink: 0,
+        }}
       >
         <Typography
           sx={{
@@ -319,28 +328,48 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
       />
 
       <Box
+        data-testid="clue-body"
         sx={{
-          flex: 1,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          textAlign: "center",
-          py: { xs: 2, md: 4 },
-          minHeight: { xs: 140, md: 200 },
+          flex: "1 1 auto",
+          // `minHeight: 0` is what actually lets this shrink: without it a
+          // flex item refuses to go below its content height and overruns
+          // everything below.
+          minHeight: 0,
+          overflowY: "auto",
+          py: { xs: 1, md: 2 },
         }}
       >
+        {/*
+          Centring happens on this inner box, not on the scroll container: a
+          flex parent with `align-items: center` pushes an over-tall child out
+          of *both* ends, where the top can never be scrolled back into view.
+        */}
+        <Box
+          sx={{
+            minHeight: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+          }}
+        >
         {currentClue.clue ? (
           <Typography
             component="p"
+            data-testid="clue-text"
             sx={{
               fontFamily: jeopardyFonts.clue,
               color: jeopardyPalette.clueText,
               textTransform: "uppercase",
               fontWeight: 600,
               textShadow: jeopardyClueShadow,
-              fontSize: "clamp(18px, 3.4vw, 48px)",
+              // The show sets a long clue smaller so it still fits the
+              // monitor; the size steps down with the character count.
+              fontSize: clueFontSize(currentClue.clue.length),
               lineHeight: 1.22,
-              maxWidth: "22ch",
+              // A long clue also gets a wider measure: more words per line
+              // means fewer lines, so it stays on one screen.
+              maxWidth: clueMeasure(currentClue.clue.length),
               letterSpacing: "0.005em",
               animation: preferences.reducedMotion ? "none" : "clue-in 260ms ease-out both",
               "@keyframes clue-in": {
@@ -368,8 +397,10 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
               : ""}
           </Typography>
         )}
+        </Box>
       </Box>
 
+      <Box sx={{ flexShrink: 0 }}>
       {answerRevealed ? (
         <Typography
           data-testid="correct-response"
@@ -518,7 +549,7 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
               />
               <Button
                 variant="contained"
-                onClick={handleSubmitAnswer}
+                onClick={() => handleSubmitAnswer()}
                 disabled={!answerInput.trim() || iSubmitted}
               >
                 Send
@@ -551,7 +582,7 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
           <Button
             variant="contained"
             disabled={!answerInput.trim() || iSubmitted}
-            onClick={handleSubmitAnswer}
+            onClick={() => handleSubmitAnswer()}
           >
             Lock in
           </Button>
@@ -588,16 +619,39 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
       ) : null}
 
       {isHost && currentClue.canAdvance ? (
-        <Button
-          variant="contained"
-          onClick={() => runtime?.sendCommand(currentClientId, { type: "skip" })}
-          sx={{ alignSelf: "center", mt: 1.5, minWidth: 160 }}
-        >
-          Next clue
-        </Button>
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 1.5 }}>
+          <Button
+            variant="contained"
+            data-testid="next-clue"
+            onClick={() => runtime?.sendCommand(currentClientId, { type: "skip" })}
+            sx={{ minWidth: 160 }}
+          >
+            Next clue
+          </Button>
+        </Box>
       ) : null}
+      </Box>
     </Box>
   );
+}
+
+/**
+ * Clue type sizes down as the clue gets longer, the way the show sets a wordy
+ * clue smaller rather than letting it overrun the monitor. Sized against the
+ * board container so it tracks the panel, not the viewport.
+ */
+function clueFontSize(length: number): string {
+  if (length <= 90) return "clamp(18px, 4.2cqw, 46px)";
+  if (length <= 180) return "clamp(16px, 3.2cqw, 36px)";
+  if (length <= 300) return "clamp(15px, 2.5cqw, 29px)";
+  return "clamp(13px, 2cqw, 24px)";
+}
+
+function clueMeasure(length: number): string {
+  if (length <= 90) return "22ch";
+  if (length <= 180) return "30ch";
+  if (length <= 300) return "38ch";
+  return "46ch";
 }
 
 function JudgePanel({

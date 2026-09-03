@@ -12,12 +12,21 @@ interface ShortcutsOverlayProps {
   onClose: () => void;
 }
 
-const SHORTCUTS: { key: string; label: string }[] = [
-  { key: "Space", label: "Buzz in" },
-  { key: "R", label: "Reveal answer" },
-  { key: "Y", label: "Judge correct" },
-  { key: "N", label: "Judge incorrect" },
-  { key: "S", label: "Skip / Next clue" },
+interface Shortcut {
+  key: string;
+  label: string;
+  /** Only does anything for the player running the room. */
+  hostOnly?: boolean;
+}
+
+const SHORTCUTS: Shortcut[] = [
+  { key: "Space", label: "Ring in — early costs you a lockout" },
+  { key: "Enter", label: "Send your answer or wager" },
+  { key: "Alt + M", label: "Answer by voice" },
+  { key: "R", label: "Reveal the response", hostOnly: true },
+  { key: "Y", label: "Judge correct", hostOnly: true },
+  { key: "N", label: "Judge incorrect", hostOnly: true },
+  { key: "S", label: "Next clue", hostOnly: true },
   { key: "?", label: "Toggle this overlay" },
   { key: "Esc", label: "Close overlays" },
 ];
@@ -48,6 +57,14 @@ export function ShortcutsOverlay({ open, onClose }: ShortcutsOverlayProps) {
             >
               <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.85)" }}>
                 {entry.label}
+                {entry.hostOnly ? (
+                  <Box
+                    component="span"
+                    sx={{ ml: 0.75, fontSize: 10, color: "rgba(255,255,255,0.45)" }}
+                  >
+                    HOST
+                  </Box>
+                ) : null}
               </Typography>
               <Box
                 sx={{

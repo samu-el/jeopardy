@@ -265,6 +265,17 @@ export type GameCommand =
       clueId: string;
     }
   | {
+      /**
+       * The reading client is still speaking: hold the buzzer until at least
+       * `endsAt`. Only ever pushes the window later; `readout-complete` is
+       * what brings it forward.
+       */
+      type: "extend-readout";
+      actorId: string;
+      clueId: string;
+      endsAt: number;
+    }
+  | {
       type: "undo";
       actorId: string;
     }

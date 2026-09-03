@@ -106,3 +106,29 @@ describe("RoomDirector", () => {
     expect(room.getState().activeClue?.clueId).toBe(before.activeClue?.clueId);
   });
 });
+
+describe("timer wiring", () => {
+  it("calls the platform timers with their own receiver", () => {
+    // A browser's setTimeout throws "Illegal invocation" when it is called as
+    // a method of something else, which would silently kill every deferred
+    // bot action. Stand in a host-checking timer to catch that here.
+    const nativeTimeout = globalThis.setTimeout;
+    const receivers: unknown[] = [];
+    function guardedTimeout(this: unknown, handler: TimerHandler, timeout?: number) {
+      receivers.push(this);
+      if (this !== undefined && this !== globalThis) {
+        throw new TypeError("Illegal invocation");
+      }
+      return nativeTimeout(handler, timeout);
+    }
+    globalThis.setTimeout = guardedTimeout as typeof globalThis.setTimeout;
+
+    try {
+      const room = makeRoom(["bot"]);
+      expect(() => room.room.dispatch("ada", { type: "start-game" })).not.toThrow();
+      expect(receivers.length).toBeGreaterThan(0);
+    } finally {
+      globalThis.setTimeout = nativeTimeout;
+    }
+  });
+});

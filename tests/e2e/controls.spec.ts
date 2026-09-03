@@ -1,0 +1,262 @@
+import { expect, test, type Page } from "@playwright/test";
+import { dismissOnboarding, routeFixtureEpisodes } from "./helpers";
+
+/**
+ * The clue panel is where a game is actually played: it has to take keyboard
+ * input, take dictation, and hold its shape around a wordy clue.
+ */
+test.describe("Clue controls", () => {
+  test("plays a whole clue from the keyboard alone", async ({ page }) => {
+    await openClue(page);
+
+    // Space rings in — no pointer involved.
+    await page.keyboard.press("Space");
+    await expect(page.getByTestId("buzzer")).toHaveText("IN!", { timeout: 15_000 });
+
+    // Focus lands in the answer field, so it can be typed and sent with Enter.
+    await expect(page.getByLabel("What is…")).toBeFocused();
+    await page.keyboard.type("four");
+    await page.keyboard.press("Enter");
+    await expect(page.getByText("Answer locked in")).toBeVisible();
+
+    // R reveals, Y scores it, and the board comes back.
+    await page.keyboard.press("r");
+    await expect(page.getByTestId("correct-response")).toBeVisible();
+    await page.keyboard.press("y");
+    // The seat id is per browser, so match the score display by its prefix.
+    await expect(page.locator('[data-testid^="score-"]').first()).not.toHaveText("$0", {
+      timeout: 10_000,
+    });
+  });
+
+  test("? opens the shortcut list and Esc closes it", async ({ page }) => {
+    await openClue(page);
+
+    await page.keyboard.press("?");
+    await expect(page.getByText("Ring in — early costs you a lockout")).toBeVisible();
+    await expect(page.getByText("Answer by voice")).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByText("Ring in — early costs you a lockout")).toBeHidden();
+  });
+
+  test("dictation fills the answer and sends it", async ({ page }) => {
+    // Stand in for the browser's speech recognition, which needs a real
+    // microphone and a network round trip.
+    await page.addInitScript(() => {
+      class FakeRecognition extends EventTarget {
+        continuous = false;
+        interimResults = false;
+        lang = "en-US";
+        onresult: ((event: unknown) => void) | null = null;
+        onerror: (() => void) | null = null;
+        onend: (() => void) | null = null;
+        onstart: (() => void) | null = null;
+        start() {
+          this.onstart?.();
+          setTimeout(() => {
+            this.onresult?.({
+              resultIndex: 0,
+              results: {
+                length: 1,
+                0: { isFinal: true, length: 1, 0: { transcript: "what is four", confidence: 1 } },
+              },
+            });
+            this.onend?.();
+          }, 60);
+        }
+        stop() {
+          this.onend?.();
+        }
+        abort() {
+          this.onend?.();
+        }
+      }
+      (window as unknown as { SpeechRecognition: unknown }).SpeechRecognition =
+        FakeRecognition;
+    });
+
+    await openClue(page);
+    await page.keyboard.press("Space");
+    await expect(page.getByTestId("buzzer")).toHaveText("IN!", { timeout: 15_000 });
+
+    await page.getByTestId("mic-toggle").click();
+
+    // The transcript is submitted as-is, not a stale copy of the field.
+    await expect(page.getByText("Answer locked in")).toBeVisible({ timeout: 10_000 });
+    await page.keyboard.press("r");
+    await expect(page.getByTestId("correct-response")).toBeVisible();
+    // The judge panel shows what was actually heard, not a stale field value.
+    await expect(page.getByText("what is four").first()).toBeVisible();
+  });
+
+  test("the buzzer waits for the voice, not for a guess", async ({ page }) => {
+    // A deliberately slow stand-in for speech synthesis: cues queue, and each
+    // one takes far longer than the engine's per-character estimate.
+    await page.addInitScript(() => {
+      const spoken: { text: string; startedAt: number; endedAt?: number }[] = [];
+      (window as unknown as { __spoken: typeof spoken }).__spoken = spoken;
+      const queue: { utterance: Record<string, () => void> & { text: string } }[] = [];
+      let busy = false;
+
+      function drain() {
+        if (busy) return;
+        const next = queue.shift();
+        if (!next) return;
+        busy = true;
+        const entry: { text: string; startedAt: number; endedAt?: number } = {
+          text: next.utterance.text,
+          startedAt: Date.now(),
+        };
+        spoken.push(entry);
+        next.utterance.onstart?.();
+        // ~28ms a character: slower than the room's estimate, on purpose.
+        setTimeout(
+          () => {
+            entry.endedAt = Date.now();
+            next.utterance.onend?.();
+            busy = false;
+            drain();
+          },
+          Math.max(400, next.utterance.text.length * 28),
+        );
+      }
+
+      // `speechSynthesis` is a read-only accessor on window: a plain
+      // assignment is silently dropped and the real (voiceless) engine keeps
+      // answering, so the stand-in has to be defined over it.
+      Object.defineProperty(window, "speechSynthesis", {
+        configurable: true,
+        value: {
+          speak: (utterance: Record<string, () => void> & { text: string }) => {
+            queue.push({ utterance });
+            drain();
+          },
+          cancel: () => {
+            queue.length = 0;
+          },
+          getVoices: () => [],
+          addEventListener: () => {},
+          speaking: false,
+          pending: false,
+          paused: false,
+        },
+      });
+    });
+
+    await openClue(page, { keepPacing: true });
+
+    // While the clue is being read the buzzer is shut, however long it runs.
+    await expect(page.getByTestId("buzzer")).toBeDisabled();
+    await expect(page.getByText("Reading…")).toBeVisible();
+
+    // It opens once the voice has actually finished the clue.
+    await expect(page.getByTestId("buzzer")).toBeEnabled({ timeout: 30_000 });
+
+    const timing = await page.evaluate(() => {
+      const spoken = (window as unknown as {
+        __spoken: { text: string; startedAt: number; endedAt?: number }[];
+      }).__spoken;
+      const clue = spoken.find((entry) => entry.text.includes("Two plus two"));
+      return {
+        spokeTheClue: Boolean(clue),
+        finished: Boolean(clue?.endedAt),
+        // How long the room actually held the buzzer past its own estimate.
+        heldPastEstimateMs: clue ? (clue.endedAt ?? 0) - clue.startedAt : 0,
+      };
+    });
+
+    // The clue really was read aloud, and the buzzer waited for it to finish
+    // rather than opening on the 200ms estimate the room was given.
+    expect(timing.spokeTheClue).toBe(true);
+    expect(timing.finished).toBe(true);
+    expect(timing.heldPastEstimateMs).toBeGreaterThan(300);
+  });
+
+  test("a long clue never covers the lights or the buzzer", async ({ page }) => {
+    await openClue(page, { long: true });
+
+    const overlap = await page.evaluate(() => {
+      const rect = (selector: string) =>
+        document.querySelector(selector)?.getBoundingClientRect() ?? null;
+      const text = rect('[data-testid="clue-text"]');
+      const lights = rect('[role="progressbar"]');
+      const buzzer = rect('[data-testid="buzzer"]');
+      const stage = rect('[data-testid="clue-stage"]');
+      const hits = (a: DOMRect | null, b: DOMRect | null) =>
+        !!a && !!b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+      return {
+        overText: hits(text, lights) || hits(text, buzzer),
+        insidePanel:
+          !!text && !!stage && text.top >= stage.top - 1 && text.bottom <= stage.bottom + 1,
+        buzzerVisible: !!buzzer && buzzer.height > 0,
+      };
+    });
+
+    expect(overlap).toEqual({ overText: false, insidePanel: true, buzzerVisible: true });
+  });
+});
+
+/** Starts a solo game on the fixture board and opens the first clue. */
+async function openClue(
+  page: Page,
+  options: { long?: boolean; keepPacing?: boolean } = {},
+) {
+  await routeFixtureEpisodes(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "New room" }).click();
+  await dismissOnboarding(page);
+  await page.getByRole("button", { name: "New game" }).click();
+  await page.getByRole("button", { name: "Shuffle" }).click();
+  await expect(page.getByTestId("begin")).toBeEnabled();
+  await page.getByTestId("begin").click();
+
+  // Give the buzzer room so the test isn't racing the show's pacing, and swap
+  // in a wordy clue when the layout is what's under test.
+  await page.evaluate(([long, keepPacing]) => {
+    const store = (window as unknown as { __game: { getState: () => Record<string, never> } })
+      .__game.getState() as unknown as {
+      runtime: { sendCommand: (id: string, command: unknown) => void };
+      lobby: { hostId: string };
+    };
+    store.runtime.sendCommand(store.lobby.hostId, {
+      type: "update-settings",
+      settings: keepPacing
+        ? // Leave the readout estimate short, so only the voice can be what
+          // holds the buzzer shut.
+          { buzzWindowMs: 120_000, autoAdvanceMs: 0, roundIntroMs: 0, buzzUnlockDelayMs: 200, readoutPerCharMs: 0 }
+        : { buzzWindowMs: 120_000, autoAdvanceMs: 0, roundIntroMs: 0 },
+    });
+    if (long) {
+      store.runtime.sendCommand(store.lobby.hostId, {
+        type: "load-game",
+        clues: [
+          {
+            id: "long-1",
+            round: "jeopardy",
+            category: "LITERATURE",
+            value: 200,
+            clue:
+              "In a 1922 letter to his publisher this author described the novel he was " +
+              "finishing as an epic of two races, and of the cycle of the human body, set " +
+              "in a single day in a city he had not lived in for eighteen years, adding " +
+              "that he had put in so many enigmas and puzzles that it would keep the " +
+              "professors busy for centuries arguing over what he meant.",
+            correctResponse: "James Joyce",
+          },
+        ],
+      });
+      store.runtime.sendCommand(store.lobby.hostId, { type: "start-game" });
+      store.runtime.sendCommand(store.lobby.hostId, {
+        type: "update-settings",
+        settings: { buzzWindowMs: 120_000, autoAdvanceMs: 0, roundIntroMs: 0 },
+      });
+    }
+  }, [Boolean(options.long), Boolean(options.keepPacing)] as const);
+
+  await page.getByRole("button", { name: /\$200/ }).first().click({ timeout: 20_000 });
+  await expect(page.getByTestId("clue-stage")).toBeVisible();
+  if (options.keepPacing) return;
+  // Wait out the readout so the buzzer is live.
+  await expect(page.getByTestId("buzzer")).toBeEnabled({ timeout: 20_000 });
+}

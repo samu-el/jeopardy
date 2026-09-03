@@ -9,6 +9,8 @@ export interface SpeakRequest {
   rate?: number;
   pitch?: number;
   volume?: number;
+  /** Fires when this utterance actually begins — it may have been queued. */
+  onStart?: () => void;
   onEnd?: () => void;
   /**
    * When true, this utterance interrupts whatever is currently speaking.
@@ -175,6 +177,7 @@ class BrowserVoiceAdapter implements VoiceAdapter {
       utterance.lang = chosen.voice.lang;
     }
 
+    utterance.onstart = () => request.onStart?.();
     utterance.onend = () => request.onEnd?.();
     utterance.onerror = () => request.onEnd?.();
     synth.speak(utterance);
@@ -211,6 +214,7 @@ class NoopVoiceAdapter implements VoiceAdapter {
   }
   refreshVoices() {}
   speak(request: SpeakRequest) {
+    request.onStart?.();
     request.onEnd?.();
   }
   cancel() {}
@@ -221,6 +225,12 @@ export function createVoiceAdapter(): VoiceAdapter {
     return new NoopVoiceAdapter();
   }
   return new BrowserVoiceAdapter();
+}
+
+/** Stops whatever is being spoken — used when the microphone opens. */
+export function cancelSpeech() {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
 }
 
 let primed = false;

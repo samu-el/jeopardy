@@ -68,6 +68,11 @@ export type ClientGameCommand =
       clueId: string;
     }
   | {
+      type: "extend-readout";
+      clueId: string;
+      endsAt: number;
+    }
+  | {
       type: "undo";
     }
   | {
@@ -216,6 +221,13 @@ export function commandFromClient(
         type: "readout-complete",
         actorId: clientId,
         clueId: command.clueId,
+      };
+    case "extend-readout":
+      return {
+        type: "extend-readout",
+        actorId: clientId,
+        clueId: command.clueId,
+        endsAt: command.endsAt,
       };
     case "undo":
       return { type: "undo", actorId: clientId };
