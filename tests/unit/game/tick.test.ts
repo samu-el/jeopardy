@@ -191,3 +191,94 @@ describe("wager windows", () => {
     expect(active.wagerWindowEndsAt).toBe(21_000);
   });
 });
+
+describe("readout pacing", () => {
+  it("holds the buzzer while the reading client is still speaking", () => {
+    const state = playClue(room(), "j-200", 1_000);
+    const estimated = state.activeClue!.readoutEndsAt!;
+
+    const held = run(
+      state,
+      { type: "extend-readout", actorId: "ada", clueId: "j-200", endsAt: estimated + 4_000 },
+      1_500,
+    );
+
+    expect(held.state.activeClue?.readoutEndsAt).toBe(estimated + 4_000);
+    // The ring-in window moves with it rather than being eaten.
+    expect(held.state.activeClue?.buzzWindowEndsAt).toBe(estimated + 4_000 + 5_000);
+    // And the buzzer stays shut while the voice runs.
+    expect(
+      run(held.state, { type: "buzz", actorId: "gra" }, estimated + 1_000).state.activeClue
+        ?.buzzes.gra,
+    ).toBeUndefined();
+  });
+
+  it("opens the buzzer the moment the voice stops", () => {
+    let state = playClue(room(), "j-200", 1_000);
+    state = run(
+      state,
+      { type: "extend-readout", actorId: "ada", clueId: "j-200", endsAt: 30_000 },
+      1_500,
+    ).state;
+
+    const done = run(
+      state,
+      { type: "readout-complete", actorId: "ada", clueId: "j-200" },
+      6_000,
+    );
+
+    expect(done.state.activeClue?.readoutEndsAt).toBe(6_000);
+    expect(done.state.activeClue?.buzzWindowEndsAt).toBe(11_000);
+    expect(
+      run(done.state, { type: "buzz", actorId: "gra" }, 6_100).state.activeClue?.buzzes.gra,
+    ).toBe(6_100);
+  });
+
+  it("never lets a hold shorten the window or outlast the cap", () => {
+    const state = playClue(room(), "j-200", 1_000);
+    const estimated = state.activeClue!.readoutEndsAt!;
+
+    // Earlier than the current deadline: ignored, that is what completing is for.
+    const shorter = run(
+      state,
+      { type: "extend-readout", actorId: "ada", clueId: "j-200", endsAt: estimated - 500 },
+      1_500,
+    );
+    expect(shorter.state.activeClue?.readoutEndsAt).toBe(estimated);
+
+    // Absurdly far out: clamped, so a broken client can't freeze the buzzer.
+    const forever = run(
+      state,
+      { type: "extend-readout", actorId: "ada", clueId: "j-200", endsAt: 9_999_999 },
+      1_500,
+    );
+    expect(forever.state.activeClue?.readoutEndsAt).toBe(1_500 + 60_000);
+  });
+
+  it("only lets the host pace the readout", () => {
+    const state = playClue(room(), "j-200", 1_000);
+
+    const result = run(
+      state,
+      { type: "extend-readout", actorId: "gra", clueId: "j-200", endsAt: 99_000 },
+      1_500,
+    );
+
+    expect(result.events[0]).toMatchObject({ reason: "not-authorized" });
+    expect(result.state.activeClue?.readoutEndsAt).toBe(state.activeClue?.readoutEndsAt);
+  });
+
+  it("ignores a hold once someone has already rung in", () => {
+    let state = playClue(room(), "j-200", 1_000);
+    const open = state.activeClue!.readoutEndsAt!;
+    state = run(state, { type: "buzz", actorId: "gra" }, open).state;
+
+    const late = run(
+      state,
+      { type: "extend-readout", actorId: "ada", clueId: "j-200", endsAt: open + 9_000 },
+      open + 10,
+    );
+
+    expect(late.state.activeClue?.readoutEndsAt).toBe(open);
+  });
+});

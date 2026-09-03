@@ -30,19 +30,28 @@ export function AvatarHostController() {
         getMode: () => useGameStore.getState().preferences.avatarHostMode,
         getVoiceProfileId: () => useGameStore.getState().preferences.voiceProfileId,
         getSoundEnabled: () => useGameStore.getState().preferences.soundEnabled,
+        // The buzzer follows the voice, not a guess made when the clue was
+        // picked. Cues queue, so "Math, for 200" is still being said when the
+        // estimate would otherwise open the buzzer — every cue that runs
+        // ahead of the clue holds it shut.
+        onCueStarted: (cue) => {
+          if (cue.type !== "clue-selected" && cue.type !== "clue-readout") return;
+          const target = readoutTarget();
+          if (!target) return;
+          target.runtime.sendCommand(target.selfId, {
+            type: "extend-readout",
+            clueId: target.clueId,
+            endsAt: Date.now() + spokenDurationEstimateMs(cue.text),
+          });
+        },
+        // Only the clue itself finishing opens the buzzer.
         onCueSpoken: (cue) => {
           if (cue.type !== "clue-readout") return;
-          const store = useGameStore.getState();
-          const runtime = store.runtime;
-          const currentClueId = store.publicState?.currentClue?.clueId;
-          if (!runtime || !currentClueId) return;
-          // Only the room host opens the buzzer early: every client reads the
-          // clue at its own pace, and the window must open once for everyone.
-          const selfId = store.selfId();
-          if (store.publicState?.settings.hostId !== selfId) return;
-          runtime.sendCommand(selfId, {
+          const target = readoutTarget();
+          if (!target) return;
+          target.runtime.sendCommand(target.selfId, {
             type: "readout-complete",
-            clueId: currentClueId,
+            clueId: target.clueId,
           });
         },
       });
@@ -112,6 +121,32 @@ export function AvatarHostController() {
       </Stack>
     </Box>
   );
+}
+
+/**
+ * Only the room host paces the readout: every client speaks the clue at its
+ * own rate, and the window has to open once, for everyone, at the same time.
+ */
+function readoutTarget() {
+  const store = useGameStore.getState();
+  const runtime = store.runtime;
+  const clueId = store.publicState?.currentClue?.clueId;
+  if (!runtime || !clueId) return null;
+  const selfId = store.selfId();
+  if (store.publicState?.settings.hostId !== selfId) return null;
+  return { runtime, selfId, clueId };
+}
+
+/**
+ * A ceiling on how long this utterance can run, used to hold the buzzer while
+ * it plays. Generous on purpose — `onend` trims it to the real moment, and a
+ * buzzer that opens a beat late is far better than one that opens mid-clue.
+ */
+function spokenDurationEstimateMs(text: string): number {
+  // ~11 characters a second at the 0.92 rate the narrator uses, plus half
+  // again for pauses and slower voices. The floor covers the gap between one
+  // queued cue ending and the next one starting.
+  return Math.min(60_000, Math.round((text.length / 11) * 1_000 * 1.5) + 1_500);
 }
 
 function handleEvent(

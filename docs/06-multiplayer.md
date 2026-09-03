@@ -61,6 +61,26 @@ room costs one comparison per tick and broadcasts nothing.
   Redis configured that is eviction, not deletion — the room comes back on the
   next join.
 
+## Readout pacing
+
+The buzzer opens when the clue has actually been read, not when a formula
+says it should be. The room still carries a per-character estimate, but it is
+only a fallback for a silent table: the client doing the reading holds the
+window open while it speaks.
+
+- Cues queue. "Math, for 200" is still being spoken when the estimate would
+  have opened the buzzer, so both that cue and the clue itself push the
+  deadline out through `extend-readout`.
+- `readout-complete` brings it forward the moment the clue's own utterance
+  ends — the buzzer opens on the voice stopping, not on a guess.
+- `extend-readout` only ever moves the deadline later and is capped at
+  `maxReadoutHoldMs` (60s), so a broken or hostile client cannot freeze the
+  buzzer.
+- Only the room host paces it: every client speaks at its own rate, and the
+  window has to open once, at the same moment, for everyone.
+- The director's scheduled bot work is scoped to the readout deadline, so a
+  held buzzer reschedules their ring-ins instead of firing them early.
+
 ## Persistence
 
 Set `REDIS_URL` and rooms survive a restart. Without it nothing changes:

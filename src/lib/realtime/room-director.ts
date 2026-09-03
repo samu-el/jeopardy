@@ -32,16 +32,23 @@ export class RoomDirector {
   private readonly categoryPreference = new Map<string, Map<string, number>>();
   private readonly pending = new Map<string, { timer: Timer; scope: string }>();
   private readonly rng: BotRng;
-  private readonly schedule: typeof setTimeout;
-  private readonly unschedule: typeof clearTimeout;
+  private readonly schedule: (action: () => void, delayMs: number) => Timer;
+  private readonly unschedule: (timer: Timer) => void;
   private unsubscribe: (() => void) | undefined;
   private stopped = false;
 
   constructor(room: InMemoryRealtimeRoom, options: RoomDirectorOptions = {}) {
     this.room = room;
     this.rng = createSeededRng(options.seed ?? Date.now());
-    this.schedule = options.setTimeoutFn ?? setTimeout;
-    this.unschedule = options.clearTimeoutFn ?? clearTimeout;
+    // Wrapped, not stored bare: `this.schedule(...)` would call the browser's
+    // setTimeout with the director as its receiver, which throws
+    // "Illegal invocation" and silently kills every deferred bot action.
+    const scheduleFn = options.setTimeoutFn;
+    const clearFn = options.clearTimeoutFn;
+    this.schedule = scheduleFn
+      ? (action, delayMs) => scheduleFn(action, delayMs)
+      : (action, delayMs) => setTimeout(action, delayMs);
+    this.unschedule = clearFn ? (timer) => clearFn(timer) : (timer) => clearTimeout(timer);
     for (const [id, profile] of Object.entries(options.botProfiles ?? {})) {
       this.addBot(id, profile);
     }
@@ -107,9 +114,17 @@ export class RoomDirector {
    * The scope a piece of scheduled work belongs to. Anything queued for a
    * clue (or a round) is dropped the moment the room moves on, so a bot
    * never buzzes into the next clue.
+   *
+   * The readout deadline is part of the scope: when the reading client holds
+   * the buzzer for a slower voice, pending buzz timers were aimed at the old
+   * moment and have to be rescheduled, or the bots ring in early and get
+   * turned away.
    */
   private static scopeOf(state: GameState): string {
-    return state.activeClue ? `clue:${state.activeClue.clueId}` : `round:${state.round}`;
+    const active = state.activeClue;
+    return active
+      ? `clue:${active.clueId}:${active.readoutEndsAt ?? 0}`
+      : `round:${state.round}`;
   }
 
   private cancelStaleWork(state: GameState) {
@@ -187,7 +202,7 @@ export class RoomDirector {
       });
       this.defer(
         `${playerId}:wager`,
-        `clue:${active.clueId}`,
+        RoomDirector.scopeOf(state),
         600 + Math.floor(this.rng.next() * 900),
         () => {
           this.room.dispatch(playerId, { type: "submit-wager", amount });
@@ -209,7 +224,7 @@ export class RoomDirector {
         const decision = decideBotAnswer(profile, clue, this.rng);
         this.defer(
           `${botId}:final`,
-          `clue:${active.clueId}`,
+          RoomDirector.scopeOf(state),
           2_000 + Math.floor(this.rng.next() * 6_000),
           () => {
             this.room.dispatch(botId, { type: "submit-answer", answer: decision.answer });
@@ -227,7 +242,7 @@ export class RoomDirector {
           const decision = decideBotAnswer(profile, clue, this.rng);
           this.defer(
             `${botId}:answer`,
-            `clue:${active.clueId}`,
+            RoomDirector.scopeOf(state),
             800 + Math.floor(this.rng.next() * 2_400),
             () => {
               this.room.dispatch(botId, {
@@ -248,7 +263,7 @@ export class RoomDirector {
       const readoutRemaining = Math.max(0, (active.readoutEndsAt ?? now) - now);
       this.defer(
         `${botId}:buzz`,
-        `clue:${active.clueId}`,
+        RoomDirector.scopeOf(state),
         readoutRemaining + Math.max(0, decision.buzzDelayMs),
         () => {
           this.room.dispatch(botId, { type: "buzz" });
@@ -264,7 +279,7 @@ export class RoomDirector {
     const target = active.currentJudgePlayerId;
     if (!target || active.judges[target] !== undefined) return;
 
-    this.defer(`judge:${target}`, `clue:${active.clueId}`, 900, () => {
+    this.defer(`judge:${target}`, RoomDirector.scopeOf(state), 900, () => {
       const clue = this.room.getState().cluesById[active.clueId];
       const verdict = this.room.runAiJudge(target);
       if (verdict && clue) {
