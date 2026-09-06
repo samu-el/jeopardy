@@ -70,7 +70,15 @@ window open while it speaks.
 
 - Cues queue. "Math, for 200" is still being spoken when the estimate would
   have opened the buzzer, so both that cue and the clue itself push the
-  deadline out through `extend-readout`.
+  deadline out through `extend-readout` — from the moment they are handed to
+  the voice, not from when it reaches them. A queued cue is held for a short
+  grace only, because a browser with no installed voices accepts `speak()`
+  and then says nothing at all; the full estimate goes on once it starts.
+- Picking a clue drops whatever the host was still saying. The category
+  rundown is long, and a pick made during it would otherwise leave the clue
+  queued behind it. The interrupt fires only when the pick cue really is
+  about to speak: the UI replays the same event batch on every published
+  state, and cancelling on a replay would cut the clue off mid-sentence.
 - `readout-complete` brings it forward the moment the clue's own utterance
   ends — the buzzer opens on the voice stopping, not on a guess.
 - `extend-readout` only ever moves the deadline later and is capped at

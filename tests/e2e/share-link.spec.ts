@@ -28,6 +28,6 @@ test.describe("Share link join flow", () => {
     await page.goto("/?room=r-test");
     await expect(page.getByText("#r-test")).toBeVisible();
     await page.getByRole("button", { name: "Cancel" }).click();
-    await expect(page.getByRole("button", { name: "New room" })).toBeVisible();
+    await expect(page.getByTestId("new-game")).toBeVisible();
   });
 });

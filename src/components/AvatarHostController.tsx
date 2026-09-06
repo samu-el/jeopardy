@@ -34,16 +34,12 @@ export function AvatarHostController() {
         // picked. Cues queue, so "Math, for 200" is still being said when the
         // estimate would otherwise open the buzzer — every cue that runs
         // ahead of the clue holds it shut.
-        onCueStarted: (cue) => {
-          if (cue.type !== "clue-selected" && cue.type !== "clue-readout") return;
-          const target = readoutTarget();
-          if (!target) return;
-          target.runtime.sendCommand(target.selfId, {
-            type: "extend-readout",
-            clueId: target.clueId,
-            endsAt: Date.now() + spokenDurationEstimateMs(cue.text),
-          });
-        },
+        //
+        // Held from the moment the cue is handed to the voice, not from when
+        // it starts: a cue waiting its turn hasn't been read either, and a
+        // buzzer that opened during that wait would be open before the clue.
+        onCueQueued: (cue) => holdBuzzerFor(cue, "queued"),
+        onCueStarted: (cue) => holdBuzzerFor(cue, "started"),
         // Only the clue itself finishing opens the buzzer.
         onCueSpoken: (cue) => {
           if (cue.type !== "clue-readout") return;
@@ -124,6 +120,33 @@ export function AvatarHostController() {
 }
 
 /**
+ * How long a queued cue may take to reach the voice before the buzzer stops
+ * waiting on it. Deliberately short: a browser with no installed voices
+ * accepts `speak()` and then never says anything, and holding that for the
+ * length of the clue would be seconds of dead air with a shut buzzer.
+ */
+const cueStartGraceMs = 2_500;
+
+/**
+ * Keeps the ring-in window shut for as long as this cue can still be talking
+ * about the clue on screen. Only the clue's own cues count: the buzzer has to
+ * stay shut while the host says "Math, for 200" and while the clue is read,
+ * and `readout-complete` brings the deadline back to the real ending.
+ */
+function holdBuzzerFor(cue: AvatarHostCue, phase: "queued" | "started") {
+  if (cue.type !== "clue-selected" && cue.type !== "clue-readout") return;
+  const target = readoutTarget();
+  if (!target) return;
+  const holdMs =
+    phase === "started" ? spokenDurationEstimateMs(cue.text) : cueStartGraceMs;
+  target.runtime.sendCommand(target.selfId, {
+    type: "extend-readout",
+    clueId: target.clueId,
+    endsAt: Date.now() + holdMs,
+  });
+}
+
+/**
  * Only the room host paces the readout: every client speaks the clue at its
  * own rate, and the window has to open once, for everyone, at the same time.
  */
@@ -182,10 +205,13 @@ function handleEvent(
       const category = active?.category;
       const value = active?.value;
       if (!category) return null;
-      return narrator.emit({
-        type: "clue-selected",
-        context: { category, value },
-      });
+      // Whatever the host was still saying is dropped: cues queue, so a pick
+      // made during the category rundown would otherwise leave the clue
+      // waiting behind it — read to a board whose buzzer already opened.
+      return narrator.emit(
+        { type: "clue-selected", context: { category, value } },
+        { interruptQueue: true },
+      );
     }
     case "clue-revealed": {
       const active = state.currentClue;

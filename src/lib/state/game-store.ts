@@ -11,6 +11,7 @@ import {
   type RoomRuntime,
 } from "@/lib/runtime";
 import {
+  fetchRandomEpisode,
   normalizeArchivedEpisode,
   type ArchivedEpisodeInput,
   type BuilderGame,
@@ -104,6 +105,8 @@ export interface GameStoreState {
   joinOnlineRoom: (roomId: string) => Promise<boolean>;
   leaveOnlineRoom: () => void;
   pushLoadedGameToRoom: () => void;
+  /** Pulls a random board from the archive and deals it straight away. */
+  startRandomGame: () => Promise<{ ok: boolean; error?: string }>;
   setScreen: (screen: ScreenName) => void;
   setHostName: (name: string) => void;
   setPlayerAvatar: (
@@ -439,6 +442,27 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     const clues = resolveClues(lobby);
     if (!runtime || clues.length === 0) return;
     runtime.sendCommand(lobby.hostId, { type: "load-game", clues });
+  },
+  startRandomGame: async () => {
+    try {
+      const response = await fetchRandomEpisode();
+      get().setLoadedEpisode({
+        id: response.id,
+        title: response.episode.title ?? `Episode ${response.id}`,
+        airDate: response.episode.airDate,
+        info: response.episode.info,
+        episode: response.episode,
+      });
+      get().startGame();
+      return { ok: true };
+    } catch (error) {
+      return {
+        ok: false,
+        error:
+          (error as Error).message ||
+          "Could not reach the episode archive. Try again in a moment.",
+      };
+    }
   },
   startGame: () => {
     const { lobby, runtime, online } = get();

@@ -1,14 +1,17 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 
 /**
  * The first-visit card sits over the whole room, so every spec that clicks
- * something in the toolbar has to get past it first.
+ * something in the room has to get past it first. It mounts with the play
+ * screen, which is one fetch away from the click that deals the board, so
+ * this waits for it rather than sampling a page that hasn't switched yet.
  */
 export async function dismissOnboarding(page: Page) {
   const dismiss = page.getByRole("button", { name: "Let’s play" });
-  if (await dismiss.isVisible().catch(() => false)) {
-    await dismiss.click();
-  }
+  await dismiss.click({ timeout: 10_000 }).catch(() => {
+    // Already dismissed for this browser profile — nothing to clear.
+  });
+  await expect(dismiss).toHaveCount(0);
 }
 
 /** Forces the bundled fixture board so specs don't depend on the archive. */
@@ -25,12 +28,11 @@ export async function routeFixtureEpisodes(page: Page) {
   });
 }
 
-/** New room → dismiss onboarding → load the fixture board. */
-export async function openRoomWithFixture(page: Page) {
+/** New Game deals a board straight from the landing page. */
+export async function startFixtureGame(page: Page) {
   await routeFixtureEpisodes(page);
   await page.goto("/");
-  await page.getByRole("button", { name: "New room" }).click();
+  await page.getByTestId("new-game").click();
+  await expect(page.getByTestId("board")).toBeVisible({ timeout: 30_000 });
   await dismissOnboarding(page);
-  await page.getByRole("button", { name: "New game" }).click();
-  await page.getByRole("button", { name: "Shuffle" }).click();
 }

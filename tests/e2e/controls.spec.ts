@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { dismissOnboarding, routeFixtureEpisodes } from "./helpers";
+import { startFixtureGame } from "./helpers";
 
 /**
  * The clue panel is where a game is actually played: it has to take keyboard
@@ -97,29 +97,31 @@ test.describe("Clue controls", () => {
       const spoken: { text: string; startedAt: number; endedAt?: number }[] = [];
       (window as unknown as { __spoken: typeof spoken }).__spoken = spoken;
       const queue: { utterance: Record<string, () => void> & { text: string } }[] = [];
-      let busy = false;
+      let speaking:
+        | { utterance: Record<string, () => void> & { text: string }; timer: number; entry: { endedAt?: number } }
+        | null = null;
 
       function drain() {
-        if (busy) return;
+        if (speaking) return;
         const next = queue.shift();
         if (!next) return;
-        busy = true;
         const entry: { text: string; startedAt: number; endedAt?: number } = {
           text: next.utterance.text,
           startedAt: Date.now(),
         };
         spoken.push(entry);
-        next.utterance.onstart?.();
         // ~28ms a character: slower than the room's estimate, on purpose.
-        setTimeout(
+        const timer = window.setTimeout(
           () => {
+            speaking = null;
             entry.endedAt = Date.now();
             next.utterance.onend?.();
-            busy = false;
             drain();
           },
           Math.max(400, next.utterance.text.length * 28),
         );
+        speaking = { utterance: next.utterance, timer, entry };
+        next.utterance.onstart?.();
       }
 
       // `speechSynthesis` is a read-only accessor on window: a plain
@@ -132,8 +134,16 @@ test.describe("Clue controls", () => {
             queue.push({ utterance });
             drain();
           },
+          // Like the real API: cancel stops what is being said as well as
+          // what is waiting, and the stopped utterance still ends.
           cancel: () => {
             queue.length = 0;
+            const current = speaking;
+            speaking = null;
+            if (!current) return;
+            window.clearTimeout(current.timer);
+            current.entry.endedAt = Date.now();
+            current.utterance.onend?.();
           },
           getVoices: () => [],
           addEventListener: () => {},
@@ -202,14 +212,7 @@ async function openClue(
   page: Page,
   options: { long?: boolean; keepPacing?: boolean } = {},
 ) {
-  await routeFixtureEpisodes(page);
-  await page.goto("/");
-  await page.getByRole("button", { name: "New room" }).click();
-  await dismissOnboarding(page);
-  await page.getByRole("button", { name: "New game" }).click();
-  await page.getByRole("button", { name: "Shuffle" }).click();
-  await expect(page.getByTestId("begin")).toBeEnabled();
-  await page.getByTestId("begin").click();
+  await startFixtureGame(page);
 
   // Give the buzzer room so the test isn't racing the show's pacing, and swap
   // in a wordy clue when the layout is what's under test.
@@ -257,6 +260,12 @@ async function openClue(
   await page.getByRole("button", { name: /\$200/ }).first().click({ timeout: 20_000 });
   await expect(page.getByTestId("clue-stage")).toBeVisible();
   if (options.keepPacing) return;
+  if (options.long) {
+    // The layout is what's under test; the clue only has to be on screen, and
+    // a wordy one is read for far longer than a spec should sit waiting.
+    await expect(page.getByTestId("clue-text")).toBeVisible();
+    return;
+  }
   // Wait out the readout so the buzzer is live.
   await expect(page.getByTestId("buzzer")).toBeEnabled({ timeout: 20_000 });
 }
