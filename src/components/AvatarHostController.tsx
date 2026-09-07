@@ -83,6 +83,7 @@ export function AvatarHostController() {
   ]);
 
   if (preferences.avatarHostMode === "off") return null;
+  if (!preferences.subtitlesEnabled) return null;
   if (!lastCue) return null;
 
   return (

@@ -19,6 +19,21 @@ test.describe("Clue controls", () => {
     await page.keyboard.press("Enter");
     await expect(page.getByText("Answer locked in")).toBeVisible();
 
+    // Locking an answer in must not drag the buzzer off centre.
+    const centres = await page.evaluate(() => {
+      const rect = (selector: string) =>
+        document.querySelector(selector)?.getBoundingClientRect() ?? null;
+      const buzzer = rect('[data-testid="buzzer"]');
+      const stage = rect('[data-testid="clue-stage"]');
+      if (!buzzer || !stage) return null;
+      return {
+        buzzer: buzzer.left + buzzer.width / 2,
+        stage: stage.left + stage.width / 2,
+      };
+    });
+    expect(centres).not.toBeNull();
+    expect(Math.abs(centres!.buzzer - centres!.stage)).toBeLessThan(2);
+
     // R reveals, Y scores it, and the board comes back.
     await page.keyboard.press("r");
     await expect(page.getByTestId("correct-response")).toBeVisible();
@@ -221,7 +236,13 @@ async function openClue(
       .__game.getState() as unknown as {
       runtime: { sendCommand: (id: string, command: unknown) => void };
       lobby: { hostId: string };
+      setPreference: (key: string, value: unknown) => void;
     };
+    if (keepPacing) {
+      // Sound is off by default, and a silent table paces itself from the
+      // engine's estimate. This spec is about the voice, so switch it on.
+      store.setPreference("soundEnabled", true);
+    }
     store.runtime.sendCommand(store.lobby.hostId, {
       type: "update-settings",
       settings: keepPacing
