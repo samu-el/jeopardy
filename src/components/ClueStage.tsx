@@ -501,61 +501,65 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
 
       {/* Buzzer and answer entry */}
       {!isFinal && clueRevealed && !answerRevealed ? (
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={1.5}
-          sx={{ alignItems: "center", justifyContent: "center" }}
-        >
-          {!currentClue.dailyDouble ? (
-            <Button
-              ref={buzzerRef}
-              onClick={handleBuzz}
-              disabled={!canIBuzz}
-              variant="contained"
-              size="large"
-              data-testid="buzzer"
-              sx={{
-                minWidth: 200,
-                py: 1.4,
-                fontFamily: jeopardyFonts.display,
-                fontSize: 20,
-                letterSpacing: "0.12em",
-                borderRadius: 999,
-                background: canIBuzz
-                  ? "linear-gradient(180deg, #ff5f6d 0%, #c31432 100%)"
-                  : "rgba(255,255,255,0.10)",
-                color: canIBuzz ? "#fff" : "rgba(255,255,255,0.45)",
-                boxShadow: canIBuzz ? "0 0 24px rgba(255,80,90,0.55)" : "none",
-                "&.Mui-disabled": {
-                  background: "rgba(255,255,255,0.10)",
-                  color: "rgba(255,255,255,0.45)",
-                },
-              }}
-              aria-label="Buzz in"
-            >
-              {buzzedByMe ? "IN!" : isLockedOut ? "LOCKED" : "BUZZ"}
-            </Button>
-          ) : null}
-
-          {(buzzedByMe || currentClue.dailyDouble) && !iSubmitted ? (
-            <Stack direction="row" spacing={1} sx={{ alignItems: "center", flex: 1, maxWidth: 520 }}>
-              <MicAnswerField
-                label="What is…"
-                value={answerInput}
-                onChange={setAnswerInput}
-                onSubmit={handleSubmitAnswer}
-                disabled={iSubmitted}
-                autoFocus
-              />
+        <Stack spacing={1} sx={{ alignItems: "center" }}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1.5}
+            sx={{ alignItems: "center", justifyContent: "center" }}
+          >
+            {!currentClue.dailyDouble ? (
               <Button
+                ref={buzzerRef}
+                onClick={handleBuzz}
+                disabled={!canIBuzz}
                 variant="contained"
-                onClick={() => handleSubmitAnswer()}
-                disabled={!answerInput.trim() || iSubmitted}
+                size="large"
+                data-testid="buzzer"
+                sx={{
+                  minWidth: 200,
+                  py: 1.4,
+                  fontFamily: jeopardyFonts.display,
+                  fontSize: 20,
+                  letterSpacing: "0.12em",
+                  borderRadius: 999,
+                  background: canIBuzz
+                    ? "linear-gradient(180deg, #ff5f6d 0%, #c31432 100%)"
+                    : "rgba(255,255,255,0.10)",
+                  color: canIBuzz ? "#fff" : "rgba(255,255,255,0.45)",
+                  boxShadow: canIBuzz ? "0 0 24px rgba(255,80,90,0.55)" : "none",
+                  "&.Mui-disabled": {
+                    background: "rgba(255,255,255,0.10)",
+                    color: "rgba(255,255,255,0.45)",
+                  },
+                }}
+                aria-label="Buzz in"
               >
-                Send
+                {buzzedByMe ? "IN!" : isLockedOut ? "LOCKED" : "BUZZ"}
               </Button>
-            </Stack>
-          ) : null}
+            ) : null}
+
+            {(buzzedByMe || currentClue.dailyDouble) && !iSubmitted ? (
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center", flex: 1, maxWidth: 520 }}>
+                <MicAnswerField
+                  label="What is…"
+                  value={answerInput}
+                  onChange={setAnswerInput}
+                  onSubmit={handleSubmitAnswer}
+                  disabled={iSubmitted}
+                  autoFocus
+                />
+                <Button
+                  variant="contained"
+                  onClick={() => handleSubmitAnswer()}
+                  disabled={!answerInput.trim() || iSubmitted}
+                >
+                  Send
+                </Button>
+              </Stack>
+            ) : null}
+          </Stack>
+          {/* Its own line: beside the buzzer it would drag the pill off centre
+              the moment an answer went in. */}
           {iSubmitted ? (
             <Typography sx={{ color: "rgba(255,255,255,0.65)", fontSize: 13 }}>
               Answer locked in
