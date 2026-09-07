@@ -221,7 +221,13 @@ async function openClue(
       .__game.getState() as unknown as {
       runtime: { sendCommand: (id: string, command: unknown) => void };
       lobby: { hostId: string };
+      setPreference: (key: string, value: unknown) => void;
     };
+    if (keepPacing) {
+      // Sound is off by default, and a silent table paces itself from the
+      // engine's estimate. This spec is about the voice, so switch it on.
+      store.setPreference("soundEnabled", true);
+    }
     store.runtime.sendCommand(store.lobby.hostId, {
       type: "update-settings",
       settings: keepPacing

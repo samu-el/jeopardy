@@ -25,6 +25,8 @@ export type ScreenName = "landing" | "play" | "results";
 export interface UiPreferences {
   reducedMotion: boolean;
   soundEnabled: boolean;
+  /** The host's line, printed on screen. Off unless it is asked for. */
+  subtitlesEnabled: boolean;
   voiceProfileId: string;
   avatarHostProfileId: string;
   avatarHostMode: "off" | "voice-only" | "avatar-and-voice";
@@ -146,7 +148,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   screen: "landing",
   preferences: {
     reducedMotion: false,
-    soundEnabled: true,
+    // A board that starts talking on its own is worse than a quiet one:
+    // both the voice and its on-screen line wait to be switched on.
+    soundEnabled: false,
+    subtitlesEnabled: false,
     voiceProfileId: "female-natural",
     avatarHostProfileId: defaultAvatarHostProfile().id,
     avatarHostMode: "voice-only",

@@ -2,7 +2,10 @@
 
 import type { LobbyConfig, UiPreferences } from "./game-store";
 
-const STORAGE_KEY = "jeopardy.lobby.v1";
+// v2: sound and subtitles now default to off. A v1 blob carries the old
+// `soundEnabled: true` and would keep talking over the new default, so the
+// stored lobby starts fresh rather than being migrated key by key.
+const STORAGE_KEY = "jeopardy.lobby.v2";
 
 export interface PersistedLobby {
   lobby: LobbyConfig;
