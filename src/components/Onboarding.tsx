@@ -73,13 +73,13 @@ export function Onboarding() {
         <Stack spacing={1.25} sx={{ mb: 3 }}>
           <Step
             num={1}
-            title="Load a board"
-            body="The shuffle icon up top pulls a real Jeopardy! board from the archive."
+            title="Your board is dealt"
+            body="A real Jeopardy! board is already up. The shuffle icon deals another."
           />
           <Step
             num={2}
             title="Play alone or together"
-            body="Add AI opponents from Players, or hit Invite players and share the four-letter code."
+            body="Add AI opponents from Players, or hit Invite and share the four-letter code."
           />
           <Step
             num={3}

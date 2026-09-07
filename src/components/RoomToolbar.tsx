@@ -119,8 +119,13 @@ export function RoomToolbar({
         useFlexGap
         sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}
       >
-        <Tooltip title="New game">
-          <IconButton onClick={onOpenPicker} sx={{ minWidth: 44, minHeight: 44 }}>
+        <Tooltip title="Change game">
+          <IconButton
+            onClick={onOpenPicker}
+            aria-label="Change game"
+            data-testid="change-game"
+            sx={{ minWidth: 44, minHeight: 44 }}
+          >
             <ShuffleIcon />
           </IconButton>
         </Tooltip>

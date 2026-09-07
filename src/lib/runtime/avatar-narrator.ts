@@ -29,17 +29,36 @@ export interface AvatarNarratorConfig {
    * from the moment the clue was picked.
    */
   onCueStarted?: (cue: AvatarHostCue) => void;
+  /**
+   * Fires the moment a cue is handed to the voice, before it has its turn.
+   * A cue that is still waiting behind another line has not been read, so
+   * anything gated on the readout has to start holding here rather than at
+   * `onCueStarted`.
+   */
+  onCueQueued?: (cue: AvatarHostCue) => void;
 }
 
 export class AvatarNarrator {
   private readonly config: AvatarNarratorConfig;
   private lastCueByType: Partial<Record<AvatarHostCue["type"], string>> = {};
+  /**
+   * Bumped by `cancel()`. A cancelled utterance still fires `onend`, and a
+   * dropped clue readout must not be reported as read — least of all against
+   * whichever clue is on screen by then.
+   */
+  private generation = 0;
 
   constructor(config: AvatarNarratorConfig) {
     this.config = config;
   }
 
-  emit(input: AvatarHostInput): AvatarHostCue {
+  /**
+   * `interruptQueue` drops whatever is still being said before this cue is
+   * queued. It is applied only once the cue has survived every "should this
+   * speak at all" check, so replaying the same event — which the UI does
+   * whenever the room publishes new state — never cuts the voice off.
+   */
+  emit(input: AvatarHostInput, options: { interruptQueue?: boolean } = {}): AvatarHostCue {
     const profile = input.profile ?? this.config.getProfile();
     const mode = input.mode ?? this.config.getMode();
     const cue = generateAvatarHostCue({ ...input, profile, mode });
@@ -66,6 +85,11 @@ export class AvatarNarrator {
     const adapter = this.config.voice;
     if (!adapter) return cue;
     const voiceId = this.config.getVoiceProfileId() || profile.voiceProfileId;
+    if (options.interruptQueue) {
+      this.cancel();
+    }
+    this.config.onCueQueued?.(cue);
+    const generation = this.generation;
     adapter.speak({
       text: cue.text,
       voiceProfileId: voiceId,
@@ -74,13 +98,20 @@ export class AvatarNarrator {
       // Queue utterances naturally so picks ("Category, for 200") finish
       // before the clue text reads. Interrupting would drop the clue text.
       interrupt: false,
-      onStart: () => this.config.onCueStarted?.(cue),
-      onEnd: () => this.config.onCueSpoken?.(cue),
+      onStart: () => {
+        if (generation !== this.generation) return;
+        this.config.onCueStarted?.(cue);
+      },
+      onEnd: () => {
+        if (generation !== this.generation) return;
+        this.config.onCueSpoken?.(cue);
+      },
     });
     return cue;
   }
 
   cancel() {
+    this.generation += 1;
     this.config.voice?.cancel();
   }
 }

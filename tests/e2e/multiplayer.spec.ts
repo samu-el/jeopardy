@@ -33,7 +33,7 @@ test.describe("Shared room", () => {
     try {
       await routeFixtureEpisodes(host);
       await host.goto("/");
-      await host.getByRole("button", { name: "New room" }).click();
+      await host.getByTestId("new-game").click();
       await dismissOnboarding(host);
       await host.getByTestId("invite-players").click();
       await expect(host.getByTestId("room-code")).toBeVisible();
@@ -52,8 +52,6 @@ test.describe("Shared room", () => {
 
       // And playing the host's board, not one of their own.
       await setBuzzWindow(host, "20 seconds — relaxed");
-      await host.getByRole("button", { name: "New game" }).click();
-      await host.getByRole("button", { name: "Shuffle" }).click();
       await expect(host.getByTestId("begin")).toBeEnabled();
       await host.getByTestId("begin").click();
       await host.getByRole("button", { name: /\$200/ }).first().click();
@@ -88,8 +86,6 @@ test.describe("Shared room", () => {
       // play this one at the relaxed pace the settings panel offers.
       await setBuzzWindow(host, "20 seconds — relaxed");
 
-      await host.getByRole("button", { name: "New game" }).click();
-      await host.getByRole("button", { name: "Shuffle" }).click();
       await expect(host.getByTestId("begin")).toBeEnabled();
       await host.getByTestId("begin").click();
 
@@ -137,9 +133,10 @@ async function openSharedRoom(browser: Browser): Promise<SharedRoom> {
   const host = await hostContext.newPage();
   const guest = await guestContext.newPage();
 
+  // Deal a board first, then open a room to play it in.
   await routeFixtureEpisodes(host);
   await host.goto("/");
-  await host.getByRole("button", { name: "New room" }).click();
+  await host.getByTestId("new-game").click();
   await dismissOnboarding(host);
   await host.getByTestId("invite-players").click();
 

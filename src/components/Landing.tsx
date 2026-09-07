@@ -14,15 +14,30 @@ import { useGameStore } from "@/lib/state/game-store";
 import { Wordmark } from "./Wordmark";
 
 export function Landing() {
-  const setScreen = useGameStore((s) => s.setScreen);
   const pendingRoomId = useGameStore((s) => s.pendingRoomId);
   const setPendingRoomId = useGameStore((s) => s.setPendingRoomId);
   const setHostName = useGameStore((s) => s.setHostName);
   const hostName = useGameStore((s) => s.lobby.hostName);
   const joinOnlineRoom = useGameStore((s) => s.joinOnlineRoom);
+  const startRandomGame = useGameStore((s) => s.startRandomGame);
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [codeInput, setCodeInput] = useState("");
+  const [dealing, setDealing] = useState(false);
+  const [dealError, setDealError] = useState<string | null>(null);
+
+  /** One click straight onto a board — no picker, no settings detour. */
+  async function newGame() {
+    setDealing(true);
+    setDealError(null);
+    const result = await startRandomGame();
+    if (!result.ok) {
+      setDealError(result.error ?? "Could not start a game.");
+      setDealing(false);
+      return;
+    }
+    // startRandomGame moves to the play screen itself; this component unmounts.
+  }
 
   async function joinRoom(roomId: string) {
     const code = roomId.trim().toUpperCase();
@@ -147,8 +162,8 @@ export function Landing() {
                     lineHeight: 1.4,
                   }}
                 >
-                  Open the board. Buzz in. Play the categories — solo, with friends,
-                  or against AI rivals.
+                  One click deals a real board from the archive. Buzz in, play the
+                  categories — solo, with friends, or against AI rivals.
                 </Typography>
                 <Stack
                   direction={{ xs: "column", sm: "row" }}
@@ -158,8 +173,16 @@ export function Landing() {
                   <Button
                     variant="contained"
                     size="large"
-                    endIcon={<ArrowForwardIcon />}
-                    onClick={() => setScreen("play")}
+                    data-testid="new-game"
+                    endIcon={
+                      dealing ? (
+                        <CircularProgress size={18} sx={{ color: "inherit" }} />
+                      ) : (
+                        <ArrowForwardIcon />
+                      )
+                    }
+                    disabled={dealing}
+                    onClick={newGame}
                     sx={{
                       background: "#5b8cff",
                       color: "#000",
@@ -176,7 +199,7 @@ export function Landing() {
                       },
                     }}
                   >
-                    New room
+                    {dealing ? "Dealing…" : "New Game"}
                   </Button>
                   <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                     <TextField
@@ -206,9 +229,9 @@ export function Landing() {
                     </Button>
                   </Stack>
                 </Stack>
-                {joinError ? (
+                {joinError || dealError ? (
                   <Typography color="error" variant="caption">
-                    {joinError}
+                    {joinError ?? dealError}
                   </Typography>
                 ) : null}
               </>
