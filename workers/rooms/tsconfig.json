@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    // No DOM here: the Workers runtime is the only thing this code runs on,
+    // and a stray browser API should fail the build rather than at the edge.
+    "lib": ["ES2022"],
+    "types": ["@cloudflare/workers-types"],
+    "baseUrl": "../..",
+    "paths": { "@/*": ["src/*"] },
+    "incremental": false,
+    "plugins": []
+  },
+  // Only the worker's own entry points; tsc follows the imports from there,
+  // so anything the room actually needs is checked and nothing else is.
+  "include": ["index.ts", "room-object.ts"],
+  // The root config excludes `workers` so the app's typecheck skips it; this
+  // is the config that owns these files, so it takes the exclusion back.
+  "exclude": ["../../node_modules"]
+}

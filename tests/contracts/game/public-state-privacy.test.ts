@@ -94,8 +94,7 @@ describe("public game state privacy", () => {
     const forbiddenPatterns = [
       "react",
       "zustand",
-      "ioredis",
-      "socket.io",
+      'from "ws"',
       "openai",
       "@/lib/state",
       "@/lib/ai",

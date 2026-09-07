@@ -19,6 +19,20 @@ import {
   type NormalizedGame,
 } from "@/lib/data";
 import { defaultAvatarHostProfile, type AvatarHostCue } from "@/lib/ai";
+import { generateRoomCode, normalizeRoomCode } from "@/lib/realtime/room-code";
+
+/**
+ * Where to ask whether a room code is live. Rooms are Durable Objects on the
+ * Cloudflare Worker in production; with no worker configured (local dev
+ * without one) there is nothing to ask, and the socket answers instead.
+ */
+function roomLookupUrl(code: string): string {
+  const base = (process.env.NEXT_PUBLIC_ROOMS_URL ?? "").trim();
+  const origin = base
+    ? base.replace(/^ws:/, "http:").replace(/^wss:/, "https:").replace(/\/$/, "")
+    : "";
+  return `${origin}/room/${encodeURIComponent(code)}`;
+}
 
 export type ScreenName = "landing" | "play" | "results";
 
@@ -371,15 +385,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     if (runtime) runtime.destroy();
     set({ runtime: null, publicState: null, chat: [], lastEvents: [], lastCue: null });
     try {
-      const response = await fetch("/api/rooms", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ hostId: lobby.hostId }),
-      });
-      if (!response.ok) throw new Error("Could not open a room.");
-      const data = (await response.json()) as { roomId: string };
-      connectToRoom(set, get, data.roomId, true);
-      return data.roomId;
+      // The code is minted here and the room is created by connecting with
+      // it: the room lives in a Durable Object keyed by the code, so there is
+      // nothing to reserve up front.
+      const roomId = generateRoomCode();
+      connectToRoom(set, get, roomId, true);
+      return roomId;
     } catch (error) {
       set({
         online: {
@@ -396,10 +407,11 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     const { runtime } = get();
     if (runtime) runtime.destroy();
     set({ runtime: null, publicState: null, chat: [], lastEvents: [], lastCue: null });
-    const normalized = roomId.trim().toUpperCase();
+    const normalized = normalizeRoomCode(roomId);
     try {
-      const response = await fetch(`/api/rooms/${encodeURIComponent(normalized)}`);
-      if (!response.ok) {
+      const response = await fetch(roomLookupUrl(normalized));
+      const exists = response.ok && ((await response.json()) as { exists?: boolean }).exists;
+      if (!exists) {
         set({
           online: {
             roomId: normalized,

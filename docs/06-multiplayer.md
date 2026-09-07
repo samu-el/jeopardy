@@ -14,10 +14,12 @@ five.
 | `src/lib/realtime/in-memory-room.ts` | The authoritative room: stamps the actor, applies commands, fans out public state and chat |
 | `src/lib/realtime/room-director.ts` | Bots and the AI judge — reacts to published state, never to a transport |
 | `src/lib/realtime/room-host.ts` | Room + director + the tick loop, plus show-paced timings |
-| `src/lib/realtime/room-registry.ts` | Process-wide room table (on `globalThis`), room codes, idle eviction |
-| `src/lib/realtime/room-store.ts` | Snapshot shape and the `RoomStore` interface (memory-only by default) |
-| `src/lib/realtime/redis-room-store.ts` | Redis-backed persistence, server-only |
-| `src/lib/realtime/socket-bridge.ts` | Socket.IO endpoint at `/api/socket` |
+| `src/lib/realtime/room-session.ts` | One connected client: join, commands, chat — no transport in it |
+| `src/lib/realtime/ws-protocol.ts` | The JSON frames on the wire, and how to parse them safely |
+| `src/lib/realtime/room-code.ts` | Room codes, shared by the browser and the Worker |
+| `src/lib/realtime/room-store.ts` | The snapshot shape a room is rebuilt from |
+| `workers/rooms/index.ts` | The Worker: turns a room code into its Durable Object |
+| `workers/rooms/room-object.ts` | `RoomDurableObject` — the room itself, plus its storage |
 | `src/lib/runtime/local-room.ts` | Solo/pass-and-play: a `RoomHost` in the tab |
 | `src/lib/runtime/network-room.ts` | Shared room: the same surface over a socket |
 
@@ -57,8 +59,8 @@ room costs one comparison per tick and broadcasts nothing.
   with it reclaims the same seat and score.
 - Dropping **before** the game starts frees the seat; dropping **mid-game**
   keeps it (marked offline) so a refresh can reclaim it.
-- Rooms with nobody connected are swept out of memory after 30 minutes. With
-  Redis configured that is eviction, not deletion — the room comes back on the
+- A room nobody is connected to is evicted from memory by Cloudflare. That is
+  eviction, not deletion: the snapshot stays, and the room comes back on the
   next join.
 
 ## Readout pacing
@@ -89,62 +91,71 @@ window open while it speaks.
 - The director's scheduled bot work is scoped to the readout deadline, so a
   held buzzer reschedules their ring-ins instead of firing them early.
 
-## Persistence
+## Where a room runs
 
-Set `REDIS_URL` and rooms survive a restart. Without it nothing changes:
-rooms live in memory for the life of the process, which is fine for local
-development and solo play.
+A room is a **Cloudflare Durable Object**, one per room code.
 
-A room writes itself through on every change, debounced to 400ms, plus an
-immediate write when it is created (so a restart can't hand the same code out
-twice) and a flush before it is evicted. The snapshot holds the authoritative
-state, the chat, and which seats are bots, under `jeopardy:room:<CODE>` with a
-24-hour TTL refreshed on every save.
+That is not a deployment detail — it is the reason shared rooms work at all.
+A room needs a process that stays alive between requests: it holds the board,
+it owns the clock, and it keeps a socket open per player. A serverless
+function has none of those, so the app's own host (Vercel) can serve the UI
+and the episode archive but cannot hold a room.
 
-Coming back:
+```
+Vercel (Next.js)              Cloudflare Worker (free plan)
+────────────────              ─────────────────────────────
+UI, /api/episodes    ──ws──►  jeopardy-rooms
+/api/health                     └─ RoomDurableObject per code
+                                     ├─ InMemoryRealtimeRoom + RoomHost
+                                     └─ ctx.storage  (the snapshot)
+```
 
-- `getRoom()` is the synchronous in-memory lookup. `resolveRoom()` is the one
-  to use: it falls back to the store, rebuilds the room, and de-duplicates
-  concurrent restores so two clients arriving together get one room.
-- Every human is marked disconnected on restore and flips back as their client
-  reconnects; bots resume with the room.
-- Deadlines that expired while the process was down are settled by the first
-  tick, so a restored room continues rather than hanging on a dead clock.
-- A snapshot from an older shape is discarded rather than hydrated.
+Cloudflare routes every client that names the same code to the same object,
+which is why `idFromName(code)` replaced the process-wide room registry, the
+Redis store and the idle-eviction sweep all at once:
 
-Redis being unreachable costs durability, never the game: every store call
-swallows its error and reports "not stored", and the startup line says which
-mode you actually got (`rooms: redis` or `rooms: memory-only`).
+- **Finding a room** is `idFromName(CODE)`. There is no table to look in.
+- **Persistence** is `ctx.storage`. The room writes its snapshot on create,
+  on every change (debounced 400ms), and once more when the last player
+  leaves.
+- **Eviction** is Cloudflare's. An object nobody is connected to is dropped
+  from memory and costs nothing; the next join restores it from the snapshot.
+- **Existence** is a stored flag, so joining a code nobody has opened is
+  "that room does not exist" rather than a blank board.
 
-**This is durability for one instance, not horizontal scale.** A room is
-owned by whichever process holds it, and the socket layer has no cross-instance
-fan-out, so running several app instances behind a load balancer would need a
-Socket.IO Redis adapter and room ownership on top of what is here.
+A room that has never been opened has no object, no storage and no cost.
 
 ## Running it
 
-Shared rooms need the custom server, which serves Next.js and the Socket.IO
-bridge from one HTTP listener:
-
 ```powershell
-bun run dev      # development, with the bridge attached
-bun run start    # production, same server
+bun run dev         # the app, on :3000
+bun run rooms:dev   # the rooms Worker, on :8787
 ```
 
-`next dev` on its own (`bun run dev:next`) serves the app but **not** the
-socket endpoint, so only solo play works there. The same applies to
-serverless hosting: room state lives in the server process, so a platform that
-runs each request in its own lambda can host solo play only.
+Point the app at the Worker with `NEXT_PUBLIC_ROOMS_URL` (`.env.example` has
+both the local and deployed shapes). Solo play needs neither — it runs the
+same `RoomHost` inside the browser tab.
+
+Deploying the rooms:
+
+```powershell
+bun run rooms:deploy
+```
+
+The first deploy asks you to log in and creates `jeopardy-rooms` on the
+Workers free plan; set `ALLOWED_ORIGINS` to your app's origin so only it can
+open rooms. Then set `NEXT_PUBLIC_ROOMS_URL` on Vercel to the
+`wss://jeopardy-rooms.<subdomain>.workers.dev` address and redeploy.
+
+Durable Objects are on the Workers free plan (SQLite-backed ones, which is
+what this uses), so none of this needs a paid plan or a card on file.
 
 ## Testing
 
-- `tests/unit/realtime/` covers the room, the registry, the director, and
-  persistence — snapshot round-trips, restart recovery, eviction, concurrent
-  restore, and store outages, plus the Redis adapter against a fake client.
-- `tests/unit/realtime/redis-integration.test.ts` runs the same recovery
-  against a real server when `REDIS_URL` is set, and skips itself when it
-  isn't. CI provides one.
+- `tests/unit/realtime/` covers the room, the director, room codes and the
+  snapshot round-trip.
 - `tests/unit/game/tick.test.ts` covers every time-driven transition.
-- `tests/e2e/multiplayer.spec.ts` drives two real browser contexts against one
-  server-side room: join by code, roster sync, chat, and a buzz crossing
-  between clients.
+- `tests/e2e/multiplayer.spec.ts` drives two real browser contexts against a
+  **real Durable Object** — Playwright starts `wrangler dev` alongside Next,
+  so join-by-code, roster sync, chat and a cross-client buzz are exercised
+  against the same runtime that serves production.
