@@ -143,9 +143,17 @@ bun run rooms:deploy
 ```
 
 The first deploy asks you to log in and creates `jeopardy-rooms` on the
-Workers free plan; set `ALLOWED_ORIGINS` to your app's origin so only it can
-open rooms. Then set `NEXT_PUBLIC_ROOMS_URL` on Vercel to the
+Workers free plan. Then set `NEXT_PUBLIC_ROOMS_URL` on Vercel to the
 `wss://jeopardy-rooms.<subdomain>.workers.dev` address and redeploy.
+
+Or connect the repo in the Cloudflare dashboard (Workers & Pages → Import a
+repository) with the root directory set to `workers/rooms`, which redeploys
+on every push to `main`.
+
+Set `ALLOWED_ORIGINS` on the Worker to the app's origin so only it can open
+rooms. It lives in the dashboard rather than in this file because it differs
+per deployment; `keep_vars` is what stops the next deploy wiping it. Losing
+it is worse than an outage — the check falls open and nothing looks wrong.
 
 Durable Objects are on the Workers free plan (SQLite-backed ones, which is
 what this uses), so none of this needs a paid plan or a card on file.
