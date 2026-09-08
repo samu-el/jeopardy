@@ -51,8 +51,17 @@ room costs one comparison per tick and broadcasts nothing.
 
 ## Joining, leaving, reconnecting
 
-- A room code is four unambiguous characters (`generateRoomCode`), shared as a
-  code or an invite link (`?room=CODE`).
+- **Every board is a shared room.** Starting a game mints a code and opens the
+  object before the first clue, so there is no "make this shareable" step to
+  find and nobody has to decide up front whether friends are joining. Solo
+  play is simply a room with one person in it.
+- The code is four unambiguous characters (`generateRoomCode`), shared as a
+  code or an invite link (`?room=CODE`). The room strip shows it masked and
+  reveals on request: a code on screen is a code anyone watching can join
+  with, and boards get screen-shared.
+- If the rooms service can't be reached within `roomConnectGraceMs`, the same
+  board reopens locally and the strip says "Solo — not shareable". An outage
+  costs sharing, not the game.
 - Taking a seat is the `join-game` command, so the roster lives in the engine
   and reaches everyone through the normal state broadcast.
 - Each browser keeps a stable player id (`src/lib/state/identity.ts`). Re-joining
@@ -62,6 +71,30 @@ room costs one comparison per tick and broadcasts nothing.
 - A room nobody is connected to is evicted from memory by Cloudflare. That is
   eviction, not deletion: the snapshot stays, and the room comes back on the
   next join.
+
+## Display mode
+
+`?room=CODE&display=1` opens the room on a television. The display connects
+on its own — a TV should show the board, not a form — and joins as a
+**spectator**: no seat, no buzzer, no commands. The people playing keep their
+phones, and the board is the thing everyone looks at.
+
+It draws the *same* board the browser draws. `GameSurface` holds the board,
+the clue overlay, the round card and the lecterns; `Room` wraps it in a
+toolbar and chat, a display renders it alone with `interactive={false}` —
+the one difference being that a television may not pick a clue. Two
+drawings of one screen drift, and a board that disagrees with the one in
+your hand is a board people argue about.
+
+The join panel — code, URL and a QR that joins in one scan — floats over a
+corner and hides completely on one click, giving the board the whole screen.
+The choice is kept per television, so a TV set up once stays set up. While
+it is shown the code is plain, the opposite of the player view, which masks
+it: a display exists to be read by the room it is standing in.
+
+Spectators are filtered out of the podium row. A lectern for someone with no
+score and no buzzer is an empty seat on the set — which is what a display
+would otherwise look like.
 
 ## Custom games
 

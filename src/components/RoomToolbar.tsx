@@ -29,6 +29,7 @@ import { useGameStore } from "@/lib/state/game-store";
 import { primeAudio, primeSpeech } from "@/lib/ai";
 import { Wordmark } from "./Wordmark";
 import { RoomBar } from "./RoomBar";
+import CastIcon from "@mui/icons-material/CastOutlined";
 import { SettingsPanel } from "./SettingsPanel";
 import { PlayersPanel } from "./PlayersPanel";
 
@@ -133,6 +134,7 @@ export function RoomToolbar({
           </IconButton>
         </Tooltip>
         <RoomBar />
+        <DisplayButton />
         <Tooltip title="Settings">
           <IconButton
             onClick={(event) => setSettingsAnchor(event.currentTarget)}
@@ -310,5 +312,33 @@ export function RoomToolbar({
         </Box>
       </Popover>
     </Stack>
+  );
+}
+
+/**
+ * Opens this room on a second screen. The display is a spectator, so the tab
+ * that opens it keeps its seat and its buzzer — you can put the board on a TV
+ * and still play from the phone in your hand.
+ */
+function DisplayButton() {
+  const online = useGameStore((s) => s.online);
+  if (!online) return null;
+  return (
+    <Tooltip title="Open this board on a TV — players buzz from their phones">
+      <IconButton
+        aria-label="Open display mode"
+        data-testid="open-display"
+        onClick={() => {
+          window.open(
+            `${window.location.origin}/?room=${online.roomId}&display=1`,
+            "_blank",
+            "noopener",
+          );
+        }}
+        sx={{ minWidth: 44, minHeight: 44 }}
+      >
+        <CastIcon />
+      </IconButton>
+    </Tooltip>
   );
 }
