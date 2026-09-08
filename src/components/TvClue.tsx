@@ -1,6 +1,5 @@
 "use client";
 
-import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Typography from "@mui/material/Typography";
 import type { PublicGameState } from "@/lib/game";
@@ -130,23 +129,6 @@ export function TvClue({ state, canControl, onCommand }: TvClueProps) {
         >
           {clue.correctResponse}
         </Typography>
-      ) : null}
-
-      {clickable ? (
-        <Box
-          component="span"
-          sx={{
-            position: "absolute",
-            bottom: "2cqw",
-            fontFamily: jeopardyFonts.display,
-            textTransform: "uppercase",
-            letterSpacing: "0.24em",
-            fontSize: "clamp(9px, 1.1cqw, 16px)",
-            color: "rgba(255,255,255,0.28)",
-          }}
-        >
-          {answered ? "Tap for the board" : "Tap for the answer"}
-        </Box>
       ) : null}
     </ButtonBase>
   );

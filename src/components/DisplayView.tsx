@@ -110,11 +110,12 @@ export function DisplayView() {
         justifyContent: "center",
         px: { xs: 1, md: 2 },
         py: { xs: 1, md: 1.5 },
-        // What is left for the board once the lecterns have their strip.
-        // The board reads this and grows into it, which is the whole of
-        // "fits the television" — cell type is sized from the board, so a
-        // board that fills the screen is a clue you can read from a sofa.
-        "--board-fill-height": "calc(100dvh - 190px)",
+        // The whole screen, less the gutter. There are no lecterns to leave
+        // room for — a television shows the board — and the board reads this
+        // and grows into it, which is the whole of "fits the television":
+        // cell type is sized from the board, so a board that fills the
+        // screen is a clue you can read from a sofa.
+        "--board-fill-height": "calc(100dvh - 24px)",
       }}
     >
       {/* The board, exactly as the browser draws it. */}

@@ -147,8 +147,11 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
     <Box
       sx={{
         display: "grid",
-        gridTemplateRows: "minmax(0, 3fr) minmax(0, auto)",
-        gap: tv ? 1 : 2,
+        // A television shows the board and nothing else: no lecterns, no
+        // names, no scores. Whoever is playing is in the room and knows
+        // who they are; the screen is for the clues.
+        gridTemplateRows: tv ? "minmax(0, 1fr)" : "minmax(0, 3fr) minmax(0, auto)",
+        gap: tv ? 0 : 2,
         ...(tv ? { height: "100%", alignContent: "center" } : null),
       }}
     >
@@ -202,6 +205,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
         ) : null}
       </Box>
 
+      {tv ? null : (
       <Box
         sx={{
           display: "flex",
@@ -230,6 +234,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
           </Box>
         ))}
       </Box>
+      )}
     </Box>
   );
 }

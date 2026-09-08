@@ -51,6 +51,9 @@ test.describe("Display mode", () => {
       // either screen, or it would be sitting in a seat and owed a buzzer.
       await expect(player.getByTestId(/^podium-/)).toHaveCount(1);
       await expect(display.getByText("Display", { exact: true })).toHaveCount(0);
+      // And the television carries no lectern at all — not even the
+      // players' — because it is there to show the board.
+      await expect(display.getByTestId(/^podium-/)).toHaveCount(0);
 
       // The join panel goes away completely — QR, code and URL — and the
       // board keeps playing without it.
@@ -116,6 +119,8 @@ test.describe("Display mode", () => {
     await page.getByTestId("open-display").click();
     await expect(page.getByTestId("display-view")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId("board")).toBeVisible();
+    // The board and nothing else: no lecterns, no names, no scores.
+    await expect(page.getByTestId(/^podium-/)).toHaveCount(0);
 
     // One: a tile opens the clue full frame.
     await page.getByRole("button", { name: /\$200/ }).first().click({ timeout: 30_000 });

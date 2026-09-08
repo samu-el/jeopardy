@@ -86,19 +86,23 @@ the clue overlay, the round card and the lecterns, and `Room` wraps it in a
 toolbar and chat. Two drawings of one screen drift, and a board that
 disagrees with the one in your hand is a board people argue about.
 
+**It shows the board and nothing else.** No lecterns, no names, no scores:
+the people playing are in the room and know who they are, and the screen is
+for the clues. Those go on the phones, which is where the buzzers are.
+
 **It fills the screen.** The board is normally capped near 660px, which is
 right on a desk and leaves a postage stamp marooned in black on a
-television; on a TV it takes the height the screen offers instead. Cell and
-clue type are sized in container units against the board, so growing the
-board is what makes a clue readable from a sofa — nothing else has to be
-told about the television. The grid keeps the set's proportions rather than
-stretching to the last pixel, so a 16:9 screen keeps a margin either side.
+television; on a TV it takes the whole height instead — 1056px of a 1080p
+screen, against 660 before. Cell and clue type are sized in container units
+against the board, so growing the board is what makes a clue readable from a
+sofa; nothing else has to be told about the television. The grid keeps the
+set's proportions rather than stretching to the last pixel.
 
 **The clue is the button.** Click a tile and the clue fills the frame; click
 again for the answer; click again for the board. No timer, no buzzer, no
-judging on that screen — someone is running the game from across a room with
-a mouse or a fingertip, and every extra control is something they have to
-aim at. The phones still hold the buzzers.
+judging — and no caption explaining the click either. Someone is running the
+game from across a room with a mouse or a fingertip, and everything that
+isn't the clue is something they have to look past.
 
 Whether a click is obeyed is the server's call, not the screen's: the TV
 offers the controls only when the same test the engine applies says it is
