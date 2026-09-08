@@ -316,25 +316,27 @@ export function RoomToolbar({
 }
 
 /**
- * Opens this room on a second screen. The display is a spectator, so the tab
- * that opens it keeps its seat and its buzzer — you can put the board on a TV
- * and still play from the phone in your hand.
+ * Puts *this* tab on the television.
+ *
+ * It deliberately does not open a second one. A new tab is a new client with
+ * no seat and no host chair, which makes for a board nobody standing at the
+ * screen can actually run — and running it from the screen is the point.
+ * Same client, same seat, same authority: plug this machine into the TV, or
+ * cast the tab, and click the board where everyone can see it.
+ *
+ * A second screen is still had by sharing `?room=CODE&display=1`, which
+ * joins as a spectator and watches.
  */
 function DisplayButton() {
   const online = useGameStore((s) => s.online);
+  const setDisplayMode = useGameStore((s) => s.setDisplayMode);
   if (!online) return null;
   return (
-    <Tooltip title="Open this board on a TV — players buzz from their phones">
+    <Tooltip title="TV mode — fill the screen and run the board from it">
       <IconButton
         aria-label="Open display mode"
         data-testid="open-display"
-        onClick={() => {
-          window.open(
-            `${window.location.origin}/?room=${online.roomId}&display=1`,
-            "_blank",
-            "noopener",
-          );
-        }}
+        onClick={() => setDisplayMode(true)}
         sx={{ minWidth: 44, minHeight: 44 }}
       >
         <CastIcon />

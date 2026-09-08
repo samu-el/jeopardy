@@ -74,23 +74,44 @@ room costs one comparison per tick and broadcasts nothing.
 
 ## Display mode
 
-`?room=CODE&display=1` opens the room on a television. The display connects
-on its own — a TV should show the board, not a form — and joins as a
-**spectator**: no seat, no buzzer, no commands. The people playing keep their
-phones, and the board is the thing everyone looks at.
+The TV button puts **this tab** on the television — it does not open a
+second one. A new tab is a new client with no seat and no host chair, and a
+board nobody standing at the screen can run is not much of a television.
+Same client, same seat, same authority: plug the machine into the TV, or
+cast the tab, and run the game from the screen everyone is looking at. Esc
+comes back.
 
 It draws the *same* board the browser draws. `GameSurface` holds the board,
-the clue overlay, the round card and the lecterns; `Room` wraps it in a
-toolbar and chat, a display renders it alone with `interactive={false}` —
-the one difference being that a television may not pick a clue. Two
-drawings of one screen drift, and a board that disagrees with the one in
-your hand is a board people argue about.
+the clue overlay, the round card and the lecterns, and `Room` wraps it in a
+toolbar and chat. Two drawings of one screen drift, and a board that
+disagrees with the one in your hand is a board people argue about.
 
-The join panel — code, URL and a QR that joins in one scan — floats over a
-corner and hides completely on one click, giving the board the whole screen.
-The choice is kept per television, so a TV set up once stays set up. While
-it is shown the code is plain, the opposite of the player view, which masks
-it: a display exists to be read by the room it is standing in.
+**It fills the screen.** The board is normally capped near 660px, which is
+right on a desk and leaves a postage stamp marooned in black on a
+television; on a TV it takes the height the screen offers instead. Cell and
+clue type are sized in container units against the board, so growing the
+board is what makes a clue readable from a sofa — nothing else has to be
+told about the television. The grid keeps the set's proportions rather than
+stretching to the last pixel, so a 16:9 screen keeps a margin either side.
+
+**The clue is the button.** Click a tile and the clue fills the frame; click
+again for the answer; click again for the board. No timer, no buzzer, no
+judging on that screen — someone is running the game from across a room with
+a mouse or a fingertip, and every extra control is something they have to
+aim at. The phones still hold the buzzers.
+
+Whether a click is obeyed is the server's call, not the screen's: the TV
+offers the controls only when the same test the engine applies says it is
+the host (or that the room has no host at all). `?room=CODE&display=1` still
+opens a second screen for a genuine spectator — it joins with no seat and no
+buzzer, and is never offered a control it would be refused.
+
+The join panel — code, URL and a QR that joins in one scan — sits in the
+black beside the lecterns and hides completely on one click, giving the
+board the whole screen. The choice is kept per television, so a TV set up
+once stays set up. While it is shown the code is plain, the opposite of the
+player view, which masks it: a display exists to be read by the room it is
+standing in.
 
 Spectators are filtered out of the podium row. A lectern for someone with no
 score and no buzzer is an empty seat on the set — which is what a display

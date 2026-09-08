@@ -10,9 +10,11 @@ import FullscreenIcon from "@mui/icons-material/FullscreenOutlined";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExitOutlined";
 import QrCodeIcon from "@mui/icons-material/QrCode2Outlined";
 import CloseIcon from "@mui/icons-material/CloseOutlined";
+import ExitIcon from "@mui/icons-material/CloseFullscreenOutlined";
 import QRCode from "qrcode";
 import { useGameStore } from "@/lib/state/game-store";
 import { jeopardyFonts, jeopardyPalette } from "@/lib/foundation/jeopardy-style";
+import { AvatarHostController } from "./AvatarHostController";
 import { GameSurface } from "./GameSurface";
 
 /** Remembered per television, so a hidden panel stays hidden after a reload. */
@@ -56,14 +58,25 @@ function useJoinPanelVisible(): boolean {
  * The room on a television.
  *
  * It shows the same board the browser shows — the identical `GameSurface`,
- * not a second drawing of it — with the toolbar, chat and panels left off.
- * A display is a spectator: no seat, no buzzer, no commands.
+ * not a second drawing of it — with the toolbar, chat and panels left off,
+ * and sized to the screen it is standing on rather than to a desk.
+ *
+ * It is also a control surface, not a poster. Someone is at the screen with
+ * a mouse or a fingertip: they click a tile, the clue fills the frame, a
+ * click reveals the answer and a click puts the board back. Whether those
+ * clicks are obeyed is the server's call — a screen that only came to watch
+ * simply never gets offered them.
  */
 export function DisplayView() {
   const publicState = useGameStore((s) => s.publicState);
   const online = useGameStore((s) => s.online);
+  const screen = useGameStore((s) => s.screen);
+  const setDisplayMode = useGameStore((s) => s.setDisplayMode);
   const [fullscreen, setFullscreen] = useState(false);
   const showJoin = useJoinPanelVisible();
+  // Only a tab that has a room behind it has somewhere to go back to. A
+  // television opened from a link would land on the join form.
+  const canExit = screen !== "landing";
 
   useEffect(() => {
     function onChange() {
@@ -72,6 +85,17 @@ export function DisplayView() {
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
+
+  useEffect(() => {
+    if (!canExit) return;
+    function onKey(event: KeyboardEvent) {
+      // Esc is the way out of every other full-screen thing, so it is the
+      // way out of this one.
+      if (event.key === "Escape") setDisplayMode(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [canExit, setDisplayMode]);
 
   return (
     <Box
@@ -84,12 +108,19 @@ export function DisplayView() {
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
-        px: { xs: 1, md: 3 },
-        py: { xs: 1, md: 2 },
+        px: { xs: 1, md: 2 },
+        py: { xs: 1, md: 1.5 },
+        // What is left for the board once the lecterns have their strip.
+        // The board reads this and grows into it, which is the whole of
+        // "fits the television" — cell type is sized from the board, so a
+        // board that fills the screen is a clue you can read from a sofa.
+        "--board-fill-height": "calc(100dvh - 190px)",
       }}
     >
       {/* The board, exactly as the browser draws it. */}
-      <GameSurface interactive={false} />
+      <GameSurface tv />
+      {/* The screen with the speakers should be the one doing the talking. */}
+      <AvatarHostController />
 
       {showJoin ? (
         <JoinPanel roomId={online?.roomId ?? null} onHide={() => writeJoinPanel(false)} />
@@ -110,6 +141,19 @@ export function DisplayView() {
           "&:hover": { opacity: 1 },
         }}
       >
+        {canExit ? (
+          <Tooltip title="Leave TV mode (Esc)">
+            <IconButton
+              size="small"
+              data-testid="exit-display"
+              aria-label="Leave TV mode"
+              onClick={() => setDisplayMode(false)}
+              sx={{ color: "rgba(255,255,255,0.7)" }}
+            >
+              <ExitIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        ) : null}
         {!showJoin ? (
           <Tooltip title="Show the join code">
             <IconButton
@@ -169,9 +213,11 @@ export function DisplayView() {
 }
 
 /**
- * How to get in: the code, the URL, and a QR for phones. Floats over a
- * corner rather than taking a band across the top, so hiding it gives the
- * board the whole screen and nothing reflows when it goes.
+ * How to get in: the code, the URL, and a QR for phones.
+ *
+ * Bottom-left, in the black beside the lecterns. A board that fills a
+ * television leaves its margin at the bottom, not the top — up there this
+ * sat across the first category.
  */
 function JoinPanel({ roomId, onHide }: { roomId: string | null; onHide: () => void }) {
   const [qr, setQr] = useState<string | null>(null);
@@ -205,7 +251,7 @@ function JoinPanel({ roomId, onHide }: { roomId: string | null; onHide: () => vo
       data-testid="display-join"
       sx={{
         position: "fixed",
-        top: 16,
+        bottom: 16,
         left: 16,
         alignItems: "center",
         background: "rgba(0,0,0,0.65)",

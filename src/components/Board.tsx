@@ -20,11 +20,17 @@ interface BoardProps {
   canPick?: boolean;
   /** Full-board clue panel. Rendered over the grid with the reveal zoom. */
   overlay?: ReactNode;
+  /**
+   * Television: the grid takes the height it is given instead of the
+   * laptop-sized cap. Cell type is sized from the board, so filling the
+   * screen is what makes a clue readable from a sofa.
+   */
+  fill?: boolean;
 }
 
 const PLACEHOLDER_VALUES = [200, 400, 600, 800, 1000];
 
-export function Board({ state, onPick, canPick = false, overlay }: BoardProps) {
+export function Board({ state, onPick, canPick = false, overlay, fill }: BoardProps) {
   const reducedMotion = useGameStore((s) => s.preferences.reducedMotion);
   const soundEnabled = useGameStore((s) => s.preferences.soundEnabled);
   const board = state?.board;
@@ -44,6 +50,7 @@ export function Board({ state, onPick, canPick = false, overlay }: BoardProps) {
         ref={containerRef}
         ratio={boardRatio(boardColumns, boardRows)}
         tall={Boolean(overlay)}
+        fill={fill}
       >
         <BoardGrid columns={boardColumns} rows={boardRows}>
           {Array.from({ length: boardColumns }).map((_, col) => (
@@ -88,6 +95,7 @@ export function Board({ state, onPick, canPick = false, overlay }: BoardProps) {
       ref={containerRef}
       ratio={boardRatio(byCategory.length, rowCount)}
       tall={Boolean(overlay)}
+      fill={fill}
     >
       <BoardGrid columns={byCategory.length} rows={rowCount}>
         {byCategory.map((column, columnIndex) => (
@@ -180,12 +188,15 @@ function BoardFrame({
   ref,
   ratio,
   tall,
+  fill,
 }: {
   children: ReactNode;
   ref: React.Ref<HTMLDivElement>;
   ratio: number;
   /** A clue panel needs more vertical room than the grid does on a phone. */
   tall?: boolean;
+  /** Take the height the screen offers rather than the desk-sized cap. */
+  fill?: boolean;
 }) {
   return (
     <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
@@ -194,15 +205,21 @@ function BoardFrame({
         data-testid="board"
         sx={{
           position: "relative",
-          "--board-height": {
-            xs: tall ? "min(64vh, 540px)" : "min(46vh, 420px)",
-            md: "min(62vh, 660px)",
-          },
+          // A 660px cap is right on a desk and wrong on a television: it
+          // leaves a small board marooned in black. When the screen says how
+          // much height there is, take it.
+          "--board-height": fill
+            ? "var(--board-fill-height, 74dvh)"
+            : {
+                xs: tall ? "min(64vh, 540px)" : "min(46vh, 420px)",
+                md: "min(62vh, 660px)",
+              },
           width: `min(100%, calc(var(--board-height) * ${ratio}))`,
           // The grid keeps the set's proportions. A clue panel on a phone
           // does not — it needs height for the buzzer and the answer field.
-          aspectRatio: tall ? { xs: "auto", md: `${ratio}` } : `${ratio}`,
-          height: tall ? { xs: "min(66vh, 560px)", md: "auto" } : "auto",
+          // A television has the room for both, so it keeps the ratio.
+          aspectRatio: tall && !fill ? { xs: "auto", md: `${ratio}` } : `${ratio}`,
+          height: tall && !fill ? { xs: "min(66vh, 560px)", md: "auto" } : "auto",
           // Cell type is sized from the board, not the viewport, so a
           // six-category board and a two-category one both read correctly.
           containerType: "inline-size",

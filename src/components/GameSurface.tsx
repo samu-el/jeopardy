@@ -9,10 +9,21 @@ import { Board } from "./Board";
 import { ClueStage } from "./ClueStage";
 import { Podium } from "./Podium";
 import { RoundIntro } from "./RoundIntro";
+import { TvClue } from "./TvClue";
 
 interface GameSurfaceProps {
-  /** Only the picker (or the host) may open a clue; a display may not. */
+  /**
+   * Whether this screen offers the controls at all. The server still decides
+   * who may actually pick — this only stops a screen from showing a button
+   * it knows would be refused.
+   */
   interactive?: boolean;
+  /**
+   * Television layout: the board fills the screen, and the clue becomes a
+   * card you click through — question, answer, board — with no timer, buzzer
+   * or judging on it.
+   */
+  tv?: boolean;
 }
 
 /**
@@ -24,7 +35,7 @@ interface GameSurfaceProps {
  * drawings of it — a board that looks different on the TV to the one in your
  * hand is a board people argue about.
  */
-export function GameSurface({ interactive = true }: GameSurfaceProps) {
+export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps) {
   const lobby = useGameStore((s) => s.lobby);
   const publicState = useGameStore((s) => s.publicState);
   const runtime = useGameStore((s) => s.runtime);
@@ -124,18 +135,35 @@ export function GameSurface({ interactive = true }: GameSurfaceProps) {
         !introVisible
       : false;
 
+  // Revealing and closing a clue are the host's, and a room with no host set
+  // is open to whoever is standing at it. This is the same test the engine
+  // applies, asked early so the screen doesn't offer a refused click.
+  const canControl =
+    interactive && publicState
+      ? !publicState.settings.hostId || publicState.settings.hostId === selfId
+      : false;
+
   return (
     <Box
       sx={{
         display: "grid",
         gridTemplateRows: "minmax(0, 3fr) minmax(0, auto)",
-        gap: 2,
+        gap: tv ? 1 : 2,
+        ...(tv ? { height: "100%", alignContent: "center" } : null),
       }}
     >
-      <Box sx={{ position: "relative", width: "100%", maxWidth: 1240, mx: "auto" }}>
+      <Box
+        sx={{
+          position: "relative",
+          width: "100%",
+          maxWidth: tv ? "none" : 1240,
+          mx: "auto",
+        }}
+      >
         <Board
           state={publicState}
           canPick={canPick}
+          fill={tv}
           onPick={(clueId) => {
             if (!interactive) return;
             runtime?.sendCommand(selfId, { type: "pick-clue", clueId });
@@ -152,7 +180,15 @@ export function GameSurface({ interactive = true }: GameSurfaceProps) {
                   background: jeopardyPalette.board,
                 }}
               >
-                <ClueStage state={publicState} currentClientId={selfId} />
+                {tv ? (
+                  <TvClue
+                    state={publicState}
+                    canControl={canControl}
+                    onCommand={(command) => runtime?.sendCommand(selfId, command)}
+                  />
+                ) : (
+                  <ClueStage state={publicState} currentClientId={selfId} />
+                )}
               </Box>
             ) : undefined
           }
@@ -177,7 +213,13 @@ export function GameSurface({ interactive = true }: GameSurfaceProps) {
         }}
       >
         {players.map((player) => (
-          <Box key={player.id} sx={{ flex: "0 0 auto", width: { xs: 130, sm: 168 } }}>
+          <Box
+            key={player.id}
+            sx={{
+              flex: "0 0 auto",
+              width: tv ? { xs: 150, sm: 210 } : { xs: 130, sm: 168 },
+            }}
+          >
             <Podium
               player={player}
               state={publicState ?? previewState}
