@@ -35,19 +35,23 @@ Start the app:
 bun run dev
 ```
 
-`bun run dev` runs the custom server (`server.mjs`), which serves Next.js and
-the Socket.IO room bridge from one listener — shared rooms need it. `bun run
-dev:next` is plain `next dev` and serves solo play only.
+That serves the app and solo play. Shared rooms live in a Cloudflare Worker,
+which runs alongside it:
 
-`GET /api/health` reports that the server is up; `POST /api/rooms` opens a room
-and `GET /api/rooms/<code>` reports who is in it.
+```powershell
+bun run rooms:dev
+```
+
+Point the app at it with `NEXT_PUBLIC_ROOMS_URL` — see `.env.example` and
+`docs/06-multiplayer.md`. `GET /api/health` reports that the app is up.
 
 ## What's here
 
 - **Shared rooms.** Open a room, share the code or link, and play together.
   The server holds the board, the buzzer and the clock; a refresh reclaims your
-  seat and score, and hosting moves on if the host drops. Set `REDIS_URL` and
-  rooms survive a server restart too — see `docs/06-multiplayer.md`.
+  seat and score, and hosting moves on if the host drops. Each room is a
+  Durable Object on Cloudflare's free plan, so rooms survive a restart and
+  cost nothing when idle — see `docs/06-multiplayer.md`.
 - **The whole game.** Archived and custom boards, every round, Daily Doubles,
   Final Jeopardy wagers, buzz windows with the show's early-buzz lockout,
   judging (by a host or the fuzzy judge), chat, replays and stats.

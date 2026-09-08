@@ -9,8 +9,7 @@ describe("AI module isolation", () => {
     const forbidden = [
       "react",
       "zustand",
-      "ioredis",
-      "socket.io",
+      'from "ws"',
       "@/lib/realtime",
       "@/lib/state",
       "@/lib/persistence",

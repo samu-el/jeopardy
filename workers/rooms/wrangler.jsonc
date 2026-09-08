@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "jeopardy-rooms",
+  "main": "index.ts",
+  "compatibility_date": "2026-01-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  // ALLOWED_ORIGINS is set in the dashboard, and a deploy would otherwise
+  // wipe it — leaving the rooms open to any origin, which is worse than an
+  // outage because nothing looks wrong.
+  "keep_vars": true,
+  "durable_objects": {
+    "bindings": [{ "name": "ROOMS", "class_name": "RoomDurableObject" }]
+  },
+  // SQLite-backed objects are the ones available on the Workers free plan.
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["RoomDurableObject"] }
+  ]
+}
