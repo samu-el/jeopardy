@@ -63,6 +63,35 @@ room costs one comparison per tick and broadcasts nothing.
   eviction, not deletion: the snapshot stays, and the room comes back on the
   next join.
 
+## Custom games
+
+Games people write are stored in the same Worker as the rooms, in a
+`CustomGameObject` keyed by the game's own id — so a share link resolves
+straight to the object that holds it, with no index to keep in step.
+
+| Route | Does |
+| --- | --- |
+| `POST /games` | Publishes a new game. The id is minted at the edge, not accepted from the client. |
+| `GET /games/<id>` | Returns the game. |
+| `PUT /games/<id>` | Replaces it, given the edit token issued when it was published. |
+
+Two things follow from a game being someone's typing rather than our data:
+
+- **It is validated, not trusted.** `checkPublishedGame` runs in the Worker
+  before anything is stored and again on the client after it is read back,
+  and returns cleaned content rather than the caller's object. Lengths and
+  counts are capped so one game cannot fill an object or a screen.
+- **A share link is not an edit link.** Publishing hands back an edit token,
+  kept in the publisher's browser. Without it a `PUT` is a 403, so anyone
+  holding the link can play a game but not rewrite it under everyone else.
+
+Ids are ten characters of an unambiguous alphabet — roughly 50 bits, because
+the link is the only thing protecting a game.
+
+`?game=<id>` opens one: the app fetches it and deals it, exactly like New
+Game. A link to a game that was never published leaves you on the landing
+page rather than an empty board.
+
 ## Readout pacing
 
 The buzzer opens when the clue has actually been read, not when a formula

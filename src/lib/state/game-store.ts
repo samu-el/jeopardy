@@ -11,6 +11,8 @@ import {
   type RoomRuntime,
 } from "@/lib/runtime";
 import {
+  fetchPublishedGame,
+  publishedGameToNormalized,
   fetchRandomEpisode,
   normalizeArchivedEpisode,
   type ArchivedEpisodeInput,
@@ -123,6 +125,8 @@ export interface GameStoreState {
   pushLoadedGameToRoom: () => void;
   /** Pulls a random board from the archive and deals it straight away. */
   startRandomGame: () => Promise<{ ok: boolean; error?: string }>;
+  /** Loads a published custom game by id and stages it to play. */
+  loadPublishedGame: (id: string) => Promise<{ ok: boolean; error?: string }>;
   setScreen: (screen: ScreenName) => void;
   setHostName: (name: string) => void;
   setPlayerAvatar: (
@@ -480,6 +484,15 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
           "Could not reach the episode archive. Try again in a moment.",
       };
     }
+  },
+  loadPublishedGame: async (id) => {
+    const game = await fetchPublishedGame(id);
+    if (!game) {
+      return { ok: false, error: "That game link is not valid any more." };
+    }
+    get().setCustomGame(publishedGameToNormalized(game), []);
+    get().startGame();
+    return { ok: true };
   },
   startGame: () => {
     const { lobby, runtime, online } = get();

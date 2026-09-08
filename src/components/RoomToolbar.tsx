@@ -9,6 +9,7 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
+import EditNoteIcon from "@mui/icons-material/EditNoteOutlined";
 import Popover from "@mui/material/Popover";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
@@ -34,6 +35,7 @@ import { PlayersPanel } from "./PlayersPanel";
 interface RoomToolbarProps {
   onOpenPicker: () => void;
   onOpenBrowser: () => void;
+  onOpenBuilder: () => void;
   onToggleShortcuts: () => void;
   onToggleTranscript: () => void;
   onOpenReplay: () => void;
@@ -42,6 +44,7 @@ interface RoomToolbarProps {
 export function RoomToolbar({
   onOpenPicker,
   onOpenBrowser,
+  onOpenBuilder,
   onToggleShortcuts,
   onToggleTranscript,
   onOpenReplay,
@@ -227,6 +230,18 @@ export function RoomToolbar({
             <LibraryIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>Browse episodes</ListItemText>
+        </MenuItem>
+        <MenuItem
+          data-testid="open-builder"
+          onClick={() => {
+            closeMore();
+            onOpenBuilder();
+          }}
+        >
+          <ListItemIcon>
+            <EditNoteIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Build a game</ListItemText>
         </MenuItem>
         <MenuItem
           onClick={() => {
