@@ -63,10 +63,13 @@ export function Room() {
 
   // Before a game exists, show the lobby roster from local config so the
   // podiums aren't an empty row.
+  // Contestants only. A spectator — a display on a TV, or someone watching —
+  // has no score to show and no buzzer to light, so a lectern for them is
+  // just an empty seat on the set.
   const players = useMemo(
     () =>
       publicState && publicState.players.length > 0
-        ? publicState.players
+        ? publicState.players.filter((player) => !player.spectator)
         : [
             {
               id: lobby.hostId,

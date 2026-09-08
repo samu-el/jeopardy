@@ -113,6 +113,14 @@ export interface GameStoreState {
    * code nobody else can join.
    */
   shareUnavailable: boolean;
+  /**
+   * This tab is a display: a spectator view meant for a television, with the
+   * board large and the join code readable across the room.
+   */
+  displayMode: boolean;
+  setDisplayMode: (on: boolean) => void;
+  /** Joins a room as a display — no seat, no buzzer, no name to type. */
+  joinAsDisplay: (roomId: string) => Promise<boolean>;
   lastEvents: GameEvent[];
   lastCue: AvatarHostCue | null;
   /**
@@ -191,6 +199,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   runtime: null,
   online: null,
   shareUnavailable: false,
+  displayMode: false,
   lastEvents: [],
   lastCue: null,
   pendingRoomId: null,
@@ -385,6 +394,16 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         });
       }
     }
+  },
+  setDisplayMode: (on) => set({ displayMode: on }),
+  joinAsDisplay: async (roomId) => {
+    // A display takes no seat, so it joins as a spectator under a name the
+    // roster can show without anyone typing one on a television.
+    set((state) => ({
+      displayMode: true,
+      lobby: { ...state.lobby, hostSpectator: true, hostName: "Display" },
+    }));
+    return get().joinOnlineRoom(roomId);
   },
   joinOnlineRoom: async (roomId) => {
     const { runtime } = get();
