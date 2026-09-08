@@ -72,6 +72,21 @@ room costs one comparison per tick and broadcasts nothing.
   eviction, not deletion: the snapshot stays, and the room comes back on the
   next join.
 
+## Display mode
+
+`?room=CODE&display=1` opens the room on a television. The display connects
+on its own — a TV should show the board, not a form — and joins as a
+**spectator**: no seat, no buzzer, no commands. The people playing keep their
+phones, and the board is the thing everyone looks at.
+
+It shows the code plainly, next to a QR that joins the room in one scan.
+That is the opposite of the player view, which masks the code: a display
+exists to be read by the room it is standing in.
+
+Spectators are filtered out of the podium row. A lectern for someone with no
+score and no buzzer is an empty seat on the set — which is what a display
+would otherwise look like.
+
 ## Readout pacing
 
 The buzzer opens when the clue has actually been read, not when a formula
