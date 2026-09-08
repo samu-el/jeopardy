@@ -51,6 +51,23 @@ test.describe("Display mode", () => {
       // either screen, or it would be sitting in a seat and owed a buzzer.
       await expect(player.getByTestId(/^podium-/)).toHaveCount(1);
       await expect(display.getByText("Display", { exact: true })).toHaveCount(0);
+
+      // The join panel goes away completely — QR, code and URL — and the
+      // board keeps playing without it.
+      await display.getByTestId("hide-join-panel").click();
+      await expect(display.getByTestId("display-join")).toHaveCount(0);
+      await expect(display.getByTestId("display-qr")).toHaveCount(0);
+      await expect(display.getByTestId("display-room-code")).toHaveCount(0);
+      await expect(display.getByTestId("board")).toBeVisible();
+
+      // Hidden stays hidden across a reload, so a TV set up once stays set up.
+      await display.reload();
+      await expect(display.getByTestId("display-view")).toBeVisible({ timeout: 30_000 });
+      await expect(display.getByTestId("display-qr")).toHaveCount(0);
+
+      // And it can be brought back without hunting for the URL again.
+      await display.getByTestId("show-join-panel").click();
+      await expect(display.getByTestId("display-qr")).toBeVisible();
     } finally {
       await playerContext.close();
       await displayContext.close();
@@ -80,9 +97,9 @@ test.describe("Display mode", () => {
 
       await player.getByRole("button", { name: /\$200/ }).first().click({ timeout: 20_000 });
 
-      // The clue takes the whole screen, read from the room's own state.
-      await expect(display.getByTestId("display-clue")).toBeVisible({ timeout: 20_000 });
-      await expect(display.getByTestId("display-clue")).toContainText("Two plus two", {
+      // The same clue panel the browser renders — not a second drawing of it.
+      await expect(display.getByTestId("clue-stage")).toBeVisible({ timeout: 20_000 });
+      await expect(display.getByTestId("clue-stage")).toContainText("Two plus two", {
         ignoreCase: true,
       });
     } finally {

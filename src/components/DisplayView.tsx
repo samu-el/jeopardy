@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
@@ -8,26 +8,62 @@ import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import FullscreenIcon from "@mui/icons-material/FullscreenOutlined";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExitOutlined";
+import QrCodeIcon from "@mui/icons-material/QrCode2Outlined";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import QRCode from "qrcode";
-import type { PublicActiveClueState } from "@/lib/game";
 import { useGameStore } from "@/lib/state/game-store";
 import { jeopardyFonts, jeopardyPalette } from "@/lib/foundation/jeopardy-style";
-import { Board } from "./Board";
-import { BuzzLights } from "./BuzzLights";
+import { GameSurface } from "./GameSurface";
+
+/** Remembered per television, so a hidden panel stays hidden after a reload. */
+const joinPanelKey = "jeopardy.display.join-panel.v1";
+const joinPanelListeners = new Set<() => void>();
+
+function readJoinPanel(): boolean {
+  try {
+    return window.localStorage.getItem(joinPanelKey) !== "hidden";
+  } catch {
+    return true;
+  }
+}
+
+function writeJoinPanel(visible: boolean) {
+  try {
+    window.localStorage.setItem(joinPanelKey, visible ? "shown" : "hidden");
+  } catch {
+    // A preference that won't persist is not worth failing over.
+  }
+  for (const listener of joinPanelListeners) listener();
+}
+
+/**
+ * Read through `useSyncExternalStore` rather than an effect: the server has
+ * no localStorage, so the panel renders shown on the server and switches on
+ * the client without a hydration mismatch or a cascading render.
+ */
+function useJoinPanelVisible(): boolean {
+  return useSyncExternalStore(
+    (listener) => {
+      joinPanelListeners.add(listener);
+      return () => joinPanelListeners.delete(listener);
+    },
+    readJoinPanel,
+    () => true,
+  );
+}
 
 /**
  * The room on a television.
  *
- * A display is a spectator: it holds no seat, owns no buzzer, and sends no
- * commands. It shows the board everyone is looking at and the code they join
- * with, while the playing happens on phones. Everything here is sized to be
- * read across a room rather than at arm's length.
+ * It shows the same board the browser shows — the identical `GameSurface`,
+ * not a second drawing of it — with the toolbar, chat and panels left off.
+ * A display is a spectator: no seat, no buzzer, no commands.
  */
 export function DisplayView() {
   const publicState = useGameStore((s) => s.publicState);
   const online = useGameStore((s) => s.online);
   const [fullscreen, setFullscreen] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
+  const showJoin = useJoinPanelVisible();
 
   useEffect(() => {
     function onChange() {
@@ -37,20 +73,6 @@ export function DisplayView() {
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
 
-  // The lights run off the room's clock, so tick while a clue is open.
-  const clueId = publicState?.currentClue?.clueId;
-  useEffect(() => {
-    if (!clueId) return;
-    const id = setInterval(() => setNow(Date.now()), 120);
-    return () => clearInterval(id);
-  }, [clueId]);
-
-  const active = publicState?.currentClue;
-  const players = useMemo(
-    () => (publicState?.players ?? []).filter((player) => !player.spectator),
-    [publicState],
-  );
-
   return (
     <Box
       data-testid="display-view"
@@ -58,229 +80,100 @@ export function DisplayView() {
         position: "fixed",
         inset: 0,
         background: "#000",
-        color: "#fff",
-        display: "flex",
-        flexDirection: "column",
         overflow: "hidden",
-      }}
-    >
-      <DisplayChrome
-        roomId={online?.roomId ?? null}
-        fullscreen={fullscreen}
-        onToggleFullscreen={() => {
-          if (document.fullscreenElement) {
-            void document.exitFullscreen().catch(() => {});
-          } else {
-            void document.documentElement.requestFullscreen().catch(() => {});
-          }
-        }}
-      />
-
-      <Box sx={{ flex: "1 1 auto", minHeight: 0, display: "flex", p: { xs: 1, md: 2 } }}>
-        {active?.clue && !active.correctResponse ? (
-          <DisplayClue clue={active} now={now} />
-        ) : active?.correctResponse ? (
-          <DisplayResponse clue={active} />
-        ) : (
-          <Box sx={{ flex: 1, minWidth: 0, display: "flex" }}>
-            <Board state={publicState} canPick={false} />
-          </Box>
-        )}
-      </Box>
-
-      <DisplayScores players={players} state={publicState} />
-    </Box>
-  );
-}
-
-/** The clue, sized to be read from the sofa. */
-function DisplayClue({ clue, now }: { clue: PublicActiveClueState; now: number }) {
-  const category = clue.category;
-  const value = clue.value;
-  const text = clue.clue ?? "";
-  const readoutEndsAt = clue.readoutEndsAt ?? now;
-  const buzzWindowEndsAt = clue.buzzWindowEndsAt ?? now;
-  const span = Math.max(1, buzzWindowEndsAt - readoutEndsAt);
-  const remaining = Math.max(0, Math.min(1, (buzzWindowEndsAt - now) / span));
-  // Long clues have to shrink or they run off a 16:9 screen; the steps keep
-  // the type as large as the wordiest clue allows.
-  const size = text.length > 220 ? "3.2cqw" : text.length > 120 ? "4.2cqw" : "5.4cqw";
-  return (
-    <Box
-      data-testid="display-clue"
-      sx={{
-        flex: 1,
-        containerType: "inline-size",
-        borderRadius: 2,
-        background: `linear-gradient(180deg, ${jeopardyPalette.board}, ${jeopardyPalette.boardShade})`,
         display: "flex",
         flexDirection: "column",
-        alignItems: "center",
         justifyContent: "center",
-        textAlign: "center",
-        px: "6cqw",
-        py: 4,
-      }}
-    >
-      <Typography
-        sx={{
-          fontFamily: jeopardyFonts.display,
-          color: jeopardyPalette.goldBright,
-          letterSpacing: "0.18em",
-          fontSize: "1.6cqw",
-          mb: "2cqw",
-        }}
-      >
-        {category} · ${value}
-      </Typography>
-      <Typography
-        sx={{
-          fontFamily: jeopardyFonts.display,
-          textTransform: "uppercase",
-          lineHeight: 1.22,
-          fontSize: size,
-          textShadow: "0 4px 10px rgba(0,0,0,0.55)",
-        }}
-      >
-        {text}
-      </Typography>
-      <Box sx={{ mt: "3cqw" }}>
-        <BuzzLights
-          remaining={remaining}
-          label={now < readoutEndsAt ? "Reading the clue" : "Time to ring in"}
-        />
-      </Box>
-    </Box>
-  );
-}
-
-/** What the answer was, once the room has been told. */
-function DisplayResponse({ clue }: { clue: PublicActiveClueState }) {
-  return (
-    <Box
-      data-testid="display-response"
-      sx={{
-        flex: 1,
-        containerType: "inline-size",
-        borderRadius: 2,
-        background: `linear-gradient(180deg, ${jeopardyPalette.board}, ${jeopardyPalette.boardShade})`,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        textAlign: "center",
-        px: "6cqw",
-      }}
-    >
-      <Typography
-        sx={{
-          fontFamily: jeopardyFonts.display,
-          color: jeopardyPalette.goldBright,
-          letterSpacing: "0.18em",
-          fontSize: "1.6cqw",
-          mb: "2cqw",
-        }}
-      >
-        {clue.category} · ${clue.value}
-      </Typography>
-      <Typography
-        sx={{
-          fontFamily: jeopardyFonts.display,
-          textTransform: "uppercase",
-          fontSize: "5cqw",
-          color: jeopardyPalette.goldBright,
-        }}
-      >
-        {clue.correctResponse}
-      </Typography>
-    </Box>
-  );
-}
-
-/** Scores along the bottom, the way the set carries the lecterns. */
-function DisplayScores({
-  players,
-  state,
-}: {
-  players: { id: string; displayName: string; score: number; connected: boolean }[];
-  state: ReturnType<typeof useGameStore.getState>["publicState"];
-}) {
-  if (players.length === 0) return null;
-  const buzzes = state?.currentClue?.buzzes ?? {};
-  return (
-    <Stack
-      direction="row"
-      spacing={2}
-      data-testid="display-scores"
-      sx={{
         px: { xs: 1, md: 3 },
-        pb: { xs: 1, md: 2 },
-        justifyContent: "center",
-        alignItems: "stretch",
-        flexWrap: "wrap",
-        rowGap: 1,
+        py: { xs: 1, md: 2 },
       }}
     >
-      {players.map((player) => {
-        const rangIn = buzzes[player.id] !== undefined;
-        return (
-          <Box
-            key={player.id}
-            data-testid={`display-score-${player.id}`}
-            sx={{
-              minWidth: 180,
-              px: 3,
-              py: 1.5,
-              borderRadius: 2,
-              textAlign: "center",
-              background: `linear-gradient(180deg, ${jeopardyPalette.podium}, #0a0d33)`,
-              border: `2px solid ${rangIn ? jeopardyPalette.goldBright : jeopardyPalette.podiumEdge}`,
-              boxShadow: rangIn ? `0 0 26px ${jeopardyPalette.goldBright}` : "none",
-              opacity: player.connected ? 1 : 0.45,
+      {/* The board, exactly as the browser draws it. */}
+      <GameSurface interactive={false} />
+
+      {showJoin ? (
+        <JoinPanel roomId={online?.roomId ?? null} onHide={() => writeJoinPanel(false)} />
+      ) : null}
+
+      {/* Kept faint and out of the way: a TV is for the board, but a display
+          with no way back to its own controls is a display you have to
+          reload to fix. */}
+      <Stack
+        direction="row"
+        spacing={0.5}
+        sx={{
+          position: "fixed",
+          bottom: 8,
+          right: 8,
+          opacity: 0.25,
+          transition: "opacity 160ms",
+          "&:hover": { opacity: 1 },
+        }}
+      >
+        {!showJoin ? (
+          <Tooltip title="Show the join code">
+            <IconButton
+              size="small"
+              data-testid="show-join-panel"
+              aria-label="Show the join code"
+              onClick={() => writeJoinPanel(true)}
+              sx={{ color: "rgba(255,255,255,0.7)" }}
+            >
+              <QrCodeIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        ) : null}
+        <Tooltip title={fullscreen ? "Leave fullscreen" : "Fullscreen"}>
+          <IconButton
+            size="small"
+            data-testid="display-fullscreen"
+            aria-label={fullscreen ? "Leave fullscreen" : "Go fullscreen"}
+            onClick={() => {
+              if (document.fullscreenElement) {
+                void document.exitFullscreen().catch(() => {});
+              } else {
+                void document.documentElement.requestFullscreen().catch(() => {});
+              }
             }}
+            sx={{ color: "rgba(255,255,255,0.7)" }}
           >
-            <Typography
-              sx={{
-                fontSize: "clamp(13px, 1.4vw, 22px)",
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                color: "rgba(255,255,255,0.8)",
-              }}
-            >
-              {player.displayName}
-            </Typography>
-            <Typography
-              sx={{
-                fontFamily: jeopardyFonts.display,
-                fontSize: "clamp(22px, 2.6vw, 46px)",
-                color:
-                  player.score < 0
-                    ? jeopardyPalette.scoreNegative
-                    : jeopardyPalette.scorePositive,
-              }}
-            >
-              {player.score < 0 ? "-" : ""}${Math.abs(player.score).toLocaleString()}
-            </Typography>
-          </Box>
-        );
-      })}
-    </Stack>
+            {fullscreen ? (
+              <FullscreenExitIcon fontSize="small" />
+            ) : (
+              <FullscreenIcon fontSize="small" />
+            )}
+          </IconButton>
+        </Tooltip>
+      </Stack>
+
+      {publicState ? null : (
+        <Typography
+          data-testid="display-connecting"
+          sx={{
+            position: "fixed",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "rgba(255,255,255,0.5)",
+            fontFamily: jeopardyFonts.display,
+            letterSpacing: "0.2em",
+            pointerEvents: "none",
+          }}
+        >
+          CONNECTING…
+        </Typography>
+      )}
+    </Box>
   );
 }
 
 /**
- * The join panel and the fullscreen control. The code is shown plainly here —
- * unlike the player view, a display exists to be read by the room it is in.
+ * How to get in: the code, the URL, and a QR for phones. Floats over a
+ * corner rather than taking a band across the top, so hiding it gives the
+ * board the whole screen and nothing reflows when it goes.
  */
-function DisplayChrome({
-  roomId,
-  fullscreen,
-  onToggleFullscreen,
-}: {
-  roomId: string | null;
-  fullscreen: boolean;
-  onToggleFullscreen: () => void;
-}) {
+function JoinPanel({ roomId, onHide }: { roomId: string | null; onHide: () => void }) {
   const [qr, setQr] = useState<string | null>(null);
   const joinUrl =
     typeof window === "undefined" || !roomId
@@ -298,7 +191,7 @@ function DisplayChrome({
       .then((url) => {
         if (!cancelled) setQr(url);
       })
-      // A missing QR is a cosmetic loss: the code and the URL still work.
+      // A missing QR is cosmetic: the code and the URL still work.
       .catch(() => {});
     return () => {
       cancelled = true;
@@ -308,67 +201,65 @@ function DisplayChrome({
   return (
     <Stack
       direction="row"
+      spacing={2}
+      data-testid="display-join"
       sx={{
+        position: "fixed",
+        top: 16,
+        left: 16,
         alignItems: "center",
-        justifyContent: "space-between",
-        px: { xs: 1.5, md: 3 },
-        py: { xs: 1, md: 1.5 },
-        gap: 2,
+        background: "rgba(0,0,0,0.65)",
+        border: "1px solid rgba(255,255,255,0.12)",
+        borderRadius: 2,
+        p: 1.5,
+        backdropFilter: "blur(6px)",
       }}
     >
-      <Stack direction="row" spacing={2} sx={{ alignItems: "center", minWidth: 0 }}>
-        {qr ? (
-          // eslint-disable-next-line @next/next/no-img-element -- a data: URI, nothing for the image loader to optimise
-          <img
-            src={qr}
-            alt={`QR code to join room ${roomId}`}
-            data-testid="display-qr"
-            style={{ width: 92, height: 92, borderRadius: 6, background: "#fff" }}
-          />
-        ) : null}
-        <Box sx={{ minWidth: 0 }}>
-          <Typography
-            sx={{
-              fontSize: "clamp(11px, 1vw, 16px)",
-              letterSpacing: "0.22em",
-              textTransform: "uppercase",
-              color: "rgba(255,255,255,0.55)",
-            }}
-          >
-            Play along — join with
-          </Typography>
-          <Typography
-            data-testid="display-room-code"
-            sx={{
-              fontFamily: jeopardyFonts.display,
-              letterSpacing: "0.3em",
-              fontSize: "clamp(28px, 3.4vw, 64px)",
-              color: jeopardyPalette.goldBright,
-              lineHeight: 1.1,
-            }}
-          >
-            {roomId ?? "—"}
-          </Typography>
-          <Typography
-            sx={{
-              fontSize: "clamp(10px, 0.9vw, 15px)",
-              color: "rgba(255,255,255,0.45)",
-              wordBreak: "break-all",
-            }}
-          >
-            {joinUrl.replace(/^https?:\/\//, "")}
-          </Typography>
-        </Box>
-      </Stack>
-
-      <Tooltip title={fullscreen ? "Leave fullscreen" : "Fullscreen"}>
-        <IconButton
-          onClick={onToggleFullscreen}
-          data-testid="display-fullscreen"
-          aria-label={fullscreen ? "Leave fullscreen" : "Go fullscreen"}
-          sx={{ color: "rgba(255,255,255,0.5)" }}
+      {qr ? (
+        // eslint-disable-next-line @next/next/no-img-element -- a data: URI, nothing for the image loader to optimise
+        <img
+          src={qr}
+          alt={`QR code to join room ${roomId}`}
+          data-testid="display-qr"
+          style={{ width: 84, height: 84, borderRadius: 6, background: "#fff" }}
+        />
+      ) : null}
+      <Box>
+        <Typography
+          sx={{
+            fontSize: 11,
+            letterSpacing: "0.22em",
+            textTransform: "uppercase",
+            color: "rgba(255,255,255,0.5)",
+          }}
         >
-          {fullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+          Play along
+        </Typography>
+        <Typography
+          data-testid="display-room-code"
+          sx={{
+            fontFamily: jeopardyFonts.display,
+            letterSpacing: "0.3em",
+            fontSize: "clamp(24px, 2.6vw, 44px)",
+            color: jeopardyPalette.goldBright,
+            lineHeight: 1.15,
+          }}
+        >
+          {roomId ?? "—"}
+        </Typography>
+        <Typography sx={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
+          {joinUrl.replace(/^https?:\/\//, "")}
+        </Typography>
+      </Box>
+      <Tooltip title="Hide the join code">
+        <IconButton
+          size="small"
+          data-testid="hide-join-panel"
+          aria-label="Hide the join code"
+          onClick={onHide}
+          sx={{ color: "rgba(255,255,255,0.5)", alignSelf: "flex-start" }}
+        >
+          <CloseIcon fontSize="small" />
         </IconButton>
       </Tooltip>
     </Stack>

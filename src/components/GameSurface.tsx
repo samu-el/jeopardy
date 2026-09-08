@@ -1,0 +1,207 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Box from "@mui/material/Box";
+import type { PublicGameState } from "@/lib/game";
+import { useGameStore } from "@/lib/state/game-store";
+import { jeopardyPalette } from "@/lib/foundation/jeopardy-style";
+import { Board } from "./Board";
+import { ClueStage } from "./ClueStage";
+import { Podium } from "./Podium";
+import { RoundIntro } from "./RoundIntro";
+
+interface GameSurfaceProps {
+  /** Only the picker (or the host) may open a clue; a display may not. */
+  interactive?: boolean;
+}
+
+/**
+ * The game itself: the board, the clue that covers it, the round title card
+ * and the row of lecterns.
+ *
+ * Room wraps it in a toolbar and chat; a display shows it alone on a
+ * television. It lives here so those two are the same thing rather than two
+ * drawings of it — a board that looks different on the TV to the one in your
+ * hand is a board people argue about.
+ */
+export function GameSurface({ interactive = true }: GameSurfaceProps) {
+  const lobby = useGameStore((s) => s.lobby);
+  const publicState = useGameStore((s) => s.publicState);
+  const runtime = useGameStore((s) => s.runtime);
+  const online = useGameStore((s) => s.online);
+  const selfId = useGameStore((s) => s.selfId)();
+  const reducedMotion = useGameStore((s) => s.preferences.reducedMotion);
+  const [now, setNow] = useState(() => Date.now());
+
+  // The round title card is time-boxed by the room, so tick while it shows.
+  const introEndsAt = publicState?.roundIntroEndsAt;
+  useEffect(() => {
+    if (!introEndsAt) return;
+    const id = setInterval(() => setNow(Date.now()), 120);
+    return () => clearInterval(id);
+  }, [introEndsAt]);
+  const introVisible = Boolean(introEndsAt && now < introEndsAt);
+
+  // Contestants only. A spectator — a display on a TV, or someone watching —
+  // has no score to show and no buzzer to light, so a lectern for them is
+  // just an empty seat on the set.
+  const players = useMemo(
+    () =>
+      publicState && publicState.players.length > 0
+        ? publicState.players.filter((player) => !player.spectator)
+        : [
+            {
+              id: lobby.hostId,
+              displayName: lobby.hostName,
+              score: 0,
+              connected: true,
+              kind: "human" as const,
+              spectator: false,
+              emoji: lobby.hostEmoji,
+              color: lobby.hostColor,
+            },
+            ...lobby.extraHumans.map((human) => ({
+              id: human.id,
+              displayName: human.name,
+              score: 0,
+              connected: true,
+              kind: "human" as const,
+              spectator: false,
+              emoji: human.emoji,
+              color: human.color,
+            })),
+            ...lobby.bots.map((bot) => ({
+              id: bot.id,
+              displayName: bot.name,
+              score: 0,
+              connected: true,
+              kind: "ai-bot" as const,
+              spectator: false,
+              emoji: bot.emoji,
+              color: bot.color,
+            })),
+          ],
+    [publicState, lobby],
+  );
+
+  const previewState = useMemo<PublicGameState>(
+    () => ({
+      roomId: online?.roomId ?? "preview",
+      round: "lobby" as const,
+      serverTime: 0,
+      players,
+      board: [],
+      settings: {
+        allowMultipleCorrect: false,
+        hostId: lobby.hostId,
+        aiJudgeEnabled: lobby.aiJudgeEnabled,
+        aiBotsEnabled: lobby.bots.length > 0,
+        aiAvatarHostEnabled: true,
+        voiceProfileId: "",
+        avatarHostProfileId: "",
+        autoAdvanceMs: 0,
+        earlyBuzzLockoutMs: 0,
+      },
+      stats: {
+        questionsStarted: 0,
+        answeredByPlayer: {},
+        correctByPlayer: {},
+        incorrectByPlayer: {},
+        firstBuzzByPlayer: {},
+        reactionTimesByPlayer: {},
+        dailyDoublesByPlayer: {},
+      },
+    }),
+    [players, lobby.hostId, lobby.aiJudgeEnabled, lobby.bots.length, online?.roomId],
+  );
+
+  const canPick =
+    interactive && publicState
+      ? (publicState.pickerId === selfId || publicState.settings.hostId === selfId) &&
+        publicState.round !== "lobby" &&
+        publicState.round !== "complete" &&
+        !publicState.currentClue &&
+        !introVisible
+      : false;
+
+  return (
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateRows: "minmax(0, 3fr) minmax(0, auto)",
+        gap: 2,
+      }}
+    >
+      <Box sx={{ position: "relative", width: "100%", maxWidth: 1240, mx: "auto" }}>
+        <Board
+          state={publicState}
+          canPick={canPick}
+          onPick={(clueId) => {
+            if (!interactive) return;
+            runtime?.sendCommand(selfId, { type: "pick-clue", clueId });
+          }}
+          overlay={
+            publicState?.currentClue ? (
+              <Box
+                role="dialog"
+                aria-label="Clue"
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  background: jeopardyPalette.board,
+                }}
+              >
+                <ClueStage state={publicState} currentClientId={selfId} />
+              </Box>
+            ) : undefined
+          }
+        />
+        {publicState ? (
+          <RoundIntro
+            round={publicState.round}
+            visible={introVisible}
+            reducedMotion={reducedMotion}
+          />
+        ) : null}
+      </Box>
+
+      <Box
+        sx={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: { xs: 1.5, sm: 2 },
+          justifyContent: "center",
+          alignItems: "flex-end",
+          py: 1,
+        }}
+      >
+        {players.map((player) => (
+          <Box key={player.id} sx={{ flex: "0 0 auto", width: { xs: 130, sm: 168 } }}>
+            <Podium
+              player={player}
+              state={publicState ?? previewState}
+              isYou={player.id === selfId}
+              emoji={player.emoji ?? avatarFor(lobby, player.id)?.emoji}
+              color={player.color ?? avatarFor(lobby, player.id)?.color}
+            />
+          </Box>
+        ))}
+      </Box>
+    </Box>
+  );
+}
+
+function avatarFor(
+  lobby: ReturnType<typeof useGameStore.getState>["lobby"],
+  playerId: string,
+): { emoji?: string; color?: string } | undefined {
+  if (playerId === lobby.hostId) {
+    return { emoji: lobby.hostEmoji, color: lobby.hostColor };
+  }
+  const bot = lobby.bots.find((candidate) => candidate.id === playerId);
+  if (bot) return { emoji: bot.emoji, color: bot.color };
+  const human = lobby.extraHumans.find((candidate) => candidate.id === playerId);
+  if (human) return { emoji: human.emoji, color: human.color };
+  return undefined;
+}
