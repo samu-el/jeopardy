@@ -79,7 +79,7 @@ export function Onboarding() {
           <Step
             num={2}
             title="Play alone or together"
-            body="Add AI opponents from Players, or hit Invite and share the four-letter code."
+            body="Every board has a room code up top. Reveal it, share it, and they are in."
           />
           <Step
             num={3}
