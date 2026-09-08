@@ -51,8 +51,17 @@ room costs one comparison per tick and broadcasts nothing.
 
 ## Joining, leaving, reconnecting
 
-- A room code is four unambiguous characters (`generateRoomCode`), shared as a
-  code or an invite link (`?room=CODE`).
+- **Every board is a shared room.** Starting a game mints a code and opens the
+  object before the first clue, so there is no "make this shareable" step to
+  find and nobody has to decide up front whether friends are joining. Solo
+  play is simply a room with one person in it.
+- The code is four unambiguous characters (`generateRoomCode`), shared as a
+  code or an invite link (`?room=CODE`). The room strip shows it masked and
+  reveals on request: a code on screen is a code anyone watching can join
+  with, and boards get screen-shared.
+- If the rooms service can't be reached within `roomConnectGraceMs`, the same
+  board reopens locally and the strip says "Solo — not shareable". An outage
+  costs sharing, not the game.
 - Taking a seat is the `join-game` command, so the roster lives in the engine
   and reaches everyone through the normal state broadcast.
 - Each browser keeps a stable player id (`src/lib/state/identity.ts`). Re-joining

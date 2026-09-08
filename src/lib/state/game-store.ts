@@ -107,6 +107,12 @@ export interface GameStoreState {
   runtime: RoomRuntime | null;
   /** Non-null while this tab is in a shared (server-hosted) room. */
   online: OnlineRoomState | null;
+  /**
+   * True when a board is running locally because the rooms service could not
+   * be reached, so the UI can say the code isn't coming rather than showing a
+   * code nobody else can join.
+   */
+  shareUnavailable: boolean;
   lastEvents: GameEvent[];
   lastCue: AvatarHostCue | null;
   /**
@@ -117,7 +123,6 @@ export interface GameStoreState {
   setPendingRoomId: (id: string | null) => void;
   /** The player id this client acts as — the seat, not the room owner. */
   selfId: () => string;
-  hostOnlineRoom: () => Promise<string | null>;
   joinOnlineRoom: (roomId: string) => Promise<boolean>;
   leaveOnlineRoom: () => void;
   pushLoadedGameToRoom: () => void;
@@ -185,6 +190,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   publicState: null,
   runtime: null,
   online: null,
+  shareUnavailable: false,
   lastEvents: [],
   lastCue: null,
   pendingRoomId: null,
@@ -380,29 +386,6 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       }
     }
   },
-  hostOnlineRoom: async () => {
-    const { lobby, runtime } = get();
-    if (runtime) runtime.destroy();
-    set({ runtime: null, publicState: null, chat: [], lastEvents: [], lastCue: null });
-    try {
-      // The code is minted here and the room is created by connecting with
-      // it: the room lives in a Durable Object keyed by the code, so there is
-      // nothing to reserve up front.
-      const roomId = generateRoomCode();
-      connectToRoom(set, get, roomId, true);
-      return roomId;
-    } catch (error) {
-      set({
-        online: {
-          roomId: "",
-          status: "rejected",
-          isHost: true,
-          error: (error as Error).message,
-        },
-      });
-      return null;
-    }
-  },
   joinOnlineRoom: async (roomId) => {
     const { runtime } = get();
     if (runtime) runtime.destroy();
@@ -519,55 +502,39 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       return;
     }
 
-    if (runtime) runtime.destroy();
-
-    const newRuntime = new LocalRoomRuntime(
-      {
-        roomId: `room-${Date.now()}`,
-        hostId: lobby.hostId,
-        hostName: lobby.hostName,
-        humanPlayers: [
-          {
-            id: lobby.hostId,
-            name: lobby.hostName,
-            spectator: lobby.hostSpectator,
-            emoji: lobby.hostEmoji,
-            color: lobby.hostColor,
-          },
-          ...lobby.extraHumans,
-        ],
-        bots: lobby.bots.map((bot) => ({
-          id: bot.id,
-          name: bot.name,
-          profile: bot.profile,
-          emoji: bot.emoji,
-          color: bot.color,
-        })),
-        clues,
+    // No room yet. Open a shared one so every board carries a code from the
+    // first clue — nobody has to decide up front whether friends are joining.
+    // If the rooms service can't be reached we fall back to a local room, so
+    // an outage costs sharing rather than the game.
+    const roomId = generateRoomCode();
+    connectToRoom(set, get, roomId, true);
+    const opened = get().runtime;
+    if (opened) {
+      // Frames written before the socket opens are queued and replayed, so
+      // the board can be dealt without waiting for the connection.
+      opened.sendCommand(lobby.hostId, { type: "load-game", clues });
+      opened.sendCommand(lobby.hostId, {
+        type: "update-settings",
         settings: {
           aiJudgeEnabled: lobby.aiJudgeEnabled,
-          aiBotsEnabled: lobby.bots.length > 0,
-          aiAvatarHostEnabled: get().preferences.avatarHostMode !== "off",
           buzzWindowMs: get().preferences.buzzWindowSeconds * 1_000,
         },
-      },
-      {
-        onPublicState: (state) => set({ publicState: state }),
-        onEvents: (events) => set({ lastEvents: events }),
-        onChat: (message) => set((s) => ({ chat: [...s.chat, message].slice(-200) })),
-      },
-    );
-
-    set({
-      runtime: newRuntime,
-      online: null,
-      screen: "play",
-      publicState: newRuntime.getPublicState(),
-      chat: [],
-    });
-
-    // Auto-deal the board so Begin = one click.
-    newRuntime.sendCommand(lobby.hostId, { type: "start-game" });
+      });
+      if (opened instanceof NetworkRoomRuntime) {
+        for (const bot of lobby.bots) {
+          opened.addBot({
+            id: bot.id,
+            displayName: bot.name,
+            profileId: bot.profile.id,
+            emoji: bot.emoji,
+            color: bot.color,
+          });
+        }
+      }
+      opened.sendCommand(lobby.hostId, { type: "start-game" });
+    }
+    watchForRoomFallback(set, get, roomId);
+    set({ screen: "play" });
   },
   exitToLobby: () => {
     const { runtime, online, lobby } = get();
@@ -614,6 +581,86 @@ function resolveClues(lobby: LobbyConfig): GameClue[] {
   return normalized.ok ? normalized.game.clues : [];
 }
 
+/**
+ * How long a new room may spend trying to reach the rooms service before the
+ * game carries on without it.
+ */
+const roomConnectGraceMs = 6_000;
+
+/**
+ * Every board opens as a shared room, which means a rooms outage would
+ * otherwise mean no game at all. If the socket hasn't connected by the time
+ * the grace runs out, the same board reopens locally: sharing is lost, play
+ * is not.
+ */
+function watchForRoomFallback(set: StoreSet, get: StoreGet, roomId: string) {
+  if (typeof window === "undefined") return;
+  window.setTimeout(() => {
+    const state = get();
+    // Someone else's room, a room that connected, or a game already left
+    // behind — none of those are ours to replace.
+    if (state.online?.roomId !== roomId) return;
+    if (state.online.status === "connected") return;
+    startLocalGame(set, get);
+  }, roomConnectGraceMs);
+}
+
+/** Builds the room inside this tab. Solo play, and the offline fallback. */
+function startLocalGame(set: StoreSet, get: StoreGet) {
+  const { lobby, runtime } = get();
+  const clues = resolveClues(lobby);
+  if (clues.length === 0) return;
+  if (runtime) runtime.destroy();
+
+  const local = new LocalRoomRuntime(
+    {
+      roomId: `room-${Date.now()}`,
+      hostId: lobby.hostId,
+      hostName: lobby.hostName,
+      humanPlayers: [
+        {
+          id: lobby.hostId,
+          name: lobby.hostName,
+          spectator: lobby.hostSpectator,
+          emoji: lobby.hostEmoji,
+          color: lobby.hostColor,
+        },
+        ...lobby.extraHumans,
+      ],
+      bots: lobby.bots.map((bot) => ({
+        id: bot.id,
+        name: bot.name,
+        profile: bot.profile,
+        emoji: bot.emoji,
+        color: bot.color,
+      })),
+      clues,
+      settings: {
+        aiJudgeEnabled: lobby.aiJudgeEnabled,
+        aiBotsEnabled: lobby.bots.length > 0,
+        aiAvatarHostEnabled: get().preferences.avatarHostMode !== "off",
+        buzzWindowMs: get().preferences.buzzWindowSeconds * 1_000,
+      },
+    },
+    {
+      onPublicState: (state) => set({ publicState: state }),
+      onEvents: (events) => set({ lastEvents: events }),
+      onChat: (message) => set((s) => ({ chat: [...s.chat, message].slice(-200) })),
+    },
+  );
+
+  set({
+    runtime: local,
+    online: null,
+    shareUnavailable: true,
+    screen: "play",
+    publicState: local.getPublicState(),
+    chat: [],
+  });
+
+  local.sendCommand(lobby.hostId, { type: "start-game" });
+}
+
 function connectToRoom(
   set: StoreSet,
   get: StoreGet,
@@ -630,6 +677,7 @@ function connectToRoom(
 
   set({
     online: { roomId, status: "connecting", isHost },
+    shareUnavailable: false,
     lobby: { ...lobby, hostName: displayName },
     publicState: null,
     chat: [],
