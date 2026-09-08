@@ -12,7 +12,7 @@
   },
   // Only the worker's own entry points; tsc follows the imports from there,
   // so anything the room actually needs is checked and nothing else is.
-  "include": ["index.ts", "room-object.ts"],
+  "include": ["index.ts", "room-object.ts", "game-object.ts"],
   // The root config excludes `workers` so the app's typecheck skips it; this
   // is the config that owns these files, so it takes the exclusion back.
   "exclude": ["../../node_modules"]

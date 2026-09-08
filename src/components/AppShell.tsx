@@ -12,12 +12,19 @@ export function AppShell() {
   const screen = useGameStore((s) => s.screen);
   const displayMode = useGameStore((s) => s.displayMode);
   const setPendingRoomId = useGameStore((s) => s.setPendingRoomId);
+  const loadPublishedGame = useGameStore((s) => s.loadPublishedGame);
   const joinAsDisplay = useGameStore((s) => s.joinAsDisplay);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
       const params = new URLSearchParams(window.location.search);
+      const gameId = params.get("game");
+      if (gameId) {
+        // A shared custom game: fetch it and deal it, the same as New Game.
+        void loadPublishedGame(gameId);
+        return;
+      }
       const roomId = params.get("room");
       if (!roomId) return;
       if (params.get("display") === "1") {
@@ -30,7 +37,7 @@ export function AppShell() {
     } catch {
       // Ignore — URL parsing should never fail in normal usage
     }
-  }, [joinAsDisplay, setPendingRoomId]);
+  }, [joinAsDisplay, loadPublishedGame, setPendingRoomId]);
 
   if (displayMode) {
     return <DisplayView />;

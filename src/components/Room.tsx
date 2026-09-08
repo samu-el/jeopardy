@@ -135,6 +135,7 @@ export function Room() {
     <RoomToolbar
       onOpenPicker={() => setPickerOpen(true)}
       onOpenBrowser={() => setBrowserOpen(true)}
+      onOpenBuilder={() => setBuilderOpen(true)}
       onToggleShortcuts={() => setShortcutsOpen((value) => !value)}
       onToggleTranscript={() => setTranscriptOpen((value) => !value)}
       onOpenReplay={() => setReplayOpen(true)}

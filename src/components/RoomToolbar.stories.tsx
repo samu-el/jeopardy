@@ -8,6 +8,7 @@ const meta: Meta<typeof RoomToolbar> = {
   args: {
     onOpenPicker: () => {},
     onOpenBrowser: () => {},
+    onOpenBuilder: () => {},
     onToggleShortcuts: () => {},
     onToggleTranscript: () => {},
     onOpenReplay: () => {},

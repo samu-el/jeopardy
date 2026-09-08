@@ -79,13 +79,51 @@ on its own — a TV should show the board, not a form — and joins as a
 **spectator**: no seat, no buzzer, no commands. The people playing keep their
 phones, and the board is the thing everyone looks at.
 
-It shows the code plainly, next to a QR that joins the room in one scan.
-That is the opposite of the player view, which masks the code: a display
-exists to be read by the room it is standing in.
+It draws the *same* board the browser draws. `GameSurface` holds the board,
+the clue overlay, the round card and the lecterns; `Room` wraps it in a
+toolbar and chat, a display renders it alone with `interactive={false}` —
+the one difference being that a television may not pick a clue. Two
+drawings of one screen drift, and a board that disagrees with the one in
+your hand is a board people argue about.
+
+The join panel — code, URL and a QR that joins in one scan — floats over a
+corner and hides completely on one click, giving the board the whole screen.
+The choice is kept per television, so a TV set up once stays set up. While
+it is shown the code is plain, the opposite of the player view, which masks
+it: a display exists to be read by the room it is standing in.
 
 Spectators are filtered out of the podium row. A lectern for someone with no
 score and no buzzer is an empty seat on the set — which is what a display
 would otherwise look like.
+
+## Custom games
+
+Games people write are stored in the same Worker as the rooms, in a
+`CustomGameObject` keyed by the game's own id — so a share link resolves
+straight to the object that holds it, with no index to keep in step.
+
+| Route | Does |
+| --- | --- |
+| `POST /games` | Publishes a new game. The id is minted at the edge, not accepted from the client. |
+| `GET /games/<id>` | Returns the game. |
+| `PUT /games/<id>` | Replaces it, given the edit token issued when it was published. |
+
+Two things follow from a game being someone's typing rather than our data:
+
+- **It is validated, not trusted.** `checkPublishedGame` runs in the Worker
+  before anything is stored and again on the client after it is read back,
+  and returns cleaned content rather than the caller's object. Lengths and
+  counts are capped so one game cannot fill an object or a screen.
+- **A share link is not an edit link.** Publishing hands back an edit token,
+  kept in the publisher's browser. Without it a `PUT` is a 403, so anyone
+  holding the link can play a game but not rewrite it under everyone else.
+
+Ids are ten characters of an unambiguous alphabet — roughly 50 bits, because
+the link is the only thing protecting a game.
+
+`?game=<id>` opens one: the app fetches it and deals it, exactly like New
+Game. A link to a game that was never published leaves you on the landing
+page rather than an empty board.
 
 ## Readout pacing
 

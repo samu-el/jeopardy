@@ -21,11 +21,14 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import DownloadIcon from "@mui/icons-material/DownloadOutlined";
 import UploadIcon from "@mui/icons-material/UploadFileOutlined";
+import ShareIcon from "@mui/icons-material/IosShareOutlined";
+import CircularProgress from "@mui/material/CircularProgress";
 import {
   buildNormalizedGame,
   builderGameToJSON,
   emptyBuilderGame,
   parseBuilderGame,
+  publishGame,
   type BuilderClue,
   type BuilderGame,
 } from "@/lib/data";
@@ -49,6 +52,9 @@ export function CustomGameBuilder({ open, onClose }: CustomGameBuilderProps) {
   const [draft, setDraft] = useState<BuilderGame>(initial);
   const [tab, setTab] = useState<PlayableRound>("jeopardy");
   const [error, setError] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const cluesByCategory = useMemo(() => {
     const map = new Map<string, BuilderClue[]>();
@@ -103,16 +109,41 @@ export function CustomGameBuilder({ open, onClose }: CustomGameBuilderProps) {
     reader.readAsText(file);
   }
 
+  /**
+   * Saves the game and puts it where other people can open it. A game that
+   * only exists in this browser can't be played with anyone, which is the
+   * reason to build one.
+   */
+  async function publish() {
+    const result = buildNormalizedGame(draft);
+    if (!result.ok) {
+      setError(firstProblems(result.issues));
+      return;
+    }
+    setError(null);
+    setPublishing(true);
+    try {
+      const published = await publishGame({
+        title: draft.title || "Custom game",
+        clues: result.game.clues,
+      });
+      if (!published.ok) {
+        setError(published.error ?? "Could not publish that game.");
+        return;
+      }
+      // Keep playing it here too: publishing is sharing, not exporting.
+      saveDraft(draft);
+      setCustomGame(result.game, result.issues);
+      setShareUrl(published.shareUrl ?? null);
+    } finally {
+      setPublishing(false);
+    }
+  }
+
   function commit() {
     const result = buildNormalizedGame(draft);
     if (!result.ok) {
-      setError(
-        result.issues
-          .filter((issue) => issue.severity === "error")
-          .slice(0, 3)
-          .map((issue) => issue.message)
-          .join("; ") || "Validation failed.",
-      );
+      setError(firstProblems(result.issues));
       return;
     }
     setError(null);
@@ -328,11 +359,47 @@ export function CustomGameBuilder({ open, onClose }: CustomGameBuilderProps) {
           <DownloadIcon />
         </IconButton>
         <Box sx={{ flex: 1 }} />
+        {shareUrl ? (
+          <Button
+            size="small"
+            data-testid="copy-game-link"
+            onClick={() => {
+              navigator.clipboard
+                ?.writeText(shareUrl)
+                .then(() => {
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1_800);
+                })
+                .catch(() => {});
+            }}
+            sx={{ textTransform: "none" }}
+          >
+            {copied ? "Link copied" : shareUrl.replace(/^https?:\/\//, "")}
+          </Button>
+        ) : null}
         <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" onClick={commit}>
-          Save
+        <Button onClick={commit}>Save</Button>
+        <Button
+          variant="contained"
+          onClick={publish}
+          disabled={publishing}
+          data-testid="publish-game"
+          startIcon={publishing ? <CircularProgress size={16} /> : <ShareIcon />}
+        >
+          {publishing ? "Publishing…" : "Publish & share"}
         </Button>
       </DialogActions>
     </Dialog>
+  );
+}
+
+/** The first few blocking problems, in the order the builder lists them. */
+function firstProblems(issues: { severity: string; message: string }[]): string {
+  return (
+    issues
+      .filter((issue) => issue.severity === "error")
+      .slice(0, 3)
+      .map((issue) => issue.message)
+      .join("; ") || "Validation failed."
   );
 }
