@@ -1,35 +1,28 @@
-"use client";
-
-import { useEffect } from "react";
+import { Analytics } from "@vercel/analytics/next";
 
 /**
- * Vercel Analytics — free tier, gated behind NEXT_PUBLIC_ANALYTICS=1. When
- * the env flag is off (default) this renders nothing and never imports the
- * package. When on, the Analytics component is loaded dynamically.
+ * Vercel Web Analytics — how many people reach the page.
  *
- * No code change required to opt in: set NEXT_PUBLIC_ANALYTICS=1 in
- * .env.local or your Vercel project. Drop the env to disable.
+ * On in production, off everywhere else. The default is deliberately *on*:
+ * this file used to be an opt-in gate reading `NEXT_PUBLIC_ANALYTICS`, and
+ * since the package was never actually installed the gate quietly measured
+ * nothing for months. Analytics that silently collects nothing is worse than
+ * no analytics, because you believe the empty dashboard.
+ *
+ * `NEXT_PUBLIC_ANALYTICS=0` turns it off again if that is ever wanted.
+ *
+ * Development and the e2e run are excluded on purpose: there the beacon
+ * fetches a debug script from an external host, which is noise in the logs
+ * and a failed request in a sandbox. Nothing is sent from a developer's
+ * machine either way.
+ *
+ * The counting still has to be switched on in the Vercel project
+ * (Analytics → Enable). Until it is, this ships the beacon and Vercel
+ * discards what it sends.
  */
 export function AnalyticsGate() {
-  useEffect(() => {
-    if (process.env.NEXT_PUBLIC_ANALYTICS !== "1") return;
-    let mounted = true;
-    // The dependency is optional — kept out of static analysis so the
-    // project builds without it. To opt in: `bun add @vercel/analytics`
-    // and set NEXT_PUBLIC_ANALYTICS=1.
-    const moduleName = "@vercel/analytics";
-    (Function("name", "return import(name)")(moduleName) as Promise<unknown>)
-      .then((mod) => {
-        if (!mounted) return;
-        const injector = (mod as { inject?: (options: object) => void }).inject;
-        injector?.({ mode: "production" });
-      })
-      .catch(() => {
-        // Package not installed — silently ignore.
-      });
-    return () => {
-      mounted = false;
-    };
-  }, []);
-  return null;
+  const enabled =
+    process.env.NODE_ENV === "production" && process.env.NEXT_PUBLIC_ANALYTICS !== "0";
+  if (!enabled) return null;
+  return <Analytics />;
 }
