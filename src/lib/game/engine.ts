@@ -878,7 +878,9 @@ function joinGame(
       now,
     );
     return {
-      state: next,
+      // Reclaiming a seat in a room that came back from storage counts too:
+      // the recorded host may never return.
+      state: ensureHost(next),
       events: [
         {
           type: "player-joined",
@@ -909,10 +911,6 @@ function joinGame(
       ...state,
       players: { ...state.players, [player.id]: player },
       scores: { ...state.scores, [player.id]: state.scores[player.id] ?? 0 },
-      // First human through the door owns the room.
-      settings: state.settings.hostId
-        ? state.settings
-        : { ...state.settings, hostId: player.id },
       pickerId:
         state.pickerId ??
         (state.round === "lobby" || state.round === "complete" ? undefined : player.id),
@@ -920,7 +918,9 @@ function joinGame(
     now,
   );
   return {
-    state: next,
+    // First human through the door owns the room — and so does the next one,
+    // if the chair is standing empty when they arrive.
+    state: ensureHost(next),
     events: [
       {
         type: "player-joined",
@@ -1192,30 +1192,58 @@ function withoutPlayer(active: ActiveClueState, playerId: string): ActiveClueSta
  * Called when a player leaves or drops off the connection.
  */
 export function reassignRoles(state: GameState, departedId: string): GameState {
-  let settings = state.settings;
-  let pickerId = state.pickerId;
+  const withHost = ensureHost(state, departedId);
+  let pickerId = withHost.pickerId;
 
-  if (settings.hostId === departedId) {
-    settings = { ...settings, hostId: nextHostId(state, departedId) };
-  }
   if (pickerId === departedId) {
     pickerId =
-      settings.hostId ??
-      getActivePlayers(state).find((player) => player.id !== departedId)?.id;
+      withHost.settings.hostId ??
+      getActivePlayers(withHost).find((player) => player.id !== departedId)?.id;
   }
-  return { ...state, settings, pickerId };
+  return pickerId === withHost.pickerId ? withHost : { ...withHost, pickerId };
 }
 
-function nextHostId(state: GameState, departedId: string): string | undefined {
-  const candidates = Object.values(state.players)
-    .filter(
-      (player) =>
-        player.id !== departedId && player.kind === "human" && player.connected,
-    )
+/**
+ * The chair belongs to someone who is actually here.
+ *
+ * A host who is present keeps it, spectator or not — hosting without playing
+ * is a thing people choose. But a chair held by someone absent is a room
+ * nobody can run: the board won't open, the answer won't reveal. That happens
+ * more than it sounds. A room restored from storage comes back with its old
+ * host recorded and nobody connected, so the next person through the door
+ * would otherwise find a board they cannot touch — and if they are the only
+ * one there, no one is coming to hand it over.
+ *
+ * Call it after anyone joins, leaves or drops.
+ */
+export function ensureHost(state: GameState, departedId?: string): GameState {
+  const current = state.settings.hostId
+    ? state.players[state.settings.hostId]
+    : undefined;
+  const held =
+    current !== undefined && current.id !== departedId && isHostCandidate(current);
+  if (held) return state;
+
+  const nextHost = chooseHost(state, departedId);
+  if (nextHost === state.settings.hostId) return state;
+  return { ...state, settings: { ...state.settings, hostId: nextHost } };
+}
+
+function isHostCandidate(player: GamePlayer): boolean {
+  return player.kind === "human" && player.connected;
+}
+
+function chooseHost(state: GameState, departedId?: string): string | undefined {
+  return Object.values(state.players)
+    .filter((player) => player.id !== departedId && isHostCandidate(player))
     .sort(
-      (a, b) => (a.joinedAt ?? 0) - (b.joinedAt ?? 0) || a.id.localeCompare(b.id),
-    );
-  return candidates[0]?.id;
+      (a, b) =>
+        // A contestant before a spectator: a television that joined to watch
+        // should not end up holding the board.
+        Number(Boolean(a.spectator)) - Number(Boolean(b.spectator)) ||
+        (a.joinedAt ?? 0) - (b.joinedAt ?? 0) ||
+        a.id.localeCompare(b.id),
+    )[0]?.id;
 }
 
 function sanitizeName(name: string): string {
