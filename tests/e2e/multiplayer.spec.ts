@@ -76,6 +76,71 @@ test.describe("Shared room", () => {
     }
   });
 
+  test("a name typed on the way in is the name the room uses", async ({ browser }) => {
+    const hostContext = await browser.newContext();
+    const guestContext = await browser.newContext();
+    const host = await hostContext.newPage();
+    const guest = await guestContext.newPage();
+
+    try {
+      await routeFixtureEpisodes(host);
+      await host.goto("/");
+      await host.getByTestId("new-game").click();
+      await dismissOnboarding(host);
+      const code = await revealRoomCode(host);
+
+      // Typing a code used to join on the spot, with nowhere to say who you
+      // were — the room called you "Player 4B2" and the chat agreed.
+      await guest.goto("/");
+      await guest.getByLabel("Room code").fill(code);
+      await guest.getByRole("button", { name: "Join" }).click();
+
+      // The field is filled in with the name the room would give you, so it
+      // is not a surprise if you leave it alone.
+      const nameField = guest.getByLabel("Your name");
+      await expect(nameField).toHaveValue(/^Player [A-Z0-9]{3}$/);
+
+      await nameField.fill("Zelda");
+      await guest.getByRole("button", { name: "Join" }).click();
+      await dismissOnboarding(guest);
+
+      // On the lecterns, in the arrival notice, and on anything they say.
+      await expect(host.getByText("Zelda", { exact: true })).toBeVisible();
+      await expect(host.getByText("Zelda joined")).toBeVisible();
+
+      await guest.getByPlaceholder("Message").fill("hello");
+      await guest.getByPlaceholder("Message").press("Enter");
+      await expect(host.getByText("hello")).toBeVisible();
+      await expect(host.getByText("Player", { exact: true })).toHaveCount(0);
+    } finally {
+      await hostContext.close();
+      await guestContext.close();
+    }
+  });
+
+  test("the last person in the room can still run the board", async ({ browser }) => {
+    const room = await openSharedRoom(browser);
+    const { guest } = room;
+    try {
+      // The host holds the chair, so the guest cannot open a clue yet.
+      await expect(
+        guest.getByRole("button", { name: /\$200/ }).first(),
+      ).toBeDisabled();
+
+      // The host walks away. Nobody is left to hand the chair over, so the
+      // room has to do it — otherwise the guest is sitting at a board they
+      // cannot touch.
+      await room.closeHost();
+
+      const tile = guest.getByRole("button", { name: /\$200/ }).first();
+      await expect(tile).toBeEnabled({ timeout: 30_000 });
+      await tile.click();
+      await expect(guest.getByTestId("clue-stage")).toBeVisible();
+    } finally {
+      await room.close();
+    }
+  });
+
   test("the host deals a board and the guest rings in on it", async ({ browser }) => {
     const room = await openSharedRoom(browser);
     const { host, guest } = room;
@@ -118,6 +183,8 @@ interface SharedRoom {
   host: Page;
   guest: Page;
   code: string;
+  /** Closes the host's browser, leaving the guest alone in the room. */
+  closeHost: () => Promise<void>;
   close: () => Promise<void>;
 }
 
@@ -152,16 +219,26 @@ async function openSharedRoom(browser: Browser): Promise<SharedRoom> {
 
   await guest.goto("/");
   await guest.getByLabel("Room code").fill(code);
+  // The code opens the join card, the same one an invite link opens, so
+  // there is exactly one place you are asked who you are.
+  await guest.getByRole("button", { name: "Join" }).click();
+  await expect(guest.getByLabel("Your name")).toBeVisible();
   await guest.getByRole("button", { name: "Join" }).click();
   await dismissOnboarding(guest);
   await expect(guest.getByTestId(/^podium-/)).toHaveCount(2);
 
+  let hostOpen = true;
   return {
     host,
     guest,
     code,
-    close: async () => {
+    closeHost: async () => {
+      if (!hostOpen) return;
+      hostOpen = false;
       await hostContext.close();
+    },
+    close: async () => {
+      if (hostOpen) await hostContext.close();
       await guestContext.close();
     },
   };

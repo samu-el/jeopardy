@@ -693,6 +693,23 @@ function startLocalGame(set: StoreSet, get: StoreGet) {
   local.sendCommand(lobby.hostId, { type: "start-game" });
 }
 
+/**
+ * "You" is fine on your own screen and useless when three people share a
+ * board, so an unnamed player gets something the room can tell apart.
+ *
+ * Exported because the join card shows it: a field that reads "You" while
+ * the room calls you "Player 4B2" is a name you think you chose.
+ */
+export function defaultPlayerName(hostId: string): string {
+  return `Player ${hostId.replace(/^p-/, "").slice(0, 3).toUpperCase()}`;
+}
+
+/** The name this client will actually appear under. */
+export function resolvePlayerName(name: string, hostId: string): string {
+  const trimmed = name.trim();
+  return trimmed && trimmed !== "You" ? trimmed : defaultPlayerName(hostId);
+}
+
 function connectToRoom(
   set: StoreSet,
   get: StoreGet,
@@ -700,12 +717,7 @@ function connectToRoom(
   isHost: boolean,
 ) {
   const { lobby } = get();
-  // "You" is fine on your own screen but useless when three people share a
-  // board, so give an unnamed player something the room can tell apart.
-  const displayName =
-    lobby.hostName.trim() && lobby.hostName.trim() !== "You"
-      ? lobby.hostName.trim()
-      : `Player ${lobby.hostId.replace(/^p-/, "").slice(0, 3).toUpperCase()}`;
+  const displayName = resolvePlayerName(lobby.hostName, lobby.hostId);
 
   set({
     online: { roomId, status: "connecting", isHost },

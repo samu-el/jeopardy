@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -10,11 +10,12 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForwardOutlined";
 import LoginIcon from "@mui/icons-material/LoginOutlined";
-import { useGameStore } from "@/lib/state/game-store";
+import { defaultPlayerName, useGameStore } from "@/lib/state/game-store";
 import { Wordmark } from "./Wordmark";
 
 export function Landing() {
   const pendingRoomId = useGameStore((s) => s.pendingRoomId);
+  const hostId = useGameStore((s) => s.lobby.hostId);
   const setPendingRoomId = useGameStore((s) => s.setPendingRoomId);
   const setHostName = useGameStore((s) => s.setHostName);
   const hostName = useGameStore((s) => s.lobby.hostName);
@@ -39,6 +40,21 @@ export function Landing() {
     // startRandomGame moves to the play screen itself; this component unmounts.
   }
 
+  /**
+   * The code box opens the join card rather than joining outright.
+   *
+   * It used to connect on the spot, which meant the only path that asked for
+   * a name was the invite link — type a code and the room called you
+   * "Player 4B2" with nowhere to say otherwise. One card, one place to be
+   * asked, whichever way you arrived.
+   */
+  function openJoinCard(roomId: string) {
+    const code = roomId.trim().toUpperCase();
+    if (code.length < 3) return;
+    setJoinError(null);
+    setPendingRoomId(code);
+  }
+
   async function joinRoom(roomId: string) {
     const code = roomId.trim().toUpperCase();
     if (!code) return;
@@ -59,6 +75,14 @@ export function Landing() {
       setJoining(false);
     }
   }
+
+  // What the room will call you if you say nothing. Showing it beats a field
+  // reading "You" over a room that calls you something else entirely.
+  useEffect(() => {
+    if (!pendingRoomId) return;
+    const current = hostName.trim();
+    if (!current || current === "You") setHostName(defaultPlayerName(hostId));
+  }, [pendingRoomId, hostName, hostId, setHostName]);
 
   return (
     <Box
@@ -213,16 +237,16 @@ export function Landing() {
                       onKeyDown={(event) => {
                         if (event.key === "Enter") {
                           event.preventDefault();
-                          void joinRoom(codeInput);
+                          openJoinCard(codeInput);
                         }
                       }}
                       sx={{ width: 150 }}
                     />
                     <Button
                       variant="outlined"
-                      startIcon={joining ? <CircularProgress size={16} /> : <LoginIcon />}
-                      onClick={() => joinRoom(codeInput)}
-                      disabled={joining || codeInput.trim().length < 3}
+                      startIcon={<LoginIcon />}
+                      onClick={() => openJoinCard(codeInput)}
+                      disabled={codeInput.trim().length < 3}
                       sx={{ borderRadius: 999, px: 3, py: 1.2 }}
                     >
                       Join
