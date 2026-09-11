@@ -3,8 +3,7 @@
 import { useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
-import IconButton from "@mui/material/IconButton";
+import IconButton, { type IconButtonProps } from "@mui/material/IconButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Menu from "@mui/material/Menu";
@@ -27,8 +26,10 @@ import ShuffleIcon from "@mui/icons-material/ShuffleOutlined";
 import LibraryIcon from "@mui/icons-material/LibraryBooksOutlined";
 import { useGameStore } from "@/lib/state/game-store";
 import { primeAudio, primeSpeech } from "@/lib/ai";
+import { controls, ui } from "@/lib/foundation/jeopardy-style";
 import { Wordmark } from "./Wordmark";
 import { RoomBar } from "./RoomBar";
+import { Housing, HousingDivider } from "./Housing";
 import CastIcon from "@mui/icons-material/CastOutlined";
 import { SettingsPanel } from "./SettingsPanel";
 import { PlayersPanel } from "./PlayersPanel";
@@ -107,93 +108,80 @@ export function RoomToolbar({
             <Wordmark size="sm" />
           </Box>
         </Tooltip>
-        {lobby.loadedEpisode ? (
-          <Chip
-            label={`#${lobby.loadedEpisode.id}${lobby.loadedEpisode.airDate ? ` · ${lobby.loadedEpisode.airDate}` : ""}`}
-            size="small"
-            variant="outlined"
-            sx={{ ml: 1, height: 30, color: "text.secondary", display: { xs: "none", md: "flex" } }}
-          />
-        ) : null}
-        <RoomBar />
+        <RoomBar
+          episode={
+            lobby.loadedEpisode
+              ? `#${lobby.loadedEpisode.id}${lobby.loadedEpisode.airDate ? ` · ${lobby.loadedEpisode.airDate}` : ""}`
+              : undefined
+          }
+        />
       </Stack>
 
       <Stack
         direction="row"
-        spacing={0.5}
-        useFlexGap
+        spacing={1}
         sx={{
           alignItems: "center",
-          flexWrap: "wrap",
           justifyContent: "flex-end",
           // When the strip wraps on a phone this row takes the whole second
           // line, so it can keep its controls on the right where they were.
           flexGrow: { xs: 1, sm: 0 },
         }}
       >
-        <Tooltip title="Change game">
-          <IconButton
-            onClick={onOpenPicker}
-            aria-label="Change game"
-            data-testid="change-game"
-            sx={{ minWidth: 44, minHeight: 44 }}
-          >
+        {/* The one key that isn't housed: it starts the game, and it should
+            look like the thing you press to do that. */}
+        {!inGame ? (
+          isRoomHost ? (
+            <Button
+              variant="contained"
+              data-testid="begin"
+              startIcon={<PlayArrowIcon />}
+              disabled={!canBegin}
+              onClick={() => {
+                primeAudio();
+                primeSpeech();
+                startGame();
+              }}
+              sx={{
+                ...controls.keyPrimary,
+                minHeight: 42,
+                px: 2.5,
+                borderRadius: "999px",
+                "&.Mui-disabled": controls.keyOff,
+              }}
+            >
+              Begin
+            </Button>
+          ) : (
+            <Typography variant="overline" sx={{ whiteSpace: "nowrap", color: ui.inkMuted }}>
+              Waiting for the host
+            </Typography>
+          )
+        ) : null}
+
+        <Housing>
+          <ToolKey title="Change game" aria-label="Change game" data-testid="change-game" onClick={onOpenPicker}>
             <ShuffleIcon />
-          </IconButton>
-        </Tooltip>
-        <DisplayButton />
-        <Tooltip title="Settings">
-          <IconButton
+          </ToolKey>
+          <DisplayButton />
+          <ToolKey
+            title="Settings"
+            aria-label="Settings"
             onClick={(event) => setSettingsAnchor(event.currentTarget)}
-            sx={{ minWidth: 44, minHeight: 44 }}
           >
             <SettingsIcon />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="More">
-          <IconButton
-            onClick={(event) => setMoreAnchor(event.currentTarget)}
-            sx={{ minWidth: 44, minHeight: 44 }}
-            aria-label="More"
-          >
+          </ToolKey>
+          <ToolKey title="More" aria-label="More" onClick={(event) => setMoreAnchor(event.currentTarget)}>
             <MoreVertIcon />
-          </IconButton>
-        </Tooltip>
-        {inGame ? (
-          isRoomHost ? (
-            <Tooltip title="Restart">
-              <IconButton
-                onClick={() => {
-                  exitToLobby();
-                }}
-                sx={{ minWidth: 44, minHeight: 44 }}
-              >
-                <ReplayIcon />
-              </IconButton>
-            </Tooltip>
-          ) : null
-        ) : isRoomHost ? (
-          <Button
-            variant="contained"
-            data-testid="begin"
-            startIcon={<PlayArrowIcon />}
-            disabled={!canBegin}
-            onClick={() => {
-              primeAudio();
-              primeSpeech();
-              startGame();
-            }}
-            sx={{ ml: 1, px: 3 }}
-          >
-            Begin
-          </Button>
-        ) : (
-          <Typography variant="overline" sx={{ ml: 1, whiteSpace: "nowrap", color: "text.secondary" }}>
-            Waiting for the host
-          </Typography>
-        )}
-        <Tooltip title={online ? "Leave room" : "Home"}>
-          <IconButton
+          </ToolKey>
+          <HousingDivider />
+          {inGame && isRoomHost ? (
+            <ToolKey title="Restart" aria-label="Restart" onClick={() => exitToLobby()}>
+              <ReplayIcon />
+            </ToolKey>
+          ) : null}
+          <ToolKey
+            title={online ? "Leave room" : "Home"}
             aria-label={online ? "Leave room" : "Home"}
             onClick={() => {
               // Leaving for real: hand the seat back rather than holding a
@@ -201,11 +189,11 @@ export function RoomToolbar({
               if (online) leaveOnlineRoom();
               setScreen("landing");
             }}
-            sx={{ minWidth: 44, minHeight: 44, color: "error.main", "&:hover": { color: "error.light" } }}
+            sx={{ color: ui.red, "&:hover": { color: "#FF7A84", background: "rgba(255,78,91,0.12)" } }}
           >
             <LogoutIcon />
-          </IconButton>
-        </Tooltip>
+          </ToolKey>
+        </Housing>
       </Stack>
 
       <Menu
@@ -332,14 +320,40 @@ function DisplayButton() {
   const setDisplayMode = useGameStore((s) => s.setDisplayMode);
   if (!online) return null;
   return (
-    <Tooltip title="TV mode">
+    <ToolKey
+      title="TV mode"
+      aria-label="Open display mode"
+      data-testid="open-display"
+      onClick={() => setDisplayMode(true)}
+    >
+      <CastIcon />
+    </ToolKey>
+  );
+}
+
+/**
+ * One key in the toolbar housing: a round well that lights when the pointer
+ * is over it. Flat on purpose — five raised keys in a row is a keyboard,
+ * and this is a strip of switches.
+ */
+function ToolKey({ title, sx, children, ...props }: IconButtonProps & { title: string }) {
+  return (
+    <Tooltip title={title}>
       <IconButton
-        aria-label="Open display mode"
-        data-testid="open-display"
-        onClick={() => setDisplayMode(true)}
-        sx={{ minWidth: 44, minHeight: 44 }}
+        {...props}
+        sx={[
+          {
+            width: 36,
+            height: 36,
+            borderRadius: "50%",
+            color: ui.inkMuted,
+            "&:hover": { color: ui.ink, background: "rgba(255,255,255,0.08)" },
+            "& svg": { fontSize: 20 },
+          },
+          ...(Array.isArray(sx) ? sx : [sx ?? false]),
+        ]}
       >
-        <CastIcon />
+        {children}
       </IconButton>
     </Tooltip>
   );

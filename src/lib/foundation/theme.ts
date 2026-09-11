@@ -1,5 +1,5 @@
 import { createTheme } from "@mui/material/styles";
-import { jeopardyFonts, ui } from "./jeopardy-style";
+import { controls, jeopardyFonts, ui } from "./jeopardy-style";
 
 /**
  * The MUI theme is a thin wrapper over the tokens in `jeopardy-style.ts`:
@@ -105,11 +105,13 @@ export const appTheme = createTheme({
         },
         sizeSmall: { minHeight: 30, fontSize: 12, paddingInline: 12 },
         sizeLarge: { minHeight: 48, fontSize: 16, paddingInline: 24 },
-        outlined: {
-          borderColor: ui.lineStrong,
-          color: ui.ink,
-          "&:hover": { borderColor: ui.ink, backgroundColor: "rgba(255,255,255,0.04)" },
+        // Every filled button is a key: a lit top edge and a dark underside.
+        contained: {
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.28), 0 1px 0 rgba(0,0,0,0.6)",
+          "&:hover": { boxShadow: "inset 0 1px 0 rgba(255,255,255,0.34), 0 1px 0 rgba(0,0,0,0.6)" },
+          "&:active": { transform: "translateY(1px)" },
         },
+        outlined: controls.key,
         text: { color: ui.inkMuted, "&:hover": { color: ui.ink } },
       },
     },
@@ -170,18 +172,37 @@ export const appTheme = createTheme({
     },
     MuiChip: {
       styleOverrides: {
-        root: { borderRadius: 6, fontWeight: 600 },
-        outlined: { borderColor: ui.lineStrong, color: ui.inkMuted },
-        sizeSmall: { height: 24, fontSize: 12 },
+        // Chips are small keys: the set's face, tracked, on the housing colour.
+        root: {
+          borderRadius: 6,
+          fontFamily: jeopardyFonts.display,
+          fontWeight: 600,
+          textTransform: "uppercase",
+          letterSpacing: "0.06em",
+          backgroundColor: ui.surfaceRaised,
+          border: `1px solid ${ui.line}`,
+        },
+        outlined: { backgroundColor: "transparent", borderColor: ui.lineStrong, color: ui.inkMuted },
+        colorPrimary: { boxShadow: "inset 0 1px 0 rgba(255,255,255,0.24)", borderColor: "transparent" },
+        colorSecondary: { boxShadow: "inset 0 1px 0 rgba(255,255,255,0.3)", borderColor: "transparent" },
+        sizeSmall: { height: 24, fontSize: 11 },
+        label: { paddingInline: 10 },
       },
     },
     MuiOutlinedInput: {
       styleOverrides: {
+        // A field is a readout you can type into: the same black glass as a
+        // lectern's score display, set into the surface.
         root: {
-          backgroundColor: "rgba(0,0,0,0.30)",
+          backgroundColor: controls.readout.background,
+          boxShadow: controls.readout.boxShadow,
+          borderRadius: controls.readout.borderRadius,
           "& .MuiOutlinedInput-notchedOutline": { borderColor: ui.lineStrong },
           "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: ui.inkMuted },
-          "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: ui.blue },
+          "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+            borderColor: ui.blue,
+            boxShadow: `0 0 0 3px ${ui.blueTint}`,
+          },
         },
       },
     },
