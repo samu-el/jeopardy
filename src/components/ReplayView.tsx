@@ -10,6 +10,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { ui } from "@/lib/foundation/jeopardy-style";
 import { loadLastReplay, type ReplayEntry, type ReplayLog } from "@/lib/runtime";
 
 interface ReplayViewProps {
@@ -47,7 +48,7 @@ export function ReplayView({ open, onClose }: ReplayViewProps) {
                 overflowY: "auto",
                 fontFamily: "ui-monospace, monospace",
                 fontSize: 12,
-                background: "rgba(255,255,255,0.03)",
+                background: ui.surface,
                 p: 1.5,
                 borderRadius: 1,
               }}
@@ -56,16 +57,16 @@ export function ReplayView({ open, onClose }: ReplayViewProps) {
                 <Box key={index} sx={{ mb: 0.5 }}>
                   <Typography
                     component="span"
-                    sx={{ color: "rgba(255,255,255,0.4)", mr: 1, fontSize: 11 }}
+                    sx={{ color: ui.inkFaint, mr: 1, fontSize: 11 }}
                   >
                     {new Date(entry.t).toLocaleTimeString()}
                   </Typography>
                   {entry.cmd ? (
-                    <Typography component="span" sx={{ color: "#5b8cff" }}>
+                    <Typography component="span" sx={{ color: ui.blue }}>
                       cmd: {entry.cmd.type}
                     </Typography>
                   ) : entry.events ? (
-                    <Typography component="span" sx={{ color: "#ffd23b" }}>
+                    <Typography component="span" sx={{ color: ui.gold }}>
                       {entry.events.map((event) => event.type).join(", ")}
                     </Typography>
                   ) : null}

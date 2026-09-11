@@ -25,7 +25,10 @@ export interface ClueTurn {
   /** How much of whichever window is running is left, 0–1. */
   lightsRemaining: number;
   lightsLabel: string;
-  countdown: string;
+  /** What the clock is timing, in words: "Reading…", "Ring in", "Sam rang in". */
+  clockLabel: string;
+  /** Whole seconds left on that window; null while nothing is counting down. */
+  clockSeconds: number | null;
   send: (command: ClientGameCommand) => void;
 }
 
@@ -95,7 +98,8 @@ export function useClueTurn(state: PublicGameState, currentClientId: string): Cl
       inReadout: false,
       lightsRemaining: 0,
       lightsLabel: "",
-      countdown: "",
+      clockLabel: "",
+      clockSeconds: null,
       send,
     };
   }
@@ -173,13 +177,20 @@ export function useClueTurn(state: PublicGameState, currentClientId: string): Cl
       : someoneBuzzed
         ? "Answer time remaining"
         : "Time to ring in",
-    countdown: clue.waitingForWager.length
-      ? `Wager closes in ${seconds(wagerEndsAt - now)}s`
+    clockLabel: clue.waitingForWager.length
+      ? "Wager closes"
       : inReadout
         ? "Reading…"
         : someoneBuzzed
-          ? `${firstBuzzer} rang in · ${seconds(answerEndsAt - now)}s`
-          : `Ring in · ${seconds(buzzWindowEndsAt - now)}s`,
+          ? `${firstBuzzer} rang in`
+          : "Ring in",
+    clockSeconds: clue.waitingForWager.length
+      ? seconds(wagerEndsAt - now)
+      : inReadout
+        ? null
+        : someoneBuzzed
+          ? seconds(answerEndsAt - now)
+          : seconds(buzzWindowEndsAt - now),
     send,
   };
 }

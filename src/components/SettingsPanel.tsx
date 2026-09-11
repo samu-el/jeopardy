@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
+import Divider from "@mui/material/Divider";
 import Chip from "@mui/material/Chip";
 import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -73,9 +72,7 @@ export function SettingsPanel() {
 
   return (
     <Stack spacing={2}>
-      <Card variant="outlined">
-        <CardContent>
-          <Stack spacing={2}>
+          <Stack spacing={1.5}>
             <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
               <FormControl fullWidth size="small">
                 <InputLabel id="voice-profile">Voice</InputLabel>
@@ -105,6 +102,7 @@ export function SettingsPanel() {
               </Tooltip>
             </Stack>
 
+            <Stack spacing={0}>
             <FormControlLabel
               control={
                 <Switch
@@ -141,6 +139,7 @@ export function SettingsPanel() {
               }
               label="Reduced motion"
             />
+            </Stack>
 
             <FormControl fullWidth size="small">
               <InputLabel id="buzz-window">Buzz window</InputLabel>
@@ -159,12 +158,10 @@ export function SettingsPanel() {
               </Select>
             </FormControl>
           </Stack>
-        </CardContent>
-      </Card>
 
-      <Card variant="outlined">
-        <CardContent>
-          <Stack spacing={2}>
+          <Divider />
+
+          <Stack spacing={1.5}>
             <FormControl fullWidth size="small">
               <InputLabel id="host-mode">Host</InputLabel>
               <Select
@@ -202,8 +199,6 @@ export function SettingsPanel() {
               </Select>
             </FormControl>
           </Stack>
-        </CardContent>
-      </Card>
     </Stack>
   );
 }

@@ -11,6 +11,7 @@ import Typography from "@mui/material/Typography";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForwardOutlined";
 import LoginIcon from "@mui/icons-material/LoginOutlined";
 import { defaultPlayerName, useGameStore } from "@/lib/state/game-store";
+import { ui } from "@/lib/foundation/jeopardy-style";
 import { Wordmark } from "./Wordmark";
 
 export function Landing() {
@@ -88,54 +89,44 @@ export function Landing() {
     <Box
       sx={{
         minHeight: "100vh",
-        background: "#000",
+        background: ui.stage,
         display: "flex",
         flexDirection: "column",
       }}
     >
       <Container maxWidth="lg" sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        <Stack
-          direction="row"
-          sx={{
-            py: 2,
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <Wordmark size="sm" />
-        </Stack>
-
+        {/* Everything on the centre line: the mark, the line under it, the
+            keys, the three notes at the foot. The room is symmetric about
+            its board; the front door is symmetric about its mark. */}
         <Box
           sx={{
             flex: 1,
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
+            alignItems: "center",
+            textAlign: "center",
             py: { xs: 6, md: 8 },
           }}
         >
-          <Stack spacing={{ xs: 3, md: 5 }} sx={{ maxWidth: 760 }}>
+          <Stack spacing={{ xs: 3, md: 5 }} sx={{ maxWidth: 760, width: "100%", alignItems: "center" }}>
             <Wordmark size="xl" />
             {pendingRoomId ? (
               <Box
                 role="dialog"
                 aria-label="Join room"
                 sx={{
-                  background: "linear-gradient(180deg, #0e1530, #050a26)",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  borderRadius: 2,
+                  background: ui.surface,
+                  border: `1px solid ${ui.line}`,
+                  borderRadius: 1,
                   p: 3,
+                  width: "100%",
                   maxWidth: 480,
                 }}
               >
-                <Typography
-                  variant="overline"
-                  sx={{ color: "#5b8cff", letterSpacing: 2 }}
-                >
-                  Joining room
-                </Typography>
-                <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5, mb: 2 }}>
-                  #{pendingRoomId}
+                <Typography variant="overline">Joining room</Typography>
+                <Typography variant="h3" sx={{ mt: 0.5, mb: 2, letterSpacing: "0.12em" }}>
+                  {pendingRoomId}
                 </Typography>
                 <Stack spacing={2}>
                   <TextField
@@ -149,13 +140,12 @@ export function Landing() {
                       {joinError}
                     </Typography>
                   ) : null}
-                  <Stack direction="row" spacing={1}>
+                  <Stack direction="row" spacing={1} sx={{ justifyContent: "center" }}>
                     <Button
                       variant="contained"
                       startIcon={joining ? <CircularProgress size={16} /> : <LoginIcon />}
                       onClick={() => joinRoom(pendingRoomId)}
                       disabled={joining}
-                      sx={{ background: "#5b8cff", color: "#000", fontWeight: 700 }}
                     >
                       Join
                     </Button>
@@ -178,10 +168,9 @@ export function Landing() {
             ) : (
               <>
                 <Typography
-                  variant="h5"
                   sx={{
-                    color: "rgba(255,255,255,0.7)",
-                    fontWeight: 400,
+                    color: ui.inkMuted,
+                    fontSize: { xs: 18, md: 22 },
                     maxWidth: 560,
                     lineHeight: 1.4,
                   }}
@@ -191,7 +180,7 @@ export function Landing() {
                 <Stack
                   direction={{ xs: "column", sm: "row" }}
                   spacing={2}
-                  sx={{ alignItems: { sm: "center" } }}
+                  sx={{ alignItems: "center", justifyContent: "center" }}
                 >
                   <Button
                     variant="contained"
@@ -206,21 +195,7 @@ export function Landing() {
                     }
                     disabled={dealing}
                     onClick={newGame}
-                    sx={{
-                      background: "#5b8cff",
-                      color: "#000",
-                      fontWeight: 700,
-                      px: 4,
-                      py: 1.5,
-                      fontSize: 18,
-                      borderRadius: 999,
-                      textTransform: "none",
-                      alignSelf: { xs: "flex-start", sm: "auto" },
-                      "&:hover": {
-                        background: "#7da5ff",
-                        boxShadow: "0 8px 32px rgba(91,140,255,0.35)",
-                      },
-                    }}
+                    sx={{ px: 4 }}
                   >
                     {dealing ? "Dealing…" : "New Game"}
                   </Button>
@@ -239,14 +214,14 @@ export function Landing() {
                           openJoinCard(codeInput);
                         }
                       }}
-                      sx={{ width: 150 }}
+                      sx={{ width: 150, "& .MuiInputBase-root": { height: 48 } }}
                     />
                     <Button
                       variant="outlined"
+                      size="large"
                       startIcon={<LoginIcon />}
                       onClick={() => openJoinCard(codeInput)}
                       disabled={codeInput.trim().length < 3}
-                      sx={{ borderRadius: 999, px: 3, py: 1.2 }}
                     >
                       Join
                     </Button>
@@ -262,12 +237,13 @@ export function Landing() {
           </Stack>
         </Box>
 
-        <Box sx={{ py: { xs: 4, md: 6 }, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+        <Box sx={{ py: { xs: 4, md: 6 }, borderTop: `1px solid ${ui.line}` }}>
           <Box
             sx={{
               display: "grid",
               gap: 4,
               gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" },
+              textAlign: "center",
             }}
           >
             <LandingFeature
@@ -291,13 +267,11 @@ export function Landing() {
 
 function LandingFeature({ title, body }: { title: string; body: string }) {
   return (
-    <Stack spacing={1}>
-      <Typography sx={{ fontWeight: 700, fontSize: 18, color: "white" }}>
+    <Stack spacing={1} sx={{ alignItems: "center" }}>
+      <Typography variant="h6" sx={{ fontSize: 17 }}>
         {title}
       </Typography>
-      <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.55)" }}>
-        {body}
-      </Typography>
+      <Typography variant="body2">{body}</Typography>
     </Stack>
   );
 }

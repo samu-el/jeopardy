@@ -5,7 +5,7 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { PublicGameState, PublicPlayerState } from "@/lib/game";
-import { jeopardyFonts, jeopardyPalette } from "@/lib/foundation/jeopardy-style";
+import { controls as chrome, jeopardyFonts, jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
 
 interface PodiumProps {
   player: PublicPlayerState;
@@ -71,7 +71,7 @@ export function Podium({
             ? "rgba(255,255,255,0.4)"
             : "transparent";
 
-  const accent = color ?? (isYou ? jeopardyPalette.podiumEdge : "rgba(255,255,255,0.16)");
+  const accent = color ?? (isYou ? jeopardyPalette.podiumEdge : ui.lineStrong);
 
   return (
     <Box
@@ -121,8 +121,8 @@ export function Podium({
           position: "relative",
           background: `linear-gradient(180deg, ${jeopardyPalette.podium} 0%, #0A0D3A 100%)`,
           borderTop: `2px solid ${accent}`,
-          borderLeft: "1px solid rgba(255,255,255,0.10)",
-          borderRight: "1px solid rgba(255,255,255,0.10)",
+          borderLeft: `1px solid ${ui.line}`,
+          borderRight: `1px solid ${ui.line}`,
           borderRadius: "6px 6px 2px 2px",
           px: 1,
           pt: emoji || color ? 2.25 : 1,
@@ -149,17 +149,14 @@ export function Podium({
         {/* Score display: white digits on black, red when in the hole. */}
         <Box
           sx={{
+            ...chrome.readout,
             mx: "auto",
-            background: "#000",
-            borderRadius: 0.5,
-            border: "1px solid rgba(255,255,255,0.14)",
             py: 0.5,
             px: 1,
             minHeight: 38,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: "inset 0 2px 8px rgba(0,0,0,0.9)",
           }}
         >
           <Typography

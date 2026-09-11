@@ -5,6 +5,7 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useGameStore } from "@/lib/state/game-store";
+import { ui } from "@/lib/foundation/jeopardy-style";
 
 /**
  * Tells a player, in the one place they will look, that the room is no longer
@@ -41,9 +42,8 @@ export function ConnectionBanner() {
         right: 0,
         zIndex: 20,
         pointerEvents: "none",
-        background:
-          online.status === "rejected" ? "rgba(180,25,40,0.95)" : "rgba(20,28,70,0.95)",
-        borderTop: "1px solid rgba(255,255,255,0.15)",
+        background: online.status === "rejected" ? "rgba(140,20,32,0.96)" : ui.surface,
+        borderTop: `1px solid ${ui.lineStrong}`,
         px: 2,
         py: 1,
       }}
@@ -53,7 +53,7 @@ export function ConnectionBanner() {
         spacing={2}
         sx={{ alignItems: "center", justifyContent: "center" }}
       >
-        <Typography sx={{ fontSize: 14, color: "#fff" }}>{message}</Typography>
+        <Typography sx={{ fontSize: 14, color: ui.ink }}>{message}</Typography>
         {online.status === "rejected" ? (
           <Button
             size="small"

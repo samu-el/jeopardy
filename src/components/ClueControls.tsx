@@ -3,15 +3,19 @@
 import { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import SendIcon from "@mui/icons-material/SendOutlined";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import type { PublicGameState } from "@/lib/game";
 import { useGameStore } from "@/lib/state/game-store";
 import { judgeAnswer as fuzzyJudge, primeAudio, primeSpeech } from "@/lib/ai";
-import { jeopardyFonts, jeopardyPalette } from "@/lib/foundation/jeopardy-style";
+import { controls, jeopardyFonts, jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
 import { MicAnswerField } from "./MicAnswerField";
 import { BuzzLights } from "./BuzzLights";
+import { Housing, HousingDivider, HousingLabel } from "./Housing";
 import { useClueTurn } from "./use-clue-turn";
 
 interface ClueControlsProps {
@@ -124,118 +128,111 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
       }}
     >
       {!answerRevealed ? (
-        // Three columns with matching outer thirds, so the lights sit on the
-        // centre line whatever is written beside them. Left as one row and
-        // the countdown shoved the lights off-centre by its own width.
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: "1fr auto 1fr",
-            alignItems: "center",
-            columnGap: 1.5,
-            width: "100%",
-          }}
-        >
-          <Box aria-hidden />
-          <BuzzLights
-            remaining={turn.lightsRemaining}
-            reducedMotion={reducedMotion}
-            label={turn.lightsLabel}
-          />
-          {/* Your answer goes on the clock's own line. Under it, the strip
-              grew tall enough to push a lectern off a laptop screen — and
-              while you are typing, the lights say what the countdown would. */}
-          {typing ? (
-            <Stack
-              direction="row"
-              spacing={1}
-              sx={{ alignItems: "center", maxWidth: 380, justifySelf: "start" }}
-            >
-              <MicAnswerField
-                label={finalOpen ? "Final answer" : "What is…"}
-                value={answerInput}
-                onChange={setAnswerInput}
-                onSubmit={handleSubmitAnswer}
-                disabled={iSubmitted}
-                size="small"
-                autoFocus
-              />
-              <Button
-                variant="contained"
-                size="small"
-                onClick={() => handleSubmitAnswer()}
-                disabled={!answerInput.trim() || iSubmitted}
-              >
-                {finalOpen ? "Lock in" : "Send"}
-              </Button>
-            </Stack>
-          ) : (
-            <Typography
-              sx={{
-                fontFamily: jeopardyFonts.display,
-                textTransform: "uppercase",
-                letterSpacing: "0.14em",
-                fontSize: { xs: 10, sm: 12 },
-                color: "rgba(255,255,255,0.6)",
-                whiteSpace: "nowrap",
-                justifySelf: "start",
-              }}
-            >
-              {turn.countdown}
-            </Typography>
-          )}
-        </Box>
+        // One instrument: the lamps, the countdown and — while the clock is
+        // yours — the answer field share a housing. The field takes the
+        // phase's place on a wide screen and a row of its own on a phone,
+        // so the strip is symmetric in both and never grows a stray limb.
+        <BuzzLights
+          remaining={turn.lightsRemaining}
+          reducedMotion={reducedMotion}
+          label={turn.lightsLabel}
+          phase={turn.clockLabel}
+          seconds={turn.clockSeconds}
+          control={
+            typing ? (
+              <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", width: { xs: "100%", sm: 250 } }}>
+                <MicAnswerField
+                  label={finalOpen ? "Final answer" : "What is…"}
+                  value={answerInput}
+                  onChange={setAnswerInput}
+                  onSubmit={handleSubmitAnswer}
+                  disabled={iSubmitted}
+                  size="small"
+                  autoFocus
+                />
+                <Tooltip title={finalOpen ? "Lock in" : "Send"}>
+                  <IconButton
+                    aria-label={finalOpen ? "Lock in" : "Send"}
+                    onClick={() => handleSubmitAnswer()}
+                    disabled={!answerInput.trim() || iSubmitted}
+                    sx={{
+                      ...controls.keyPrimary,
+                      width: 34,
+                      height: 34,
+                      flex: "0 0 auto",
+                      borderRadius: "50%",
+                      "&.Mui-disabled": controls.keyOff,
+                    }}
+                  >
+                    <SendIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+            ) : undefined
+          }
+        />
       ) : null}
 
       {wagerOpen ? (
-        <Stack spacing={1} sx={{ alignItems: "center" }}>
-          <Stack direction="row" spacing={1} sx={{ alignItems: "flex-start" }}>
-            <TextField
-              label="Wager"
-              type="number"
-              value={wagerInput}
-              onChange={(event) => setWagerInput(event.target.value)}
-              helperText={`$${turn.wagerLimits.min} – $${turn.wagerLimits.max}`}
-              slotProps={{
-                htmlInput: { min: turn.wagerLimits.min, max: turn.wagerLimits.max },
-              }}
-              size="small"
-              autoFocus
-              sx={wagerFieldSx}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  handleSubmitWager();
-                }
-              }}
-            />
-            <Button variant="contained" onClick={handleSubmitWager} sx={{ mt: 0.25 }}>
-              Wager
+        // The wager bench: the range printed on the housing, a readout to
+        // type into, the key that places it, and two quick picks.
+        <Housing sx={wrapHousingSx}>
+          <HousingLabel sx={{ height: 32, pl: 1.25, pr: 1 }}>
+            {isFinal ? "Final wager" : "Wager"} · ${turn.wagerLimits.min}–${turn.wagerLimits.max}
+          </HousingLabel>
+          <TextField
+            type="number"
+            value={wagerInput}
+            onChange={(event) => setWagerInput(event.target.value)}
+            placeholder="$"
+            slotProps={{
+              htmlInput: {
+                min: turn.wagerLimits.min,
+                max: turn.wagerLimits.max,
+                "aria-label": "Wager",
+              },
+            }}
+            size="small"
+            autoFocus
+            sx={{
+              width: 104,
+              "& .MuiInputBase-root": { height: 32 },
+              // A readout has no spinner.
+              "& input[type=number]": { MozAppearance: "textfield" },
+              "& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button": {
+                WebkitAppearance: "none",
+                margin: 0,
+              },
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                handleSubmitWager();
+              }
+            }}
+          />
+          <Button variant="contained" onClick={handleSubmitWager} sx={{ ...controls.keyPrimary, ...benchKeySx }}>
+            Wager
+          </Button>
+          <HousingDivider sx={{ display: { xs: "none", sm: "block" } }} />
+          {!isFinal ? (
+            <Button size="small" variant="outlined" onClick={() => setWagerInput(String(clue.value))} sx={benchKeySx}>
+              ${clue.value}
             </Button>
-          </Stack>
-          <Stack direction="row" spacing={1}>
-            {!isFinal ? (
-              <Button
-                size="small"
-                sx={quietButtonSx}
-                onClick={() => setWagerInput(String(clue.value))}
-              >
-                ${clue.value}
-              </Button>
-            ) : null}
-            <Button
-              size="small"
-              sx={quietButtonSx}
-              onClick={() => setWagerInput(String(turn.wagerLimits.max))}
-            >
-              {isFinal ? "Everything" : "True Daily Double"}
-            </Button>
-          </Stack>
-        </Stack>
+          ) : null}
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => setWagerInput(String(turn.wagerLimits.max))}
+            sx={benchKeySx}
+          >
+            {isFinal ? "Everything" : "True Daily Double"}
+          </Button>
+        </Housing>
       ) : null}
 
       {iSubmitted && !answerRevealed ? (
-        <Typography sx={{ color: "rgba(255,255,255,0.65)", fontSize: 13 }}>
+        <Typography variant="overline" sx={{ color: ui.inkMuted }}>
           Answer locked in
         </Typography>
       ) : null}
@@ -304,18 +301,10 @@ export function PodiumClueButtons({ state, currentClientId }: ClueControlsProps)
           aria-label="Buzz in"
           sx={{
             ...stackedButtonSx,
-            fontFamily: jeopardyFonts.display,
+            ...(canIBuzz ? controls.buzzer : controls.keyOff),
             fontSize: 13,
             letterSpacing: "0.12em",
-            background: canIBuzz
-              ? "linear-gradient(180deg, #ff5f6d 0%, #c31432 100%)"
-              : "rgba(255,255,255,0.10)",
-            color: canIBuzz ? "#fff" : "rgba(255,255,255,0.45)",
-            boxShadow: canIBuzz ? "0 0 18px rgba(255,80,90,0.5)" : "none",
-            "&.Mui-disabled": {
-              background: "rgba(255,255,255,0.10)",
-              color: "rgba(255,255,255,0.45)",
-            },
+            "&.Mui-disabled": controls.keyOff,
           }}
         >
           {turn.buzzedByMe ? "IN!" : turn.isLockedOut ? "LOCKED" : "BUZZ"}
@@ -326,7 +315,7 @@ export function PodiumClueButtons({ state, currentClientId }: ClueControlsProps)
         <Button
           variant="outlined"
           onClick={() => send({ type: "reveal-answer" })}
-          sx={{ ...stackedButtonSx, ...quietButtonSx }}
+          sx={{ ...stackedButtonSx, ...controls.key }}
         >
           Reveal
         </Button>
@@ -337,7 +326,7 @@ export function PodiumClueButtons({ state, currentClientId }: ClueControlsProps)
           variant="contained"
           data-testid="next-clue"
           onClick={() => send({ type: "skip" })}
-          sx={stackedButtonSx}
+          sx={{ ...stackedButtonSx, ...controls.keyPrimary }}
         >
           Next clue
         </Button>
@@ -363,47 +352,92 @@ function JudgePanel({
 }) {
   const verdict = fuzzyJudge({ submittedAnswer: answer, expectedAnswer: expected });
   const name = state.players.find((player) => player.id === target)?.displayName ?? target;
+  // The host's bench: what they said on a readout, and three keys to rule on
+  // it — mounted together, the same as every other instrument on the set.
   return (
-    <Stack
-      direction="row"
-      spacing={1}
-      useFlexGap
-      sx={{ alignItems: "center", justifyContent: "center", flexWrap: "wrap" }}
-    >
-      <Typography sx={{ color: "rgba(255,255,255,0.85)", fontSize: 14 }}>
-        {name}:{" "}
+    <Housing sx={wrapHousingSx}>
+      {/* On a phone the readout takes a row of its own and the keys sit
+          centred under it: two balanced rows, not a ragged wrap. */}
+      <Box
+        sx={{
+          ...controls.readout,
+          display: "inline-flex",
+          alignItems: "baseline",
+          justifyContent: "center",
+          gap: 1,
+          height: 32,
+          px: 1.5,
+          mr: { xs: 0, sm: 0.5 },
+          flexBasis: { xs: "100%", sm: "auto" },
+          fontSize: 14,
+          color: ui.ink,
+          whiteSpace: "nowrap",
+        }}
+      >
+        <Box component="span" sx={{ color: ui.inkMuted }}>
+          {name}
+        </Box>
         <Box component="span" sx={{ color: jeopardyPalette.goldBright, fontWeight: 700 }}>
           {answer || "—"}
-        </Box>{" "}
+        </Box>
         <Box
           component="span"
           sx={{
-            fontSize: 12,
+            fontSize: 11,
+            fontFamily: jeopardyFonts.display,
+            letterSpacing: "0.08em",
             color: verdict.correct ? jeopardyPalette.correct : jeopardyPalette.incorrect,
           }}
         >
           {Math.round(verdict.confidence * 100)}%
         </Box>
         {wager !== undefined ? (
-          <Box component="span" sx={{ fontSize: 13, color: jeopardyPalette.gold, ml: 1 }}>
+          <Box component="span" sx={{ fontSize: 12, color: jeopardyPalette.gold }}>
             wagered ${wager}
           </Box>
         ) : null}
-      </Typography>
-      <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
-        <Button size="small" variant="contained" color="success" onClick={() => onJudge(true)}>
-          Correct
-        </Button>
-        <Button size="small" variant="contained" color="error" onClick={() => onJudge(false)}>
-          Incorrect
-        </Button>
-        <Button size="small" variant="outlined" sx={quietButtonSx} onClick={() => onJudge(null)}>
-          Skip
-        </Button>
-      </Stack>
-    </Stack>
+      </Box>
+      <HousingDivider sx={{ display: { xs: "none", sm: "block" } }} />
+      <Button
+        size="small"
+        variant="contained"
+        color="success"
+        onClick={() => onJudge(true)}
+        sx={benchKeySx}
+      >
+        Correct
+      </Button>
+      <Button
+        size="small"
+        variant="contained"
+        color="error"
+        onClick={() => onJudge(false)}
+        sx={benchKeySx}
+      >
+        Incorrect
+      </Button>
+      <Button size="small" variant="outlined" onClick={() => onJudge(null)} sx={benchKeySx}>
+        Skip
+      </Button>
+    </Housing>
   );
 }
+
+/**
+ * A bench that may need two rows on a phone: centred, with room at the
+ * corners for what wraps. One row on anything wider, with the pill's ends.
+ */
+const wrapHousingSx = {
+  flexWrap: "wrap",
+  justifyContent: "center",
+  rowGap: 0.75,
+  p: { xs: 1, sm: "3px" },
+  borderRadius: { xs: "16px", sm: "999px" },
+  maxWidth: "100%",
+} as const;
+
+/** A key on a bench: the housing's height, the housing's round ends. */
+const benchKeySx = { minHeight: 32, px: 1.5, borderRadius: "999px", fontSize: 12 } as const;
 
 /**
  * One width, one height: a stack of these reads as a set.
@@ -414,22 +448,12 @@ function JudgePanel({
 const stackedButtonSx = {
   width: "100%",
   minWidth: 0,
-  py: 0.25,
-  borderRadius: 1,
+  minHeight: 0,
+  height: 22,
+  py: 0,
+  borderRadius: "6px",
+  fontFamily: jeopardyFonts.display,
   fontSize: 12,
-  lineHeight: 1.35,
+  lineHeight: 1,
 } as const;
 
-const quietButtonSx = {
-  color: "rgba(255,255,255,0.85)",
-  borderColor: "rgba(255,255,255,0.35)",
-  "&:hover": { borderColor: "rgba(255,255,255,0.6)" },
-} as const;
-
-const wagerFieldSx = {
-  width: 190,
-  "& .MuiInputBase-root": { background: "rgba(0,0,0,0.25)" },
-  "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
-  "& .MuiFormHelperText-root": { color: "rgba(255,255,255,0.65)" },
-  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.3)" },
-} as const;

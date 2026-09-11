@@ -14,7 +14,7 @@ import EmojiEventsIcon from "@mui/icons-material/EmojiEventsOutlined";
 import HomeIcon from "@mui/icons-material/HomeOutlined";
 import ReplayIcon from "@mui/icons-material/ReplayOutlined";
 import type { PublicGameState } from "@/lib/game";
-import { jeopardyFonts, jeopardyPalette } from "@/lib/foundation/jeopardy-style";
+import { jeopardyFonts, jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
 
 interface ResultsViewProps {
   state: PublicGameState;
@@ -35,7 +35,7 @@ export function ResultsView({ state, onPlayAgain, onExit }: ResultsViewProps) {
         elevation={6}
         sx={{
           background: `linear-gradient(180deg, ${jeopardyPalette.board} 0%, ${jeopardyPalette.boardShade} 100%)`,
-          border: "1px solid rgba(255,255,255,0.12)",
+          border: `1px solid ${ui.line}`,
           textAlign: "center",
         }}
       >
@@ -127,9 +127,9 @@ export function ResultsView({ state, onPlayAgain, onExit }: ResultsViewProps) {
                       index === 0
                         ? "secondary.main"
                         : index === 1
-                          ? "rgba(255,255,255,0.12)"
-                          : "rgba(255,255,255,0.06)",
-                    color: index === 0 ? "#0c1224" : "text.primary",
+                          ? ui.surfaceRaised
+                          : ui.surface,
+                    color: index === 0 ? "#1A1200" : "text.primary",
                     fontWeight: 800,
                   }}
                 >

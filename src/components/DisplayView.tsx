@@ -13,7 +13,7 @@ import CloseIcon from "@mui/icons-material/CloseOutlined";
 import ExitIcon from "@mui/icons-material/CloseFullscreenOutlined";
 import QRCode from "qrcode";
 import { useGameStore } from "@/lib/state/game-store";
-import { jeopardyFonts, jeopardyPalette } from "@/lib/foundation/jeopardy-style";
+import { jeopardyFonts, ui } from "@/lib/foundation/jeopardy-style";
 import { AvatarHostController } from "./AvatarHostController";
 import { GameSurface } from "./GameSurface";
 
@@ -255,11 +255,10 @@ function JoinPanel({ roomId, onHide }: { roomId: string | null; onHide: () => vo
         bottom: 16,
         left: 16,
         alignItems: "center",
-        background: "rgba(0,0,0,0.65)",
-        border: "1px solid rgba(255,255,255,0.12)",
-        borderRadius: 2,
+        background: ui.surface,
+        border: `1px solid ${ui.line}`,
+        borderRadius: 1,
         p: 1.5,
-        backdropFilter: "blur(6px)",
       }}
     >
       {qr ? (
@@ -274,10 +273,11 @@ function JoinPanel({ roomId, onHide }: { roomId: string | null; onHide: () => vo
       <Box>
         <Typography
           sx={{
+            fontFamily: jeopardyFonts.display,
             fontSize: 11,
             letterSpacing: "0.22em",
             textTransform: "uppercase",
-            color: "rgba(255,255,255,0.5)",
+            color: ui.gold,
           }}
         >
           Play along
@@ -288,13 +288,13 @@ function JoinPanel({ roomId, onHide }: { roomId: string | null; onHide: () => vo
             fontFamily: jeopardyFonts.display,
             letterSpacing: "0.3em",
             fontSize: "clamp(24px, 2.6vw, 44px)",
-            color: jeopardyPalette.goldBright,
+            color: ui.ink,
             lineHeight: 1.15,
           }}
         >
           {roomId ?? "—"}
         </Typography>
-        <Typography sx={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
+        <Typography sx={{ fontSize: 11, color: ui.inkFaint }}>
           {joinUrl.replace(/^https?:\/\//, "")}
         </Typography>
       </Box>
@@ -304,7 +304,7 @@ function JoinPanel({ roomId, onHide }: { roomId: string | null; onHide: () => vo
           data-testid="hide-join-panel"
           aria-label="Hide the join code"
           onClick={onHide}
-          sx={{ color: "rgba(255,255,255,0.5)", alignSelf: "flex-start" }}
+          sx={{ alignSelf: "flex-start" }}
         >
           <CloseIcon fontSize="small" />
         </IconButton>

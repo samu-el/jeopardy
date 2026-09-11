@@ -181,7 +181,7 @@ export function GamePicker({ open, onClose }: GamePickerProps) {
                   key={entry.id}
                   label={entry.label}
                   size="small"
-                  color={entry.id === decade ? "secondary" : "default"}
+                  color={entry.id === decade ? "primary" : "default"}
                   onClick={() => setDecade(entry.id)}
                   variant={entry.id === decade ? "filled" : "outlined"}
                 />

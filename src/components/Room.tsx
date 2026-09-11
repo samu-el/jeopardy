@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import { useGameStore } from "@/lib/state/game-store";
+import { ui } from "@/lib/foundation/jeopardy-style";
 import { Chat } from "./Chat";
 import { ConnectionBanner } from "./ConnectionBanner";
 import { ResultsView } from "./ResultsView";
@@ -57,7 +58,7 @@ export function Room() {
 
   if (showResults && publicState) {
     return (
-      <Box sx={{ minHeight: "100vh", background: "#000" }}>
+      <Box sx={{ minHeight: "100vh", background: ui.stage }}>
         <ConnectionBanner />
         <Box sx={{ maxWidth: 1400, mx: "auto", px: { xs: 2, md: 3 } }}>
           {toolbar}
@@ -70,7 +71,7 @@ export function Room() {
   }
 
   return (
-    <Box sx={{ minHeight: "100vh", background: "#000", overflowX: "hidden" }}>
+    <Box sx={{ minHeight: "100vh", background: ui.stage, overflowX: "hidden" }}>
       <ConnectionBanner />
       <Box sx={{ maxWidth: 1400, mx: "auto", px: { xs: 1.5, md: 3 } }}>
         {toolbar}

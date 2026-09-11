@@ -7,6 +7,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import { ui } from "@/lib/foundation/jeopardy-style";
 import CloseIcon from "@mui/icons-material/CloseOutlined";
 import { useGameStore } from "@/lib/state/game-store";
 
@@ -41,7 +42,6 @@ export function TranscriptPane({ open, onClose }: TranscriptPaneProps) {
         zIndex: 1200,
         display: "flex",
         flexDirection: "column",
-        background: "rgba(8,11,26,0.96)",
       }}
     >
       <Stack
@@ -50,12 +50,11 @@ export function TranscriptPane({ open, onClose }: TranscriptPaneProps) {
           p: 1.5,
           alignItems: "center",
           justifyContent: "space-between",
-          borderBottom: "1px solid rgba(255,255,255,0.08)",
+          borderBottom: "1px solid",
+          borderColor: "divider",
         }}
       >
-        <Typography variant="overline" sx={{ color: "text.secondary" }}>
-          Transcript
-        </Typography>
+        <Typography variant="overline">Transcript</Typography>
         <Tooltip title="Close">
           <IconButton size="small" onClick={onClose} aria-label="Close transcript">
             <CloseIcon fontSize="small" />
@@ -106,12 +105,11 @@ export function TranscriptPane({ open, onClose }: TranscriptPaneProps) {
 function kindColor(kind: string): string {
   switch (kind) {
     case "system":
-      return "#5ad0ff";
+      return ui.inkMuted;
     case "host":
-      return "#ffd23b";
     case "judge":
-      return "#ffb648";
+      return ui.gold;
     default:
-      return "#5b8cff";
+      return ui.blue;
   }
 }
