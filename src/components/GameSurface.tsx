@@ -7,7 +7,7 @@ import { useGameStore } from "@/lib/state/game-store";
 import { jeopardyPalette } from "@/lib/foundation/jeopardy-style";
 import { Board } from "./Board";
 import { ClueStage } from "./ClueStage";
-import { ClueControls } from "./ClueControls";
+import { ClueControls, PodiumClueButtons } from "./ClueControls";
 import { Podium } from "./Podium";
 import { RoundIntro } from "./RoundIntro";
 import { TvClue } from "./TvClue";
@@ -238,6 +238,11 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
               isYou={player.id === selfId}
               emoji={player.emoji ?? avatarFor(lobby, player.id)?.emoji}
               color={player.color ?? avatarFor(lobby, player.id)?.color}
+              controls={
+                interactive && publicState && player.id === selfId ? (
+                  <PodiumClueButtons state={publicState} currentClientId={selfId} />
+                ) : undefined
+              }
             />
           </Box>
         ))}

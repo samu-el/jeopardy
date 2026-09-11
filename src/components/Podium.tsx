@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -13,13 +13,19 @@ interface PodiumProps {
   isYou: boolean;
   emoji?: string;
   color?: string;
+  /**
+   * Buttons for the clue on screen, drawn inside the lectern. Only your own
+   * gets them: the lectern is where your score is, so it is where your hand
+   * already goes.
+   */
+  controls?: ReactNode;
 }
 
 /**
  * A contestant lectern: name plate on top, the score display below, and the
  * ring-in light that flashes when they beat everyone to the buzzer.
  */
-export function Podium({ player, state, isYou, emoji, color }: PodiumProps) {
+export function Podium({ player, state, isYou, emoji, color, controls }: PodiumProps) {
   const active = state.currentClue;
   const buzzedAt = active?.buzzes[player.id];
   const isBuzzed = buzzedAt !== undefined;
@@ -162,6 +168,8 @@ export function Podium({ player, state, isYou, emoji, color }: PodiumProps) {
             {player.score < 0 ? `-$${Math.abs(player.score)}` : `$${player.score}`}
           </Typography>
         </Box>
+
+        {controls}
       </Box>
 
       <Box
