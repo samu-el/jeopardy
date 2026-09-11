@@ -7,12 +7,14 @@ interface WordmarkProps {
   size?: "sm" | "md" | "lg" | "xl";
 }
 
+// The hero size steps down on a phone: at 112px the mark runs off a 390px
+// screen with the exclamation mark cut in half.
 const sizeMap = {
   sm: { font: 24, height: 30 },
   md: { font: 36, height: 44 },
   lg: { font: 64, height: 76 },
-  xl: { font: 112, height: 130 },
-};
+  xl: { font: { xs: 60, sm: 88, md: 112 }, height: { xs: 70, sm: 102, md: 130 } },
+} as const;
 
 /**
  * Original wordmark for this project. The official Jeopardy! logo is a

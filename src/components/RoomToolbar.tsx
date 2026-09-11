@@ -122,7 +122,14 @@ export function RoomToolbar({
         direction="row"
         spacing={0.5}
         useFlexGap
-        sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}
+        sx={{
+          alignItems: "center",
+          flexWrap: "wrap",
+          justifyContent: "flex-end",
+          // When the strip wraps on a phone this row takes the whole second
+          // line, so it can keep its controls on the right where they were.
+          flexGrow: { xs: 1, sm: 0 },
+        }}
       >
         <Tooltip title="Change game">
           <IconButton
