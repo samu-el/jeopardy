@@ -246,7 +246,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
                   <PodiumClueButtons state={publicState} currentClientId={selfId} />
                 ) : undefined
               }
-              reserveControls={interactive && Boolean(publicState?.currentClue)}
+              reserveControls={interactive}
             />
           </Box>
         ))}
