@@ -7,6 +7,7 @@ import { useGameStore } from "@/lib/state/game-store";
 import { jeopardyPalette } from "@/lib/foundation/jeopardy-style";
 import { Board } from "./Board";
 import { ClueStage } from "./ClueStage";
+import { PlayerControls } from "./PlayerControls";
 import { Podium } from "./Podium";
 import { RoundIntro } from "./RoundIntro";
 import { TvClue } from "./TvClue";
@@ -151,7 +152,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
         // names, no scores. Whoever is playing is in the room and knows
         // who they are; the screen is for the clues.
         gridTemplateRows: tv ? "minmax(0, 1fr)" : "minmax(0, 3fr) minmax(0, auto)",
-        gap: tv ? 0 : 2,
+        gap: tv ? 0 : 1.5,
         ...(tv ? { height: "100%", alignContent: "center" } : null),
       }}
     >
@@ -206,6 +207,13 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
       </Box>
 
       {tv ? null : (
+      <Box>
+      {/* Over the lecterns, under the board: the clue is up there, what you
+          do about it is down here, at your own end of the screen. A
+          television has neither — the buzzers are on the phones. */}
+      {publicState ? (
+        <PlayerControls state={publicState} currentClientId={selfId} />
+      ) : null}
       <Box
         sx={{
           display: "flex",
@@ -213,7 +221,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
           gap: { xs: 1.5, sm: 2 },
           justifyContent: "center",
           alignItems: "flex-end",
-          py: 1,
+          py: 0,
         }}
       >
         {players.map((player) => (
@@ -233,6 +241,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
             />
           </Box>
         ))}
+      </Box>
       </Box>
       )}
     </Box>

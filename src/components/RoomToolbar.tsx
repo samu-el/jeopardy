@@ -21,7 +21,7 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ReplayIconAlt from "@mui/icons-material/PlayCircleOutlineOutlined";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ReplayIcon from "@mui/icons-material/ReplayOutlined";
-import SettingsIcon from "@mui/icons-material/SettingsOutlined";
+import SettingsIcon from "@mui/icons-material/VolumeUpOutlined";
 import PeopleIcon from "@mui/icons-material/PeopleOutlineOutlined";
 import ShuffleIcon from "@mui/icons-material/ShuffleOutlined";
 import LibraryIcon from "@mui/icons-material/LibraryBooksOutlined";
@@ -115,6 +115,7 @@ export function RoomToolbar({
             sx={{ ml: 1, color: "text.secondary", display: { xs: "none", md: "flex" } }}
           />
         ) : null}
+        <RoomBar />
       </Stack>
 
       <Stack
@@ -133,7 +134,6 @@ export function RoomToolbar({
             <ShuffleIcon />
           </IconButton>
         </Tooltip>
-        <RoomBar />
         <DisplayButton />
         <Tooltip title="Settings">
           <IconButton
@@ -332,7 +332,7 @@ function DisplayButton() {
   const setDisplayMode = useGameStore((s) => s.setDisplayMode);
   if (!online) return null;
   return (
-    <Tooltip title="TV mode — fill the screen and run the board from it">
+    <Tooltip title="TV mode">
       <IconButton
         aria-label="Open display mode"
         data-testid="open-display"

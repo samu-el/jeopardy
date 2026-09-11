@@ -198,27 +198,38 @@ test.describe("Clue controls", () => {
     expect(timing.heldPastEstimateMs).toBeGreaterThan(300);
   });
 
-  test("a long clue never covers the lights or the buzzer", async ({ page }) => {
+  test("a long clue stays inside its panel, and the buzzer is below the board", async ({
+    page,
+  }) => {
     await openClue(page, { long: true });
 
-    const overlap = await page.evaluate(() => {
+    const layout = await page.evaluate(() => {
       const rect = (selector: string) =>
         document.querySelector(selector)?.getBoundingClientRect() ?? null;
       const text = rect('[data-testid="clue-text"]');
       const lights = rect('[role="progressbar"]');
       const buzzer = rect('[data-testid="buzzer"]');
       const stage = rect('[data-testid="clue-stage"]');
+      const board = rect('[data-testid="board"]');
       const hits = (a: DOMRect | null, b: DOMRect | null) =>
         !!a && !!b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
       return {
-        overText: hits(text, lights) || hits(text, buzzer),
+        overText: hits(text, lights),
         insidePanel:
           !!text && !!stage && text.top >= stage.top - 1 && text.bottom <= stage.bottom + 1,
         buzzerVisible: !!buzzer && buzzer.height > 0,
+        // The clue is on the board; the thing you press is under it. They
+        // stopped sharing a rectangle, so no clue can crowd the buzzer.
+        buzzerBelowBoard: !!buzzer && !!board && buzzer.top >= board.bottom,
       };
     });
 
-    expect(overlap).toEqual({ overText: false, insidePanel: true, buzzerVisible: true });
+    expect(layout).toEqual({
+      overText: false,
+      insidePanel: true,
+      buzzerVisible: true,
+      buzzerBelowBoard: true,
+    });
   });
 });
 
