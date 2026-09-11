@@ -112,7 +112,7 @@ export function RoomToolbar({
             label={`#${lobby.loadedEpisode.id}${lobby.loadedEpisode.airDate ? ` · ${lobby.loadedEpisode.airDate}` : ""}`}
             size="small"
             variant="outlined"
-            sx={{ ml: 1, color: "text.secondary", display: { xs: "none", md: "flex" } }}
+            sx={{ ml: 1, height: 30, color: "text.secondary", display: { xs: "none", md: "flex" } }}
           />
         ) : null}
         <RoomBar />
@@ -156,10 +156,10 @@ export function RoomToolbar({
           isRoomHost ? (
             <Tooltip title="Restart">
               <IconButton
-                color="warning"
                 onClick={() => {
                   exitToLobby();
                 }}
+                sx={{ minWidth: 44, minHeight: 44 }}
               >
                 <ReplayIcon />
               </IconButton>
@@ -181,16 +181,12 @@ export function RoomToolbar({
             Begin
           </Button>
         ) : (
-          <Typography
-            variant="caption"
-            sx={{ ml: 1, color: "text.secondary", whiteSpace: "nowrap" }}
-          >
+          <Typography variant="overline" sx={{ ml: 1, whiteSpace: "nowrap", color: "text.secondary" }}>
             Waiting for the host
           </Typography>
         )}
         <Tooltip title={online ? "Leave room" : "Home"}>
           <IconButton
-            color="error"
             aria-label={online ? "Leave room" : "Home"}
             onClick={() => {
               // Leaving for real: hand the seat back rather than holding a
@@ -198,6 +194,7 @@ export function RoomToolbar({
               if (online) leaveOnlineRoom();
               setScreen("landing");
             }}
+            sx={{ minWidth: 44, minHeight: 44, color: "error.main", "&:hover": { color: "error.light" } }}
           >
             <LogoutIcon />
           </IconButton>
@@ -286,11 +283,9 @@ export function RoomToolbar({
         onClose={() => setSettingsAnchor(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
-        slotProps={{ paper: { sx: { minWidth: 320, maxWidth: 380, p: 2 } } }}
+        slotProps={{ paper: { sx: { minWidth: 320, maxWidth: 380, p: 2.5 } } }}
       >
-        <Typography variant="overline" sx={{ color: "text.secondary" }}>
-          Settings
-        </Typography>
+        <Typography variant="overline">Settings</Typography>
         <Box sx={{ mt: 1 }}>
           <SettingsPanel />
         </Box>
@@ -302,11 +297,9 @@ export function RoomToolbar({
         onClose={() => setPlayersAnchor(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
-        slotProps={{ paper: { sx: { minWidth: 320, maxWidth: 380, p: 2 } } }}
+        slotProps={{ paper: { sx: { minWidth: 320, maxWidth: 380, p: 2.5 } } }}
       >
-        <Typography variant="overline" sx={{ color: "text.secondary" }}>
-          Players
-        </Typography>
+        <Typography variant="overline">Players</Typography>
         <Box sx={{ mt: 1 }}>
           <PlayersPanel />
         </Box>

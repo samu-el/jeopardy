@@ -5,6 +5,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { ui } from "@/lib/foundation/jeopardy-style";
 
 const STORAGE_KEY = "jeopardy.onboarded.v1";
 
@@ -54,20 +55,15 @@ export function Onboarding() {
         onClick={(event) => event.stopPropagation()}
         sx={{
           maxWidth: 420,
-          background: "linear-gradient(180deg, #0e1530, #050a26)",
-          border: "1px solid rgba(255,255,255,0.12)",
-          borderRadius: 2,
+          background: ui.surface,
+          border: `1px solid ${ui.line}`,
+          borderRadius: 1,
           p: 3,
           my: "auto",
         }}
       >
-        <Typography
-          variant="overline"
-          sx={{ color: "#5b8cff", letterSpacing: 2 }}
-        >
-          Welcome
-        </Typography>
-        <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5, mb: 2 }}>
+        <Typography variant="overline">Welcome</Typography>
+        <Typography variant="h4" sx={{ mt: 0.5, mb: 2, fontSize: 26 }}>
           Three steps and you&rsquo;re playing
         </Typography>
         <Stack spacing={1.25} sx={{ mb: 3 }}>
@@ -106,8 +102,8 @@ function Step({ num, title, body }: { num: number; title: string; body: string }
           height: 22,
           flex: "0 0 22px",
           borderRadius: "50%",
-          background: "#5b8cff",
-          color: "#000",
+          background: ui.gold,
+          color: "#1A1200",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -119,9 +115,7 @@ function Step({ num, title, body }: { num: number; title: string; body: string }
       </Box>
       <Box>
         <Typography sx={{ fontWeight: 700 }}>{title}</Typography>
-        <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.6)" }}>
-          {body}
-        </Typography>
+        <Typography variant="body2">{body}</Typography>
       </Box>
     </Stack>
   );

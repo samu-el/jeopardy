@@ -14,6 +14,7 @@ import AddIcon from "@mui/icons-material/AddOutlined";
 import DeleteIcon from "@mui/icons-material/DeleteOutlined";
 import { baselineBotProfiles } from "@/lib/foundation/game-contracts";
 import { useGameStore } from "@/lib/state/game-store";
+import { ui } from "@/lib/foundation/jeopardy-style";
 import { AvatarPicker } from "./AvatarPicker";
 
 export function PlayersPanel() {
@@ -103,7 +104,7 @@ export function PlayersPanel() {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        background: player.color ?? "rgba(255,255,255,0.08)",
+                        background: player.color ?? ui.surfaceRaised,
                       }}
                     >
                       {player.emoji ?? ""}

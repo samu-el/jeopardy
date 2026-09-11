@@ -1,6 +1,7 @@
 "use client";
 
 import Box from "@mui/material/Box";
+import { jeopardyFonts, ui } from "@/lib/foundation/jeopardy-style";
 
 interface WordmarkProps {
   size?: "sm" | "md" | "lg" | "xl";
@@ -32,11 +33,12 @@ export function Wordmark({ size = "md" }: WordmarkProps) {
         gap: 0.25,
         height,
         userSelect: "none",
-        fontFamily: '"Inter Tight", Inter, ui-sans-serif, system-ui, sans-serif',
-        fontWeight: 900,
-        fontStyle: "italic",
+        // The same condensed face as the board's categories, leaned the way
+        // the show leans its title. One typeface for the whole set.
+        fontFamily: jeopardyFonts.display,
+        fontWeight: 700,
         fontSize: font,
-        letterSpacing: -2,
+        letterSpacing: "0.01em",
         lineHeight: 1,
         transform: "skew(-10deg)",
       }}
@@ -44,10 +46,8 @@ export function Wordmark({ size = "md" }: WordmarkProps) {
       <Box
         component="span"
         sx={{
-          color: "#3a78ff",
-          textShadow:
-            "0 2px 0 rgba(0,0,0,0.55), 0 0 22px rgba(58,120,255,0.32)",
-          WebkitTextStroke: "1px rgba(0,0,0,0.35)",
+          color: ui.blue,
+          textShadow: "0.04em 0.04em 0 rgba(0,0,0,0.6)",
         }}
       >
         JEOPARDY
@@ -55,10 +55,8 @@ export function Wordmark({ size = "md" }: WordmarkProps) {
       <Box
         component="span"
         sx={{
-          color: "#ffd23b",
-          textShadow:
-            "0 2px 0 rgba(0,0,0,0.55), 0 0 18px rgba(255,210,59,0.35)",
-          WebkitTextStroke: "1px rgba(0,0,0,0.35)",
+          color: ui.gold,
+          textShadow: "0.04em 0.04em 0 rgba(0,0,0,0.6)",
         }}
       >
         !

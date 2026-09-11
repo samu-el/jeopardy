@@ -8,6 +8,7 @@ import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useGameStore } from "@/lib/state/game-store";
+import { ui } from "@/lib/foundation/jeopardy-style";
 
 const EMOJIS = [
   "🦊", "🐢", "🐙", "🦋", "🐝", "🐬", "🦉", "🐼",
@@ -15,7 +16,7 @@ const EMOJIS = [
 ];
 
 const COLORS = [
-  "#5b8cff",
+  "#4B5BFF",
   "#33d684",
   "#ffd23b",
   "#ff7a8a",
@@ -70,9 +71,7 @@ export function AvatarPicker({ playerId, emoji, color, size = 36, label }: Avata
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
         slotProps={{ paper: { sx: { p: 1.5, minWidth: 220 } } }}
       >
-        <Typography variant="overline" sx={{ color: "text.secondary" }}>
-          Emoji
-        </Typography>
+        <Typography variant="overline">Emoji</Typography>
         <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap", gap: 0.5, mb: 1 }}>
           {EMOJIS.map((entry) => (
             <Box
@@ -83,7 +82,7 @@ export function AvatarPicker({ playerId, emoji, color, size = 36, label }: Avata
               sx={{
                 width: 32,
                 height: 32,
-                background: emoji === entry ? "rgba(91,140,255,0.18)" : "transparent",
+                background: emoji === entry ? ui.blueTint : "transparent",
                 border: "1px solid rgba(255,255,255,0.08)",
                 borderRadius: 1,
                 cursor: "pointer",
@@ -111,9 +110,7 @@ export function AvatarPicker({ playerId, emoji, color, size = 36, label }: Avata
             ×
           </Box>
         </Stack>
-        <Typography variant="overline" sx={{ color: "text.secondary" }}>
-          Color
-        </Typography>
+        <Typography variant="overline">Color</Typography>
         <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap", gap: 0.5 }}>
           {COLORS.map((entry) => (
             <Box

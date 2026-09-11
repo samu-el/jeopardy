@@ -11,7 +11,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopyOutlined";
 import VisibilityIcon from "@mui/icons-material/VisibilityOutlined";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOffOutlined";
 import { useGameStore } from "@/lib/state/game-store";
-import { jeopardyFonts, jeopardyPalette } from "@/lib/foundation/jeopardy-style";
+import { jeopardyFonts, ui } from "@/lib/foundation/jeopardy-style";
 
 /**
  * The room strip: the code to read out, who is in, and the connection state.
@@ -88,13 +88,15 @@ export function RoomBar() {
             display: "inline-flex",
             alignItems: "center",
             gap: 0.75,
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.14)",
-            borderRadius: 1,
-            px: 1,
-            py: 0.4,
+            background: ui.surface,
+            border: `1px solid ${ui.lineStrong}`,
+            borderRadius: 1.5,
+            px: 1.25,
+            py: 0.5,
+            height: 30,
             cursor: "pointer",
             color: "inherit",
+            "&:hover": { borderColor: ui.ink },
           }}
         >
           <Typography
@@ -105,7 +107,7 @@ export function RoomBar() {
               fontSize: 15,
               fontWeight: 600,
               fontVariantNumeric: "tabular-nums",
-              color: jeopardyPalette.goldBright,
+              color: ui.gold,
             }}
           >
             {revealed ? online.roomId : "•".repeat(online.roomId.length)}
@@ -121,7 +123,6 @@ export function RoomBar() {
           aria-label={revealed ? "Hide the room code" : "Show the room code"}
           aria-pressed={revealed}
           onClick={() => setRevealed((shown) => !shown)}
-          sx={{ color: "rgba(255,255,255,0.6)" }}
         >
           {revealed ? (
             <VisibilityOffIcon sx={{ fontSize: 17 }} />
@@ -135,11 +136,7 @@ export function RoomBar() {
         size="small"
         label={`${connectedCount} in room`}
         variant="outlined"
-        sx={{
-          color: "rgba(255,255,255,0.7)",
-          borderColor: "rgba(255,255,255,0.2)",
-          display: { xs: "none", md: "flex" },
-        }}
+        sx={{ height: 30, display: { xs: "none", md: "flex" } }}
       />
     </Stack>
   );
@@ -148,12 +145,12 @@ export function RoomBar() {
 function statusColor(status: string) {
   switch (status) {
     case "connected":
-      return jeopardyPalette.correct;
+      return ui.green;
     case "connecting":
     case "reconnecting":
-      return jeopardyPalette.goldBright;
+      return ui.gold;
     default:
-      return jeopardyPalette.incorrect;
+      return ui.red;
   }
 }
 

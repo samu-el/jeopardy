@@ -9,7 +9,7 @@ import Typography from "@mui/material/Typography";
 import type { PublicGameState } from "@/lib/game";
 import { useGameStore } from "@/lib/state/game-store";
 import { judgeAnswer as fuzzyJudge, primeAudio, primeSpeech } from "@/lib/ai";
-import { jeopardyFonts, jeopardyPalette } from "@/lib/foundation/jeopardy-style";
+import { jeopardyFonts, jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
 import { MicAnswerField } from "./MicAnswerField";
 import { BuzzLights } from "./BuzzLights";
 import { useClueTurn } from "./use-clue-turn";
@@ -176,7 +176,7 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
                 textTransform: "uppercase",
                 letterSpacing: "0.14em",
                 fontSize: { xs: 10, sm: 12 },
-                color: "rgba(255,255,255,0.6)",
+                color: ui.inkMuted,
                 whiteSpace: "nowrap",
                 justifySelf: "start",
               }}
@@ -201,7 +201,7 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
               }}
               size="small"
               autoFocus
-              sx={wagerFieldSx}
+              sx={{ width: 190 }}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
                   event.preventDefault();
@@ -217,7 +217,7 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
             {!isFinal ? (
               <Button
                 size="small"
-                sx={quietButtonSx}
+               
                 onClick={() => setWagerInput(String(clue.value))}
               >
                 ${clue.value}
@@ -225,7 +225,7 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
             ) : null}
             <Button
               size="small"
-              sx={quietButtonSx}
+             
               onClick={() => setWagerInput(String(turn.wagerLimits.max))}
             >
               {isFinal ? "Everything" : "True Daily Double"}
@@ -235,7 +235,7 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
       ) : null}
 
       {iSubmitted && !answerRevealed ? (
-        <Typography sx={{ color: "rgba(255,255,255,0.65)", fontSize: 13 }}>
+        <Typography sx={{ color: ui.inkMuted, fontSize: 13 }}>
           Answer locked in
         </Typography>
       ) : null}
@@ -326,7 +326,7 @@ export function PodiumClueButtons({ state, currentClientId }: ClueControlsProps)
         <Button
           variant="outlined"
           onClick={() => send({ type: "reveal-answer" })}
-          sx={{ ...stackedButtonSx, ...quietButtonSx }}
+          sx={stackedButtonSx}
         >
           Reveal
         </Button>
@@ -370,7 +370,7 @@ function JudgePanel({
       useFlexGap
       sx={{ alignItems: "center", justifyContent: "center", flexWrap: "wrap" }}
     >
-      <Typography sx={{ color: "rgba(255,255,255,0.85)", fontSize: 14 }}>
+      <Typography sx={{ color: ui.ink, fontSize: 14 }}>
         {name}:{" "}
         <Box component="span" sx={{ color: jeopardyPalette.goldBright, fontWeight: 700 }}>
           {answer || "—"}
@@ -397,7 +397,7 @@ function JudgePanel({
         <Button size="small" variant="contained" color="error" onClick={() => onJudge(false)}>
           Incorrect
         </Button>
-        <Button size="small" variant="outlined" sx={quietButtonSx} onClick={() => onJudge(null)}>
+        <Button size="small" variant="outlined" onClick={() => onJudge(null)}>
           Skip
         </Button>
       </Stack>
@@ -420,16 +420,3 @@ const stackedButtonSx = {
   lineHeight: 1.35,
 } as const;
 
-const quietButtonSx = {
-  color: "rgba(255,255,255,0.85)",
-  borderColor: "rgba(255,255,255,0.35)",
-  "&:hover": { borderColor: "rgba(255,255,255,0.6)" },
-} as const;
-
-const wagerFieldSx = {
-  width: 190,
-  "& .MuiInputBase-root": { background: "rgba(0,0,0,0.25)" },
-  "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
-  "& .MuiFormHelperText-root": { color: "rgba(255,255,255,0.65)" },
-  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.3)" },
-} as const;

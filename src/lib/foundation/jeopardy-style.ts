@@ -41,6 +41,41 @@ export const jeopardyFonts = {
 export const jeopardyTextShadow = "0.06em 0.06em 0 rgba(0,0,0,0.85)";
 export const jeopardyClueShadow = "0.04em 0.04em 0.02em rgba(0,0,0,0.6)";
 
+/**
+ * Everything that is not the board.
+ *
+ * The board has its own colours above because it is a specific object with
+ * a specific look. The rest of the app is the studio around it: a black
+ * stage, panels in one deep blue, one blue for anything you can press, gold
+ * for anything worth pointing at. Every component draws from this list and
+ * nothing else — the last design had three colour systems arguing.
+ */
+export const ui = {
+  /** The page. */
+  stage: "#000000",
+  /** Panels, cards, dialogs, popovers, the chat, the lectern base. */
+  surface: "#0B0F2A",
+  /** A panel resting on a panel; hover on a surface. */
+  surfaceRaised: "#141A44",
+  line: "rgba(255,255,255,0.10)",
+  lineStrong: "rgba(255,255,255,0.22)",
+  ink: "#FFFFFF",
+  inkMuted: "rgba(255,255,255,0.64)",
+  inkFaint: "rgba(255,255,255,0.40)",
+  /** The one interactive blue: buttons, links, focus, the wordmark. */
+  blue: "#4B5BFF",
+  blueDeep: "#3444E6",
+  blueTint: "rgba(75,91,255,0.16)",
+  /** The one accent: values, the room code, what is lit right now. */
+  gold: "#F2C14E",
+  goldDeep: "#D69F4C",
+  goldTint: "rgba(242,193,78,0.14)",
+  green: "#2FD07A",
+  red: "#FF4E5B",
+  /** Corners. One radius for panels and controls; the board has none. */
+  radius: 8,
+} as const;
+
 /** Standard board shape: six categories, five clues each. */
 export const boardColumns = 6;
 export const boardRows = 5;

@@ -12,7 +12,7 @@ test.describe("Share link join flow", () => {
     });
     await page.goto("/?room=r-abcdef");
     await expect(page.getByRole("dialog", { name: "Join room" })).toBeVisible();
-    await expect(page.getByText("#r-abcdef")).toBeVisible();
+    await expect(page.getByText("r-abcdef")).toBeVisible();
     await expect(page.getByLabel("Your name")).toBeVisible();
     await expect(page.getByRole("button", { name: "Join" })).toBeVisible();
   });
@@ -26,7 +26,7 @@ test.describe("Share link join flow", () => {
       });
     });
     await page.goto("/?room=r-test");
-    await expect(page.getByText("#r-test")).toBeVisible();
+    await expect(page.getByText("r-test")).toBeVisible();
     await page.getByRole("button", { name: "Cancel" }).click();
     await expect(page.getByTestId("new-game")).toBeVisible();
   });
