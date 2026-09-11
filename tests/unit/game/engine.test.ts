@@ -115,15 +115,15 @@ describe("game engine", () => {
     });
 
     state = run(state, { type: "buzz", actorId: "p2" }, 120).state;
+    // Nothing is shown until the answer is in.
+    expect(getPublicGameState(state, 120).currentClue?.answers).toEqual({});
+
+    // p2 is the only player who rang in, so their answer is the reveal.
     state = run(
       state,
       { type: "submit-answer", actorId: "p2", answer: "Mars" },
       130,
     ).state;
-
-    expect(getPublicGameState(state, 130).currentClue?.answers).toEqual({});
-
-    state = run(state, { type: "reveal-answer", actorId: "p1" }, 140).state;
     expect(getPublicGameState(state, 140).currentClue).toMatchObject({
       correctResponse: "Mars",
       answers: {
