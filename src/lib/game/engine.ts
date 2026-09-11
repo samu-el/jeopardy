@@ -559,17 +559,24 @@ function submitAnswer(
   nextActive.submitted[command.actorId] = true;
   incrementStatFor(command.actorId, next.stats.answeredByPlayer);
 
-  return {
-    state: touch(next, now),
-    events: [
-      {
-        type: "answer-submitted",
-        clueId: nextActive.clueId,
-        actorId: command.actorId,
-        hasAnswer: command.answer.trim().length > 0,
-      },
-    ],
+  const submitted: GameEvent = {
+    type: "answer-submitted",
+    clueId: nextActive.clueId,
+    actorId: command.actorId,
+    hasAnswer: command.answer.trim().length > 0,
   };
+
+  // Everyone who owes an answer has given one — the one player who rang in,
+  // the Daily Double picker, or the whole table in Final — so the clock has
+  // nothing left to wait for. Reveal now rather than when the answer window
+  // would have run out: those seconds were dead air for the whole room.
+  const outstanding = Object.keys(nextActive.buzzes).filter((id) => !nextActive.submitted[id]);
+  if (outstanding.length === 0) {
+    const revealed = revealAnswer(touch(next, now), { type: "reveal-answer" }, now);
+    return { state: revealed.state, events: [submitted, ...revealed.events] };
+  }
+
+  return { state: touch(next, now), events: [submitted] };
 }
 
 function revealAnswer(

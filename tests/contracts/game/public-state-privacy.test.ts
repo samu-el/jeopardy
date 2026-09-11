@@ -66,21 +66,17 @@ describe("public game state privacy", () => {
       { type: "submit-wager", actorId: "host", amount: 777 },
       { now: 30 },
     ).state;
+    const publicBeforeReveal = JSON.stringify(getPublicGameState(state, 40));
+    expect(publicBeforeReveal).toContain("This answer should stay hidden.");
+    expect(publicBeforeReveal).not.toContain("777");
+
+    // The picker is the only player who owes an answer on a Daily Double, so
+    // sending it is the reveal: the answer and the wager come out together,
+    // and not a moment before.
     state = dispatchGameCommand(
       state,
       { type: "submit-answer", actorId: "host", answer: "classified response" },
       { now: 140 },
-    ).state;
-
-    const publicBeforeReveal = JSON.stringify(getPublicGameState(state, 140));
-    expect(publicBeforeReveal).toContain("This answer should stay hidden.");
-    expect(publicBeforeReveal).not.toContain("classified response");
-    expect(publicBeforeReveal).not.toContain("777");
-
-    state = dispatchGameCommand(
-      state,
-      { type: "reveal-answer", actorId: "host" },
-      { now: 150 },
     ).state;
 
     const publicAfterReveal = JSON.stringify(getPublicGameState(state, 150));

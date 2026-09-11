@@ -26,17 +26,18 @@ test.describe("Clue controls", () => {
     const before = await buzzerCentre();
 
     await page.keyboard.type("four");
-    await page.keyboard.press("Enter");
-    await expect(page.getByText("Answer locked in")).toBeVisible();
 
     // The buzzer is the one control that must not move under your thumb:
-    // neither the answer field appearing nor the answer going in may shift
-    // it, which is why the field has a line of its own.
+    // the answer field appearing and filling may not shift it, which is why
+    // the field is mounted in the clock's housing rather than on a line of
+    // its own.
     expect(before).not.toBeNull();
     expect(Math.abs((await buzzerCentre())! - before!)).toBeLessThan(2);
 
-    // R reveals, Y scores it, and the board comes back.
-    await page.keyboard.press("r");
+    // Enter sends it — and with the only player who rang in answered, the
+    // answer comes up at once rather than when the clock runs out. Y scores
+    // it, and the board comes back.
+    await page.keyboard.press("Enter");
     await expect(page.getByTestId("correct-response")).toBeVisible();
     await page.keyboard.press("y");
     // The seat id is per browser, so match the score display by its prefix.
@@ -99,9 +100,8 @@ test.describe("Clue controls", () => {
     await page.getByTestId("mic-toggle").click();
 
     // The transcript is submitted as-is, not a stale copy of the field.
-    await expect(page.getByText("Answer locked in")).toBeVisible({ timeout: 10_000 });
-    await page.keyboard.press("r");
-    await expect(page.getByTestId("correct-response")).toBeVisible();
+    // Dictation sends the answer, and the answer comes up on its own.
+    await expect(page.getByTestId("correct-response")).toBeVisible({ timeout: 10_000 });
     // The judge panel shows what was actually heard, not a stale field value.
     await expect(page.getByText("what is four").first()).toBeVisible();
   });
