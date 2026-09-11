@@ -10,7 +10,6 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import EditNoteIcon from "@mui/icons-material/EditNoteOutlined";
 import Popover from "@mui/material/Popover";
-import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import LogoutIcon from "@mui/icons-material/LogoutOutlined";
@@ -70,20 +69,22 @@ export function RoomToolbar({
   const inGame = Boolean(runtime && publicState && publicState.round !== "lobby");
 
   return (
-    <Stack
-      direction="row"
-      useFlexGap
+    // Three columns on a wide screen — mark, room, keys — so the room
+    // housing sits on the board's centre line rather than trailing the
+    // mark. A phone stacks it: the mark centred on top, the two housings
+    // side by side and centred beneath it. Nothing hangs off one edge.
+    <Box
       sx={{
-        py: 1.5,
+        display: "grid",
+        gridTemplateColumns: { xs: "auto auto", sm: "1fr auto 1fr" },
+        justifyContent: { xs: "center", sm: "stretch" },
         alignItems: "center",
-        justifyContent: "space-between",
-        gap: 1,
-        // A phone can't hold the whole strip on one line; wrap rather than
-        // pushing the page into a horizontal scroll.
-        flexWrap: { xs: "wrap", sm: "nowrap" },
+        columnGap: 1,
+        rowGap: 1,
+        py: 1.5,
       }}
     >
-      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+      <Box sx={{ gridColumn: { xs: "1 / -1", sm: "1" }, justifySelf: { xs: "center", sm: "start" } }}>
         <Tooltip title="Home">
           <Box
             component="button"
@@ -108,6 +109,9 @@ export function RoomToolbar({
             <Wordmark size="sm" />
           </Box>
         </Tooltip>
+      </Box>
+
+      <Box sx={{ gridColumn: { xs: "1", sm: "2" }, justifySelf: { xs: "end", sm: "center" }, minWidth: 0 }}>
         <RoomBar
           episode={
             lobby.loadedEpisode
@@ -115,17 +119,18 @@ export function RoomToolbar({
               : undefined
           }
         />
-      </Stack>
+      </Box>
 
-      <Stack
-        direction="row"
-        spacing={1}
+      <Box
         sx={{
+          gridColumn: { xs: "2", sm: "3" },
+          justifySelf: { xs: "start", sm: "end" },
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 1,
           alignItems: "center",
-          justifyContent: "flex-end",
-          // When the strip wraps on a phone this row takes the whole second
-          // line, so it can keep its controls on the right where they were.
-          flexGrow: { xs: 1, sm: 0 },
+          justifyContent: { xs: "center", sm: "flex-end" },
+          minWidth: 0,
         }}
       >
         {/* The one key that isn't housed: it starts the game, and it should
@@ -194,7 +199,7 @@ export function RoomToolbar({
             <LogoutIcon />
           </ToolKey>
         </Housing>
-      </Stack>
+      </Box>
 
       <Menu
         anchorEl={moreAnchor}
@@ -299,7 +304,7 @@ export function RoomToolbar({
           <PlayersPanel />
         </Box>
       </Popover>
-    </Stack>
+    </Box>
   );
 }
 
@@ -325,6 +330,9 @@ function DisplayButton() {
       aria-label="Open display mode"
       data-testid="open-display"
       onClick={() => setDisplayMode(true)}
+      // A phone is never the television, and the key it saves is what lets
+      // the two housings share a line.
+      sx={{ display: { xs: "none", sm: "inline-flex" } }}
     >
       <CastIcon />
     </ToolKey>
@@ -343,8 +351,8 @@ function ToolKey({ title, sx, children, ...props }: IconButtonProps & { title: s
         {...props}
         sx={[
           {
-            width: 36,
-            height: 36,
+            width: { xs: 32, sm: 36 },
+            height: { xs: 32, sm: 36 },
             borderRadius: "50%",
             color: ui.inkMuted,
             "&:hover": { color: ui.ink, background: "rgba(255,255,255,0.08)" },

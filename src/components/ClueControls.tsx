@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import SendIcon from "@mui/icons-material/SendOutlined";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
@@ -12,7 +15,7 @@ import { judgeAnswer as fuzzyJudge, primeAudio, primeSpeech } from "@/lib/ai";
 import { controls, jeopardyFonts, jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
 import { MicAnswerField } from "./MicAnswerField";
 import { BuzzLights } from "./BuzzLights";
-import { Housing, HousingDivider } from "./Housing";
+import { Housing, HousingDivider, HousingLabel } from "./Housing";
 import { useClueTurn } from "./use-clue-turn";
 
 interface ClueControlsProps {
@@ -125,124 +128,107 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
       }}
     >
       {!answerRevealed ? (
-        // One instrument: the lamps and the countdown share a housing, so
-        // the clock is a thing on the set rather than a row of shapes level
-        // with a line of text.
-        typing ? (
-          // Your answer goes on the clock's own line. Under it, the strip
-          // grew tall enough to push a lectern off a laptop screen.
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", sm: "1fr auto 1fr" },
-              justifyItems: { xs: "center", sm: "stretch" },
-              alignItems: "center",
-              gap: 1.5,
-              width: "100%",
-              // Wide screens would put the field a monitor's width from the
-              // clock; keep the whole row about as wide as the board.
-              maxWidth: 1040,
-              mx: "auto",
-            }}
-          >
-            <Box aria-hidden sx={{ display: { xs: "none", sm: "block" } }} />
-            <BuzzLights
-              remaining={turn.lightsRemaining}
-              reducedMotion={reducedMotion}
-              label={turn.lightsLabel}
-              phase={turn.clockLabel}
-              seconds={turn.clockSeconds}
-            />
-            <Stack
-              direction="row"
-              spacing={1}
-              sx={{
-                alignItems: "center",
-                width: { xs: "100%", sm: "auto" },
-                maxWidth: 380,
-                justifySelf: { xs: "center", sm: "start" },
-              }}
-            >
-              <MicAnswerField
-                label={finalOpen ? "Final answer" : "What is…"}
-                value={answerInput}
-                onChange={setAnswerInput}
-                onSubmit={handleSubmitAnswer}
-                disabled={iSubmitted}
-                size="small"
-                autoFocus
-              />
-              <Button
-                variant="contained"
-                size="small"
-                onClick={() => handleSubmitAnswer()}
-                disabled={!answerInput.trim() || iSubmitted}
-                sx={{ ...controls.keyPrimary, "&.Mui-disabled": controls.keyOff }}
-              >
-                {finalOpen ? "Lock in" : "Send"}
-              </Button>
-            </Stack>
-          </Box>
-        ) : (
-          <BuzzLights
-            remaining={turn.lightsRemaining}
-            reducedMotion={reducedMotion}
-            label={turn.lightsLabel}
-            phase={turn.clockLabel}
-            seconds={turn.clockSeconds}
-          />
-        )
+        // One instrument: the lamps, the countdown and — while the clock is
+        // yours — the answer field share a housing. The field takes the
+        // phase's place on a wide screen and a row of its own on a phone,
+        // so the strip is symmetric in both and never grows a stray limb.
+        <BuzzLights
+          remaining={turn.lightsRemaining}
+          reducedMotion={reducedMotion}
+          label={turn.lightsLabel}
+          phase={turn.clockLabel}
+          seconds={turn.clockSeconds}
+          control={
+            typing ? (
+              <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", width: { xs: "100%", sm: 250 } }}>
+                <MicAnswerField
+                  label={finalOpen ? "Final answer" : "What is…"}
+                  value={answerInput}
+                  onChange={setAnswerInput}
+                  onSubmit={handleSubmitAnswer}
+                  disabled={iSubmitted}
+                  size="small"
+                  autoFocus
+                />
+                <Tooltip title={finalOpen ? "Lock in" : "Send"}>
+                  <IconButton
+                    aria-label={finalOpen ? "Lock in" : "Send"}
+                    onClick={() => handleSubmitAnswer()}
+                    disabled={!answerInput.trim() || iSubmitted}
+                    sx={{
+                      ...controls.keyPrimary,
+                      width: 34,
+                      height: 34,
+                      flex: "0 0 auto",
+                      borderRadius: "50%",
+                      "&.Mui-disabled": controls.keyOff,
+                    }}
+                  >
+                    <SendIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+            ) : undefined
+          }
+        />
       ) : null}
 
       {wagerOpen ? (
-        <Stack spacing={1} sx={{ alignItems: "center" }}>
-          <Stack direction="row" spacing={1} sx={{ alignItems: "flex-start" }}>
-            <TextField
-              label="Wager"
-              type="number"
-              value={wagerInput}
-              onChange={(event) => setWagerInput(event.target.value)}
-              helperText={`$${turn.wagerLimits.min} – $${turn.wagerLimits.max}`}
-              slotProps={{
-                htmlInput: { min: turn.wagerLimits.min, max: turn.wagerLimits.max },
-              }}
-              size="small"
-              autoFocus
-              sx={{ width: 190 }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  handleSubmitWager();
-                }
-              }}
-            />
-            <Button
-              variant="contained"
-              onClick={handleSubmitWager}
-              sx={{ ...controls.keyPrimary, mt: 0.25 }}
-            >
-              Wager
+        // The wager bench: the range printed on the housing, a readout to
+        // type into, the key that places it, and two quick picks.
+        <Housing sx={wrapHousingSx}>
+          <HousingLabel sx={{ height: 32, pl: 1.25, pr: 1 }}>
+            {isFinal ? "Final wager" : "Wager"} · ${turn.wagerLimits.min}–${turn.wagerLimits.max}
+          </HousingLabel>
+          <TextField
+            type="number"
+            value={wagerInput}
+            onChange={(event) => setWagerInput(event.target.value)}
+            placeholder="$"
+            slotProps={{
+              htmlInput: {
+                min: turn.wagerLimits.min,
+                max: turn.wagerLimits.max,
+                "aria-label": "Wager",
+              },
+            }}
+            size="small"
+            autoFocus
+            sx={{
+              width: 104,
+              "& .MuiInputBase-root": { height: 32 },
+              // A readout has no spinner.
+              "& input[type=number]": { MozAppearance: "textfield" },
+              "& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button": {
+                WebkitAppearance: "none",
+                margin: 0,
+              },
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                handleSubmitWager();
+              }
+            }}
+          />
+          <Button variant="contained" onClick={handleSubmitWager} sx={{ ...controls.keyPrimary, ...benchKeySx }}>
+            Wager
+          </Button>
+          <HousingDivider sx={{ display: { xs: "none", sm: "block" } }} />
+          {!isFinal ? (
+            <Button size="small" variant="outlined" onClick={() => setWagerInput(String(clue.value))} sx={benchKeySx}>
+              ${clue.value}
             </Button>
-          </Stack>
-          <Stack direction="row" spacing={1}>
-            {!isFinal ? (
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={() => setWagerInput(String(clue.value))}
-              >
-                ${clue.value}
-              </Button>
-            ) : null}
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() => setWagerInput(String(turn.wagerLimits.max))}
-            >
-              {isFinal ? "Everything" : "True Daily Double"}
-            </Button>
-          </Stack>
-        </Stack>
+          ) : null}
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => setWagerInput(String(turn.wagerLimits.max))}
+            sx={benchKeySx}
+          >
+            {isFinal ? "Everything" : "True Daily Double"}
+          </Button>
+        </Housing>
       ) : null}
 
       {iSubmitted && !answerRevealed ? (
@@ -368,18 +354,21 @@ function JudgePanel({
   const name = state.players.find((player) => player.id === target)?.displayName ?? target;
   // The host's bench: what they said on a readout, and three keys to rule on
   // it — mounted together, the same as every other instrument on the set.
-  const judgeKeySx = { minHeight: 30, px: 1.5, borderRadius: "999px", fontSize: 12 } as const;
   return (
-    <Housing sx={{ flexWrap: "wrap", justifyContent: "center", rowGap: 0.5 }}>
+    <Housing sx={wrapHousingSx}>
+      {/* On a phone the readout takes a row of its own and the keys sit
+          centred under it: two balanced rows, not a ragged wrap. */}
       <Box
         sx={{
           ...controls.readout,
           display: "inline-flex",
           alignItems: "baseline",
+          justifyContent: "center",
           gap: 1,
-          height: 30,
+          height: 32,
           px: 1.5,
-          mr: 0.5,
+          mr: { xs: 0, sm: 0.5 },
+          flexBasis: { xs: "100%", sm: "auto" },
           fontSize: 14,
           color: ui.ink,
           whiteSpace: "nowrap",
@@ -408,13 +397,13 @@ function JudgePanel({
           </Box>
         ) : null}
       </Box>
-      <HousingDivider />
+      <HousingDivider sx={{ display: { xs: "none", sm: "block" } }} />
       <Button
         size="small"
         variant="contained"
         color="success"
         onClick={() => onJudge(true)}
-        sx={judgeKeySx}
+        sx={benchKeySx}
       >
         Correct
       </Button>
@@ -423,16 +412,32 @@ function JudgePanel({
         variant="contained"
         color="error"
         onClick={() => onJudge(false)}
-        sx={judgeKeySx}
+        sx={benchKeySx}
       >
         Incorrect
       </Button>
-      <Button size="small" variant="outlined" onClick={() => onJudge(null)} sx={judgeKeySx}>
+      <Button size="small" variant="outlined" onClick={() => onJudge(null)} sx={benchKeySx}>
         Skip
       </Button>
     </Housing>
   );
 }
+
+/**
+ * A bench that may need two rows on a phone: centred, with room at the
+ * corners for what wraps. One row on anything wider, with the pill's ends.
+ */
+const wrapHousingSx = {
+  flexWrap: "wrap",
+  justifyContent: "center",
+  rowGap: 0.75,
+  p: { xs: 1, sm: "3px" },
+  borderRadius: { xs: "16px", sm: "999px" },
+  maxWidth: "100%",
+} as const;
+
+/** A key on a bench: the housing's height, the housing's round ends. */
+const benchKeySx = { minHeight: 32, px: 1.5, borderRadius: "999px", fontSize: 12 } as const;
 
 /**
  * One width, one height: a stack of these reads as a set.

@@ -95,27 +95,21 @@ export function Landing() {
       }}
     >
       <Container maxWidth="lg" sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        <Stack
-          direction="row"
-          sx={{
-            py: 2,
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <Wordmark size="sm" />
-        </Stack>
-
+        {/* Everything on the centre line: the mark, the line under it, the
+            keys, the three notes at the foot. The room is symmetric about
+            its board; the front door is symmetric about its mark. */}
         <Box
           sx={{
             flex: 1,
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
+            alignItems: "center",
+            textAlign: "center",
             py: { xs: 6, md: 8 },
           }}
         >
-          <Stack spacing={{ xs: 3, md: 5 }} sx={{ maxWidth: 760 }}>
+          <Stack spacing={{ xs: 3, md: 5 }} sx={{ maxWidth: 760, width: "100%", alignItems: "center" }}>
             <Wordmark size="xl" />
             {pendingRoomId ? (
               <Box
@@ -126,6 +120,7 @@ export function Landing() {
                   border: `1px solid ${ui.line}`,
                   borderRadius: 1,
                   p: 3,
+                  width: "100%",
                   maxWidth: 480,
                 }}
               >
@@ -145,7 +140,7 @@ export function Landing() {
                       {joinError}
                     </Typography>
                   ) : null}
-                  <Stack direction="row" spacing={1}>
+                  <Stack direction="row" spacing={1} sx={{ justifyContent: "center" }}>
                     <Button
                       variant="contained"
                       startIcon={joining ? <CircularProgress size={16} /> : <LoginIcon />}
@@ -185,7 +180,7 @@ export function Landing() {
                 <Stack
                   direction={{ xs: "column", sm: "row" }}
                   spacing={2}
-                  sx={{ alignItems: { sm: "center" } }}
+                  sx={{ alignItems: "center", justifyContent: "center" }}
                 >
                   <Button
                     variant="contained"
@@ -200,7 +195,7 @@ export function Landing() {
                     }
                     disabled={dealing}
                     onClick={newGame}
-                    sx={{ px: 4, alignSelf: { xs: "flex-start", sm: "auto" } }}
+                    sx={{ px: 4 }}
                   >
                     {dealing ? "Dealing…" : "New Game"}
                   </Button>
@@ -248,6 +243,7 @@ export function Landing() {
               display: "grid",
               gap: 4,
               gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" },
+              textAlign: "center",
             }}
           >
             <LandingFeature
@@ -271,7 +267,7 @@ export function Landing() {
 
 function LandingFeature({ title, body }: { title: string; body: string }) {
   return (
-    <Stack spacing={1}>
+    <Stack spacing={1} sx={{ alignItems: "center" }}>
       <Typography variant="h6" sx={{ fontSize: 17 }}>
         {title}
       </Typography>

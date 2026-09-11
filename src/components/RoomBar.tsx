@@ -86,7 +86,7 @@ export function RoomBar({ episode }: RoomBarProps) {
           role="img"
           aria-label={`Connection ${online.status}`}
           sx={{
-            mx: 1.25,
+            mx: { xs: 1, sm: 1.25 },
             width: 8,
             height: 8,
             borderRadius: "50%",
@@ -108,8 +108,8 @@ export function RoomBar({ episode }: RoomBarProps) {
             display: "inline-flex",
             alignItems: "center",
             gap: 1,
-            height: 30,
-            px: 1.25,
+            height: { xs: 26, sm: 30 },
+            px: { xs: 1, sm: 1.25 },
             cursor: "pointer",
             color: "inherit",
             "&:hover": { borderColor: ui.inkMuted },
@@ -142,7 +142,7 @@ export function RoomBar({ episode }: RoomBarProps) {
           aria-label={revealed ? "Hide the room code" : "Show the room code"}
           aria-pressed={revealed}
           onClick={() => setRevealed((shown) => !shown)}
-          sx={{ width: 32, height: 32, borderRadius: "50%" }}
+          sx={{ width: { xs: 26, sm: 32 }, height: { xs: 26, sm: 32 }, borderRadius: "50%" }}
         >
           {revealed ? (
             <VisibilityOffIcon sx={{ fontSize: 17 }} />
