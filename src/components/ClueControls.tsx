@@ -289,7 +289,7 @@ export function PodiumClueButtons({ state, currentClientId }: ClueControlsProps)
   if (!showBuzzer && !showReveal && !showNext) return null;
 
   return (
-    <Stack spacing={0.5} sx={{ pt: 0.75 }}>
+    <Stack spacing={0.4} sx={{ pt: 0.5 }}>
       {showBuzzer ? (
         <Button
           ref={buzzerRef}
@@ -305,7 +305,7 @@ export function PodiumClueButtons({ state, currentClientId }: ClueControlsProps)
           sx={{
             ...stackedButtonSx,
             fontFamily: jeopardyFonts.display,
-            fontSize: 15,
+            fontSize: 13,
             letterSpacing: "0.12em",
             background: canIBuzz
               ? "linear-gradient(180deg, #ff5f6d 0%, #c31432 100%)"
@@ -364,8 +364,13 @@ function JudgePanel({
   const verdict = fuzzyJudge({ submittedAnswer: answer, expectedAnswer: expected });
   const name = state.players.find((player) => player.id === target)?.displayName ?? target;
   return (
-    <Box sx={{ textAlign: "center" }}>
-      <Typography sx={{ color: "rgba(255,255,255,0.85)", mb: 1, fontSize: 15 }}>
+    <Stack
+      direction="row"
+      spacing={1}
+      useFlexGap
+      sx={{ alignItems: "center", justifyContent: "center", flexWrap: "wrap" }}
+    >
+      <Typography sx={{ color: "rgba(255,255,255,0.85)", fontSize: 14 }}>
         {name}:{" "}
         <Box component="span" sx={{ color: jeopardyPalette.goldBright, fontWeight: 700 }}>
           {answer || "—"}
@@ -385,34 +390,34 @@ function JudgePanel({
           </Box>
         ) : null}
       </Typography>
-      <Stack
-        direction="row"
-        spacing={1}
-        useFlexGap
-        sx={{ flexWrap: "wrap", justifyContent: "center" }}
-      >
-        <Button variant="contained" color="success" onClick={() => onJudge(true)}>
+      <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
+        <Button size="small" variant="contained" color="success" onClick={() => onJudge(true)}>
           Correct
         </Button>
-        <Button variant="contained" color="error" onClick={() => onJudge(false)}>
+        <Button size="small" variant="contained" color="error" onClick={() => onJudge(false)}>
           Incorrect
         </Button>
-        <Button variant="outlined" sx={quietButtonSx} onClick={() => onJudge(null)}>
+        <Button size="small" variant="outlined" sx={quietButtonSx} onClick={() => onJudge(null)}>
           Skip
         </Button>
       </Stack>
-    </Box>
+    </Stack>
   );
 }
 
-/** One width, one height: a stack of these reads as a set. */
+/**
+ * One width, one height: a stack of these reads as a set.
+ *
+ * Tight on purpose. Every lectern in the row carries the space for two of
+ * them all game, so each millimetre here is one the board gets to keep.
+ */
 const stackedButtonSx = {
   width: "100%",
   minWidth: 0,
-  py: 0.6,
+  py: 0.25,
   borderRadius: 1,
-  fontSize: 13,
-  lineHeight: 1.2,
+  fontSize: 12,
+  lineHeight: 1.35,
 } as const;
 
 const quietButtonSx = {

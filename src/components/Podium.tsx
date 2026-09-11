@@ -20,18 +20,21 @@ interface PodiumProps {
    */
   controls?: ReactNode;
   /**
-   * Hold the space for those buttons whether or not this lectern has any.
+   * Hold the space for those buttons whether or not this lectern has any,
+   * and whether or not a clue is open.
    *
-   * Lecterns are the same height on the set and should be the same height
-   * here: without this, yours grew when a clue opened and grew again between
-   * BUZZ and Next clue, so the row jumped every time the buzzer changed its
-   * mind and everyone else's lectern sat lower than yours.
+   * A lectern is one height, always. Reserving it only while a clue was up
+   * meant the whole row grew the moment one opened; reserving it only on
+   * your own lectern meant yours stood taller than everyone else's. The
+   * space is small enough to carry all the time — which is why the buttons
+   * inside it are as tight as they are.
    */
   reserveControls?: boolean;
 }
 
-/** Two stacked buttons and the gap above them — the tallest this ever gets. */
-export const podiumControlsHeight = 66;
+/** Two stacked buttons and the hairline above them. Kept deliberately mean:
+ *  every lectern carries this whether it has buttons or not. */
+export const podiumControlsHeight = 51;
 
 /**
  * A contestant lectern: name plate on top, the score display below, and the
