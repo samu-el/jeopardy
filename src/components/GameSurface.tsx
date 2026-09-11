@@ -7,7 +7,7 @@ import { useGameStore } from "@/lib/state/game-store";
 import { jeopardyPalette } from "@/lib/foundation/jeopardy-style";
 import { Board } from "./Board";
 import { ClueStage } from "./ClueStage";
-import { PlayerControls } from "./PlayerControls";
+import { ClueControls } from "./ClueControls";
 import { Podium } from "./Podium";
 import { RoundIntro } from "./RoundIntro";
 import { TvClue } from "./TvClue";
@@ -191,7 +191,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
                     onCommand={(command) => runtime?.sendCommand(selfId, command)}
                   />
                 ) : (
-                  <ClueStage state={publicState} currentClientId={selfId} />
+                  <ClueStage state={publicState} />
                 )}
               </Box>
             ) : undefined
@@ -208,11 +208,11 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
 
       {tv ? null : (
       <Box>
-      {/* Over the lecterns, under the board: the clue is up there, what you
-          do about it is down here, at your own end of the screen. A
-          television has neither — the buzzers are on the phones. */}
+      {/* Over the lecterns, under the board: the board carries the clue,
+          this strip carries the clock and everything anyone presses. A
+          television has neither — it is only ever the clue. */}
       {publicState ? (
-        <PlayerControls state={publicState} currentClientId={selfId} />
+        <ClueControls state={publicState} currentClientId={selfId} />
       ) : null}
       <Box
         sx={{

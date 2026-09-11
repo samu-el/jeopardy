@@ -2,13 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { PublicGameState } from "@/lib/game";
 import { useGameStore } from "@/lib/state/game-store";
 import {
-  judgeAnswer as fuzzyJudge,
   playSfx,
   startFinalTheme,
   stopFinalTheme,
@@ -19,26 +17,22 @@ import {
   jeopardyPalette,
 } from "@/lib/foundation/jeopardy-style";
 import { DailyDoubleSplash } from "./DailyDoubleSplash";
-import { BuzzLights } from "./BuzzLights";
 
 interface ClueStageProps {
   state: PublicGameState;
-  currentClientId: string;
-  onClose?: () => void;
 }
 
-export function ClueStage({ state, currentClientId }: ClueStageProps) {
-  const runtime = useGameStore((s) => s.runtime);
+/**
+ * The clue itself, and nothing anyone presses.
+ *
+ * The category, the value, the clue, and the answer once it is revealed —
+ * what the whole room is reading. The clock, the buzzer, the answer field
+ * and the host's controls sit under the board in `ClueControls`, so a long
+ * clue has the panel to itself and the board stops being a control surface.
+ */
+export function ClueStage({ state }: ClueStageProps) {
   const preferences = useGameStore((s) => s.preferences);
-  const [tickNow, setTickNow] = useState(() =>
-    typeof window === "undefined" ? 0 : Date.now(),
-  );
   const currentClue = state.currentClue;
-
-  useEffect(() => {
-    const id = setInterval(() => setTickNow(Date.now()), 100);
-    return () => clearInterval(id);
-  }, []);
 
   const activeClueId = currentClue?.clueId ?? null;
   const [trackedClueId, setTrackedClueId] = useState<string | null>(null);
@@ -83,104 +77,8 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
 
   useEffect(() => () => stopFinalTheme(), []);
 
-  const clueRevealed = currentClue?.clue !== undefined;
-  const isHost = state.settings.hostId === currentClientId;
-  const canAdvanceNow = Boolean(currentClue?.canAdvance);
-  const judgeTarget = currentClue?.currentJudgePlayerId;
-
-  useEffect(() => {
-    if (!currentClue) return;
-    function sendCommand(command: Parameters<NonNullable<typeof runtime>["sendCommand"]>[1]) {
-      runtime?.sendCommand(currentClientId, command);
-    }
-    function handleKey(event: KeyboardEvent) {
-      const target = event.target as HTMLElement | null;
-      const inField = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA";
-      if (event.code === "Space" && !inField && currentClue && !answerRevealed) {
-        event.preventDefault();
-        sendCommand({ type: "buzz" });
-        return;
-      }
-      if (inField) return;
-      if (event.key.toLowerCase() === "r" && !answerRevealed && clueRevealed && isHost) {
-        event.preventDefault();
-        sendCommand({ type: "reveal-answer" });
-        return;
-      }
-      if (isHost && answerRevealed && judgeTarget) {
-        if (event.key.toLowerCase() === "y") {
-          event.preventDefault();
-          sendCommand({ type: "judge-answer", targetPlayerId: judgeTarget, correct: true });
-          return;
-        }
-        if (event.key.toLowerCase() === "n") {
-          event.preventDefault();
-          sendCommand({ type: "judge-answer", targetPlayerId: judgeTarget, correct: false });
-          return;
-        }
-      }
-      if (event.key.toLowerCase() === "s" && canAdvanceNow && isHost) {
-        event.preventDefault();
-        sendCommand({ type: "skip" });
-      }
-    }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [
-    currentClue,
-    runtime,
-    currentClientId,
-    isHost,
-    canAdvanceNow,
-    judgeTarget,
-    answerRevealed,
-    clueRevealed,
-  ]);
 
   if (!currentClue) return null;
-
-  function handleJudge(correct: boolean | null) {
-    if (!currentClue?.currentJudgePlayerId) return;
-    runtime?.sendCommand(currentClientId, {
-      type: "judge-answer",
-      targetPlayerId: currentClue.currentJudgePlayerId,
-      correct,
-    });
-  }
-
-  const now = tickNow;
-  const readoutEndsAt = currentClue.readoutEndsAt ?? now;
-  const buzzWindowEndsAt = currentClue.buzzWindowEndsAt ?? now;
-  const answerEndsAt = currentClue.answerWindowEndsAt ?? now;
-  const wagerEndsAt = currentClue.wagerWindowEndsAt ?? now;
-  const wagerWindowMs = Math.max(
-    1,
-    wagerEndsAt - (currentClue.wagerWindowStartsAt ?? wagerEndsAt - 20_000),
-  );
-
-  const inReadout = now < readoutEndsAt;
-  const buzzedIds = Object.keys(currentClue.buzzes);
-  const someoneBuzzed = buzzedIds.length > 0;
-  const lightsRemaining = (() => {
-    if (currentClue.waitingForWager.length > 0) {
-      return fraction(wagerEndsAt - now, wagerWindowMs);
-    }
-    if (someoneBuzzed || isFinal || currentClue.dailyDouble) {
-      const total = isFinal ? 30_000 : 10_000;
-      return fraction(answerEndsAt - now, total);
-    }
-    if (inReadout) return 1;
-    return fraction(buzzWindowEndsAt - now, Math.max(1, buzzWindowEndsAt - readoutEndsAt));
-  })();
-
-  const firstBuzzerName = someoneBuzzed
-    ? playerName(
-        state,
-        buzzedIds.sort(
-          (a, b) => (currentClue.buzzes[a] ?? 0) - (currentClue.buzzes[b] ?? 0),
-        )[0],
-      )
-    : null;
 
   return (
     <Box
@@ -341,81 +239,6 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
         </Typography>
       ) : null}
 
-      {!answerRevealed ? (
-        <Stack spacing={1.25} sx={{ alignItems: "center", mb: 1 }}>
-          <BuzzLights
-            remaining={lightsRemaining}
-            reducedMotion={preferences.reducedMotion}
-            label={
-              inReadout
-                ? "Reading the clue"
-                : someoneBuzzed
-                  ? "Answer time remaining"
-                  : "Time to ring in"
-            }
-          />
-          <Typography
-            sx={{
-              fontFamily: jeopardyFonts.display,
-              textTransform: "uppercase",
-              letterSpacing: "0.14em",
-              fontSize: { xs: 10, sm: 12 },
-              color: "rgba(255,255,255,0.6)",
-              minHeight: 16,
-            }}
-          >
-            {currentClue.waitingForWager.length > 0
-              ? `Wager closes in ${seconds(wagerEndsAt - now)}s`
-              : inReadout
-                ? "Reading…"
-                : someoneBuzzed
-                  ? `${firstBuzzerName} rang in · ${seconds(answerEndsAt - now)}s`
-                  : `Ring in · ${seconds(buzzWindowEndsAt - now)}s`}
-          </Typography>
-        </Stack>
-      ) : null}
-
-      {/* Host controls */}
-      {isHost && clueRevealed && !answerRevealed ? (
-        <Stack
-          direction="row"
-          spacing={1}
-          useFlexGap
-          sx={{ flexWrap: "wrap", justifyContent: "center", mt: 1.5 }}
-        >
-          <Button
-            variant="outlined"
-            sx={hostButtonSx}
-            onClick={() => runtime?.sendCommand(currentClientId, { type: "reveal-answer" })}
-          >
-            Reveal
-          </Button>
-        </Stack>
-      ) : null}
-
-      {isHost && answerRevealed && currentClue.currentJudgePlayerId ? (
-        <JudgePanel
-          state={state}
-          target={currentClue.currentJudgePlayerId}
-          answer={currentClue.answers[currentClue.currentJudgePlayerId] ?? ""}
-          expected={currentClue.correctResponse ?? ""}
-          wager={currentClue.wagers[currentClue.currentJudgePlayerId]}
-          onJudge={handleJudge}
-        />
-      ) : null}
-
-      {isHost && currentClue.canAdvance ? (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 1.5 }}>
-          <Button
-            variant="contained"
-            data-testid="next-clue"
-            onClick={() => runtime?.sendCommand(currentClientId, { type: "skip" })}
-            sx={{ minWidth: 160 }}
-          >
-            Next clue
-          </Button>
-        </Box>
-      ) : null}
       </Box>
     </Box>
   );
@@ -438,82 +261,6 @@ function clueMeasure(length: number): string {
   if (length <= 180) return "30ch";
   if (length <= 300) return "38ch";
   return "46ch";
-}
-
-function JudgePanel({
-  state,
-  target,
-  answer,
-  expected,
-  wager,
-  onJudge,
-}: {
-  state: PublicGameState;
-  target: string;
-  answer: string;
-  expected: string;
-  wager?: number;
-  onJudge: (correct: boolean | null) => void;
-}) {
-  const verdict = fuzzyJudge({ submittedAnswer: answer, expectedAnswer: expected });
-  return (
-    <Box sx={{ mt: 1.5, textAlign: "center" }}>
-      <Typography sx={{ color: "rgba(255,255,255,0.85)", mb: 1, fontSize: 15 }}>
-        {playerName(state, target)}:{" "}
-        <Box component="span" sx={{ color: jeopardyPalette.goldBright, fontWeight: 700 }}>
-          {answer || "—"}
-        </Box>{" "}
-        <Box
-          component="span"
-          sx={{
-            fontSize: 12,
-            color: verdict.correct ? jeopardyPalette.correct : jeopardyPalette.incorrect,
-          }}
-        >
-          {Math.round(verdict.confidence * 100)}%
-        </Box>
-        {wager !== undefined ? (
-          <Box
-            component="span"
-            sx={{ fontSize: 13, color: jeopardyPalette.gold, ml: 1 }}
-          >
-            wagered ${wager}
-          </Box>
-        ) : null}
-      </Typography>
-      <Stack
-        direction="row"
-        spacing={1}
-        useFlexGap
-        sx={{ flexWrap: "wrap", justifyContent: "center" }}
-      >
-        <Button variant="contained" color="success" onClick={() => onJudge(true)}>
-          Correct
-        </Button>
-        <Button variant="contained" color="error" onClick={() => onJudge(false)}>
-          Incorrect
-        </Button>
-        <Button variant="outlined" sx={hostButtonSx} onClick={() => onJudge(null)}>
-          Skip
-        </Button>
-      </Stack>
-    </Box>
-  );
-}
-
-const hostButtonSx = {
-  color: "rgba(255,255,255,0.85)",
-  borderColor: "rgba(255,255,255,0.35)",
-  "&:hover": { borderColor: "rgba(255,255,255,0.6)" },
-} as const;
-
-function fraction(remaining: number, total: number) {
-  if (total <= 0) return 0;
-  return Math.max(0, Math.min(1, remaining / total));
-}
-
-function seconds(remaining: number) {
-  return Math.max(0, Math.ceil(remaining / 1000));
 }
 
 function playerName(state: PublicGameState, id: string) {

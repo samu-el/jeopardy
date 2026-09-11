@@ -15,24 +15,25 @@ test.describe("Clue controls", () => {
 
     // Focus lands in the answer field, so it can be typed and sent with Enter.
     await expect(page.getByLabel("What is…")).toBeFocused();
+
+    const buzzerCentre = () =>
+      page.evaluate(() => {
+        const box = document
+          .querySelector('[data-testid="buzzer"]')
+          ?.getBoundingClientRect();
+        return box ? box.left + box.width / 2 : null;
+      });
+    const before = await buzzerCentre();
+
     await page.keyboard.type("four");
     await page.keyboard.press("Enter");
     await expect(page.getByText("Answer locked in")).toBeVisible();
 
-    // Locking an answer in must not drag the buzzer off centre.
-    const centres = await page.evaluate(() => {
-      const rect = (selector: string) =>
-        document.querySelector(selector)?.getBoundingClientRect() ?? null;
-      const buzzer = rect('[data-testid="buzzer"]');
-      const stage = rect('[data-testid="clue-stage"]');
-      if (!buzzer || !stage) return null;
-      return {
-        buzzer: buzzer.left + buzzer.width / 2,
-        stage: stage.left + stage.width / 2,
-      };
-    });
-    expect(centres).not.toBeNull();
-    expect(Math.abs(centres!.buzzer - centres!.stage)).toBeLessThan(2);
+    // The buzzer is the one control that must not move under your thumb:
+    // neither the answer field appearing nor the answer going in may shift
+    // it, which is why the field has a line of its own.
+    expect(before).not.toBeNull();
+    expect(Math.abs((await buzzerCentre())! - before!)).toBeLessThan(2);
 
     // R reveals, Y scores it, and the board comes back.
     await page.keyboard.press("r");
@@ -198,7 +199,7 @@ test.describe("Clue controls", () => {
     expect(timing.heldPastEstimateMs).toBeGreaterThan(300);
   });
 
-  test("a long clue stays inside its panel, and the buzzer is below the board", async ({
+  test("a long clue has the panel to itself; the clock and buzzer are below it", async ({
     page,
   }) => {
     await openClue(page, { long: true });
@@ -211,6 +212,10 @@ test.describe("Clue controls", () => {
       const buzzer = rect('[data-testid="buzzer"]');
       const stage = rect('[data-testid="clue-stage"]');
       const board = rect('[data-testid="board"]');
+      const reveal =
+        [...document.querySelectorAll("button")]
+          .find((node) => node.textContent?.trim() === "Reveal")
+          ?.getBoundingClientRect() ?? null;
       const hits = (a: DOMRect | null, b: DOMRect | null) =>
         !!a && !!b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
       return {
@@ -218,9 +223,12 @@ test.describe("Clue controls", () => {
         insidePanel:
           !!text && !!stage && text.top >= stage.top - 1 && text.bottom <= stage.bottom + 1,
         buzzerVisible: !!buzzer && buzzer.height > 0,
-        // The clue is on the board; the thing you press is under it. They
-        // stopped sharing a rectangle, so no clue can crowd the buzzer.
+        // The clue is on the board; the clock and everything anyone presses
+        // is under it. Nothing shares a rectangle with the clue any more, so
+        // no clue can crowd them however long it runs.
         buzzerBelowBoard: !!buzzer && !!board && buzzer.top >= board.bottom,
+        lightsBelowBoard: !!lights && !!board && lights.top >= board.bottom,
+        revealBelowBoard: !!reveal && !!board && reveal.top >= board.bottom,
       };
     });
 
@@ -229,6 +237,8 @@ test.describe("Clue controls", () => {
       insidePanel: true,
       buzzerVisible: true,
       buzzerBelowBoard: true,
+      lightsBelowBoard: true,
+      revealBelowBoard: true,
     });
   });
 });
