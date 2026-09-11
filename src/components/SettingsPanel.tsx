@@ -126,6 +126,15 @@ export function SettingsPanel() {
             <FormControlLabel
               control={
                 <Switch
+                  checked={preferences.chatEnabled}
+                  onChange={(_, value) => setPreference("chatEnabled", value)}
+                />
+              }
+              label="Chat"
+            />
+            <FormControlLabel
+              control={
+                <Switch
                   checked={preferences.reducedMotion}
                   onChange={(_, value) => setPreference("reducedMotion", value)}
                 />

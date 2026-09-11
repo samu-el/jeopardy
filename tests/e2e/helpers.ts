@@ -36,3 +36,14 @@ export async function startFixtureGame(page: Page) {
   await expect(page.getByTestId("board")).toBeVisible({ timeout: 30_000 });
   await dismissOnboarding(page);
 }
+
+/**
+ * Chat is off unless asked for, so a spec that exercises it turns it on the
+ * way a player would.
+ */
+export async function enableChat(page: Page) {
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByLabel("Chat").check();
+  await page.keyboard.press("Escape");
+  await expect(page.getByPlaceholder("Message")).toBeVisible();
+}

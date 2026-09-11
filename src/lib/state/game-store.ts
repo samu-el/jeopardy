@@ -43,6 +43,11 @@ export interface UiPreferences {
   soundEnabled: boolean;
   /** The host's line, printed on screen. Off unless it is asked for. */
   subtitlesEnabled: boolean;
+  /**
+   * Room chat under the lecterns. Off unless it is asked for: most games are
+   * played by people in the same room, who talk.
+   */
+  chatEnabled: boolean;
   voiceProfileId: string;
   avatarHostProfileId: string;
   avatarHostMode: "off" | "voice-only" | "avatar-and-voice";
@@ -183,6 +188,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     // both the voice and its on-screen line wait to be switched on.
     soundEnabled: false,
     subtitlesEnabled: false,
+    chatEnabled: false,
     voiceProfileId: "female-natural",
     avatarHostProfileId: defaultAvatarHostProfile().id,
     avatarHostMode: "voice-only",

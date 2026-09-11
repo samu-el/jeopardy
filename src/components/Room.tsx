@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import { useGameStore } from "@/lib/state/game-store";
-import { jeopardyPalette } from "@/lib/foundation/jeopardy-style";
 import { Chat } from "./Chat";
 import { ConnectionBanner } from "./ConnectionBanner";
 import { ResultsView } from "./ResultsView";
@@ -19,20 +18,16 @@ import { TranscriptPane } from "./TranscriptPane";
 import { ReplayView } from "./ReplayView";
 
 export function Room() {
-  const lobby = useGameStore((s) => s.lobby);
   const publicState = useGameStore((s) => s.publicState);
-  const runtime = useGameStore((s) => s.runtime);
   const online = useGameStore((s) => s.online);
-  const selfId = useGameStore((s) => s.selfId)();
   const exitToLobby = useGameStore((s) => s.exitToLobby);
-  const reducedMotion = useGameStore((s) => s.preferences.reducedMotion);
+  const chatEnabled = useGameStore((s) => s.preferences.chatEnabled);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [browserOpen, setBrowserOpen] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
   const [replayOpen, setReplayOpen] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -47,89 +42,7 @@ export function Room() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // The round title card is time-boxed by the room, so tick while it shows.
-  const introEndsAt = publicState?.roundIntroEndsAt;
-  useEffect(() => {
-    if (!introEndsAt) return;
-    const id = setInterval(() => setNow(Date.now()), 120);
-    return () => clearInterval(id);
-  }, [introEndsAt]);
-
   const showResults = publicState?.round === "complete";
-  const introVisible = Boolean(introEndsAt && now < introEndsAt);
-
-  // Before a game exists, show the lobby roster from local config so the
-  // podiums aren't an empty row.
-  // Contestants only. A spectator — a display on a TV, or someone watching —
-  // has no score to show and no buzzer to light, so a lectern for them is
-  // just an empty seat on the set.
-  const players = useMemo(
-    () =>
-      publicState && publicState.players.length > 0
-        ? publicState.players.filter((player) => !player.spectator)
-        : [
-            {
-              id: lobby.hostId,
-              displayName: lobby.hostName,
-              kind: "human" as const,
-              connected: true,
-              spectator: false,
-              score: 0,
-              emoji: lobby.hostEmoji,
-              color: lobby.hostColor,
-            },
-            ...lobby.bots.map((bot) => ({
-              id: bot.id,
-              displayName: bot.name,
-              kind: "ai-bot" as const,
-              connected: true,
-              spectator: false,
-              score: 0,
-              emoji: bot.emoji,
-              color: bot.color,
-            })),
-            ...lobby.extraHumans.map((human) => ({
-              id: human.id,
-              displayName: human.name,
-              kind: "human" as const,
-              connected: true,
-              spectator: false,
-              score: 0,
-              emoji: human.emoji,
-              color: human.color,
-            })),
-          ],
-    [publicState, lobby],
-  );
-
-  const previewState = useMemo(
-    () => ({
-      roomId: online?.roomId ?? "preview",
-      round: "lobby" as const,
-      serverTime: 0,
-      players,
-      board: [],
-      settings: {
-        allowMultipleCorrect: false,
-        hostId: lobby.hostId,
-        aiJudgeEnabled: lobby.aiJudgeEnabled,
-        aiBotsEnabled: lobby.bots.length > 0,
-        aiAvatarHostEnabled: false,
-        autoAdvanceMs: 0,
-        earlyBuzzLockoutMs: 0,
-      },
-      stats: {
-        questionsStarted: 0,
-        answeredByPlayer: {},
-        correctByPlayer: {},
-        incorrectByPlayer: {},
-        firstBuzzByPlayer: {},
-        reactionTimesByPlayer: {},
-        dailyDoublesByPlayer: {},
-      },
-    }),
-    [players, lobby.hostId, lobby.aiJudgeEnabled, lobby.bots.length, online?.roomId],
-  );
 
   const toolbar = (
     <RoomToolbar
@@ -166,7 +79,7 @@ export function Room() {
 
         <GameSurface />
 
-        {publicState || online ? (
+        {chatEnabled && (publicState || online) ? (
           <Box sx={{ mt: 2 }}>
             <Chat />
           </Box>

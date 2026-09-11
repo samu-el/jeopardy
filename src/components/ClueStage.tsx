@@ -1,18 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import type { PublicGameState } from "@/lib/game";
 import { useGameStore } from "@/lib/state/game-store";
 import {
   judgeAnswer as fuzzyJudge,
   playSfx,
-  primeAudio,
-  primeSpeech,
   startFinalTheme,
   stopFinalTheme,
 } from "@/lib/ai";
@@ -21,7 +18,6 @@ import {
   jeopardyFonts,
   jeopardyPalette,
 } from "@/lib/foundation/jeopardy-style";
-import { MicAnswerField } from "./MicAnswerField";
 import { DailyDoubleSplash } from "./DailyDoubleSplash";
 import { BuzzLights } from "./BuzzLights";
 
@@ -34,12 +30,9 @@ interface ClueStageProps {
 export function ClueStage({ state, currentClientId }: ClueStageProps) {
   const runtime = useGameStore((s) => s.runtime);
   const preferences = useGameStore((s) => s.preferences);
-  const [wagerInput, setWagerInput] = useState<string>("");
-  const [answerInput, setAnswerInput] = useState("");
   const [tickNow, setTickNow] = useState(() =>
     typeof window === "undefined" ? 0 : Date.now(),
   );
-  const buzzerRef = useRef<HTMLButtonElement | null>(null);
   const currentClue = state.currentClue;
 
   useEffect(() => {
@@ -53,8 +46,6 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
   const [ddSplashVisible, setDdSplashVisible] = useState(false);
   if (trackedClueId !== activeClueId) {
     setTrackedClueId(activeClueId);
-    setAnswerInput("");
-    setWagerInput("");
   }
 
   // Daily Double splash while the wager is open, before the clue is read.
@@ -91,12 +82,6 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
   }, [currentClue, isFinal, answerRevealed, preferences.soundEnabled]);
 
   useEffect(() => () => stopFinalTheme(), []);
-
-  useEffect(() => {
-    if (currentClue?.canBuzz && currentClue.buzzes[currentClientId] === undefined) {
-      buzzerRef.current?.focus();
-    }
-  }, [currentClue?.canBuzz, currentClue?.buzzes, currentClientId]);
 
   const clueRevealed = currentClue?.clue !== undefined;
   const isHost = state.settings.hostId === currentClientId;
@@ -152,47 +137,7 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
     clueRevealed,
   ]);
 
-  const myScore =
-    state.players.find((player) => player.id === currentClientId)?.score ?? 0;
-  const myWagerOpen = currentClue?.waitingForWager.includes(currentClientId) ?? false;
-  const wagerLimits = useMemo(() => {
-    if (!currentClue) return { min: 0, max: 0 };
-    if (currentClue.round === "final-jeopardy") {
-      return { min: 0, max: Math.max(0, myScore) };
-    }
-    return {
-      min: 5,
-      max: Math.max(
-        myScore,
-        currentClue.round === "double-jeopardy"
-          ? 2_000
-          : currentClue.round === "triple-jeopardy"
-            ? 3_000
-            : 1_000,
-      ),
-    };
-  }, [currentClue, myScore]);
-
   if (!currentClue) return null;
-
-  function handleBuzz() {
-    primeAudio();
-    primeSpeech();
-    runtime?.sendCommand(currentClientId, { type: "buzz" });
-  }
-
-  function handleSubmitAnswer(dictated?: string) {
-    const text = (dictated ?? answerInput).trim();
-    if (!text) return;
-    runtime?.sendCommand(currentClientId, { type: "submit-answer", answer: text });
-    setAnswerInput("");
-  }
-
-  function handleSubmitWager() {
-    const amount = Math.round(Number(wagerInput));
-    if (!Number.isFinite(amount)) return;
-    runtime?.sendCommand(currentClientId, { type: "submit-wager", amount });
-  }
 
   function handleJudge(correct: boolean | null) {
     if (!currentClue?.currentJudgePlayerId) return;
@@ -216,24 +161,6 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
   const inReadout = now < readoutEndsAt;
   const buzzedIds = Object.keys(currentClue.buzzes);
   const someoneBuzzed = buzzedIds.length > 0;
-  const buzzedByMe = currentClue.buzzes[currentClientId] !== undefined;
-  const iSubmitted = Boolean(currentClue.submitted[currentClientId]);
-  const lockedUntil = currentClue.lockouts[currentClientId] ?? 0;
-  const isLockedOut = now < lockedUntil;
-
-  const buzzWindowOpen =
-    !inReadout && now <= buzzWindowEndsAt && !someoneBuzzed && !answerRevealed;
-  const canIBuzz =
-    !buzzedByMe &&
-    !isLockedOut &&
-    !isFinal &&
-    !currentClue.dailyDouble &&
-    currentClue.waitingForWager.length === 0 &&
-    clueRevealed &&
-    !answerRevealed &&
-    currentClue.judges[currentClientId] === undefined &&
-    buzzWindowOpen;
-
   const lightsRemaining = (() => {
     if (currentClue.waitingForWager.length > 0) {
       return fraction(wagerEndsAt - now, wagerWindowMs);
@@ -254,12 +181,6 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
         )[0],
       )
     : null;
-
-  const wagerSubmittedByMe =
-    currentClue.wagers[currentClientId] !== undefined ||
-    (!myWagerOpen &&
-      currentClue.waitingForWager.length === 0 &&
-      (isFinal || currentClue.dailyDouble));
 
   return (
     <Box
@@ -454,145 +375,6 @@ export function ClueStage({ state, currentClientId }: ClueStageProps) {
         </Stack>
       ) : null}
 
-      {myWagerOpen && !wagerSubmittedByMe && !ddSplashVisible ? (
-        <Stack spacing={1} sx={{ alignItems: "center", mb: 1 }}>
-          <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-            <TextField
-              label="Wager"
-              type="number"
-              value={wagerInput}
-              onChange={(event) => setWagerInput(event.target.value)}
-              helperText={`$${wagerLimits.min} – $${wagerLimits.max}`}
-              slotProps={{ htmlInput: { min: wagerLimits.min, max: wagerLimits.max } }}
-              size="small"
-              autoFocus
-              sx={wagerFieldSx}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  handleSubmitWager();
-                }
-              }}
-            />
-            <Button variant="contained" onClick={handleSubmitWager} sx={{ mb: 2.5 }}>
-              Wager
-            </Button>
-          </Stack>
-          <Stack direction="row" spacing={1}>
-            {!isFinal ? (
-              <Button
-                size="small"
-                sx={hostButtonSx}
-                onClick={() => setWagerInput(String(currentClue.value))}
-              >
-                ${currentClue.value}
-              </Button>
-            ) : null}
-            <Button
-              size="small"
-              sx={hostButtonSx}
-              onClick={() => setWagerInput(String(wagerLimits.max))}
-            >
-              {isFinal ? "Everything" : "True Daily Double"}
-            </Button>
-          </Stack>
-        </Stack>
-      ) : null}
-
-      {/* Buzzer and answer entry */}
-      {!isFinal && clueRevealed && !answerRevealed ? (
-        <Stack spacing={1} sx={{ alignItems: "center" }}>
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={1.5}
-            sx={{ alignItems: "center", justifyContent: "center" }}
-          >
-            {!currentClue.dailyDouble ? (
-              <Button
-                ref={buzzerRef}
-                onClick={handleBuzz}
-                disabled={!canIBuzz}
-                variant="contained"
-                size="large"
-                data-testid="buzzer"
-                sx={{
-                  minWidth: 200,
-                  py: 1.4,
-                  fontFamily: jeopardyFonts.display,
-                  fontSize: 20,
-                  letterSpacing: "0.12em",
-                  borderRadius: 999,
-                  background: canIBuzz
-                    ? "linear-gradient(180deg, #ff5f6d 0%, #c31432 100%)"
-                    : "rgba(255,255,255,0.10)",
-                  color: canIBuzz ? "#fff" : "rgba(255,255,255,0.45)",
-                  boxShadow: canIBuzz ? "0 0 24px rgba(255,80,90,0.55)" : "none",
-                  "&.Mui-disabled": {
-                    background: "rgba(255,255,255,0.10)",
-                    color: "rgba(255,255,255,0.45)",
-                  },
-                }}
-                aria-label="Buzz in"
-              >
-                {buzzedByMe ? "IN!" : isLockedOut ? "LOCKED" : "BUZZ"}
-              </Button>
-            ) : null}
-
-            {(buzzedByMe || currentClue.dailyDouble) && !iSubmitted ? (
-              <Stack direction="row" spacing={1} sx={{ alignItems: "center", flex: 1, maxWidth: 520 }}>
-                <MicAnswerField
-                  label="What is…"
-                  value={answerInput}
-                  onChange={setAnswerInput}
-                  onSubmit={handleSubmitAnswer}
-                  disabled={iSubmitted}
-                  autoFocus
-                />
-                <Button
-                  variant="contained"
-                  onClick={() => handleSubmitAnswer()}
-                  disabled={!answerInput.trim() || iSubmitted}
-                >
-                  Send
-                </Button>
-              </Stack>
-            ) : null}
-          </Stack>
-          {/* Its own line: beside the buzzer it would drag the pill off centre
-              the moment an answer went in. */}
-          {iSubmitted ? (
-            <Typography sx={{ color: "rgba(255,255,255,0.65)", fontSize: 13 }}>
-              Answer locked in
-            </Typography>
-          ) : null}
-        </Stack>
-      ) : null}
-
-      {/* Final Jeopardy answer */}
-      {isFinal && !answerRevealed && clueRevealed && !iSubmitted ? (
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={1}
-          sx={{ alignItems: "center", justifyContent: "center" }}
-        >
-          <MicAnswerField
-            label="Final answer"
-            value={answerInput}
-            onChange={setAnswerInput}
-            onSubmit={handleSubmitAnswer}
-            disabled={iSubmitted}
-            size="small"
-          />
-          <Button
-            variant="contained"
-            disabled={!answerInput.trim() || iSubmitted}
-            onClick={() => handleSubmitAnswer()}
-          >
-            Lock in
-          </Button>
-        </Stack>
-      ) : null}
-
       {/* Host controls */}
       {isHost && clueRevealed && !answerRevealed ? (
         <Stack
@@ -723,14 +505,6 @@ const hostButtonSx = {
   color: "rgba(255,255,255,0.85)",
   borderColor: "rgba(255,255,255,0.35)",
   "&:hover": { borderColor: "rgba(255,255,255,0.6)" },
-} as const;
-
-const wagerFieldSx = {
-  width: 190,
-  "& .MuiInputBase-root": { background: "rgba(0,0,0,0.25)" },
-  "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
-  "& .MuiFormHelperText-root": { color: "rgba(255,255,255,0.65)" },
-  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.3)" },
 } as const;
 
 function fraction(remaining: number, total: number) {

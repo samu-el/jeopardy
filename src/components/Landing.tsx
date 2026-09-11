@@ -186,8 +186,7 @@ export function Landing() {
                     lineHeight: 1.4,
                   }}
                 >
-                  One click deals a real board from the archive. Buzz in, play the
-                  categories — solo, with friends, or against AI rivals.
+                  Play Jeopardy from the archive.
                 </Typography>
                 <Stack
                   direction={{ xs: "column", sm: "row" }}
@@ -272,19 +271,16 @@ export function Landing() {
             }}
           >
             <LandingFeature
-              eyebrow="Voice host"
-              title="Reads every clue"
-              body="Natural voices pick from your system. Picks a persona for you."
+              title="Every clue read aloud"
+              body="Turn sound on and the board reads itself."
             />
             <LandingFeature
-              eyebrow="Smart bots"
-              title="Real opponents"
-              body="Four difficulty tiers — they buzz, answer and wager on their own."
+              title="Bots that play"
+              body="Four difficulty tiers. They buzz, answer and wager."
             />
             <LandingFeature
-              eyebrow="No setup"
-              title="Solo or shared"
-              body="Play alone, pass-and-play, or invite friends to the same board."
+              title="Play with friends"
+              body="Share the room code. Put the board on a TV."
             />
           </Box>
         </Box>
@@ -293,27 +289,9 @@ export function Landing() {
   );
 }
 
-function LandingFeature({
-  eyebrow,
-  title,
-  body,
-}: {
-  eyebrow: string;
-  title: string;
-  body: string;
-}) {
+function LandingFeature({ title, body }: { title: string; body: string }) {
   return (
     <Stack spacing={1}>
-      <Typography
-        variant="overline"
-        sx={{
-          color: "#5b8cff",
-          letterSpacing: 2,
-          fontSize: 11,
-        }}
-      >
-        {eyebrow}
-      </Typography>
       <Typography sx={{ fontWeight: 700, fontSize: 18, color: "white" }}>
         {title}
       </Typography>

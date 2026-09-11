@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { dismissOnboarding, routeFixtureEpisodes } from "./helpers";
+import { dismissOnboarding, enableChat, routeFixtureEpisodes } from "./helpers";
 
 /**
  * Two real browser contexts against one server-side room. These cover the
@@ -67,6 +67,8 @@ test.describe("Shared room", () => {
   test("chat from one player reaches the other", async ({ browser }) => {
     const room = await openSharedRoom(browser);
     try {
+      await enableChat(room.guest);
+      await enableChat(room.host);
       await room.guest.getByPlaceholder("Message").fill("hello from the guest");
       await room.guest.getByPlaceholder("Message").press("Enter");
 
@@ -106,6 +108,9 @@ test.describe("Shared room", () => {
 
       // On the lecterns, in the arrival notice, and on anything they say.
       await expect(host.getByText("Zelda", { exact: true })).toBeVisible();
+
+      await enableChat(guest);
+      await enableChat(host);
       await expect(host.getByText("Zelda joined")).toBeVisible();
 
       await guest.getByPlaceholder("Message").fill("hello");
