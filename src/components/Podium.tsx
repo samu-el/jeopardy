@@ -19,13 +19,33 @@ interface PodiumProps {
    * already goes.
    */
   controls?: ReactNode;
+  /**
+   * Hold the space for those buttons whether or not this lectern has any.
+   *
+   * Lecterns are the same height on the set and should be the same height
+   * here: without this, yours grew when a clue opened and grew again between
+   * BUZZ and Next clue, so the row jumped every time the buzzer changed its
+   * mind and everyone else's lectern sat lower than yours.
+   */
+  reserveControls?: boolean;
 }
+
+/** Two stacked buttons and the gap above them — the tallest this ever gets. */
+export const podiumControlsHeight = 66;
 
 /**
  * A contestant lectern: name plate on top, the score display below, and the
  * ring-in light that flashes when they beat everyone to the buzzer.
  */
-export function Podium({ player, state, isYou, emoji, color, controls }: PodiumProps) {
+export function Podium({
+  player,
+  state,
+  isYou,
+  emoji,
+  color,
+  controls,
+  reserveControls,
+}: PodiumProps) {
   const active = state.currentClue;
   const buzzedAt = active?.buzzes[player.id];
   const isBuzzed = buzzedAt !== undefined;
@@ -169,7 +189,18 @@ export function Podium({ player, state, isYou, emoji, color, controls }: PodiumP
           </Typography>
         </Box>
 
-        {controls}
+        {reserveControls ? (
+          <Box
+            sx={{
+              minHeight: podiumControlsHeight,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "flex-start",
+            }}
+          >
+            {controls}
+          </Box>
+        ) : null}
       </Box>
 
       <Box
@@ -204,12 +235,16 @@ export function Podium({ player, state, isYou, emoji, color, controls }: PodiumP
         }}
       />
 
+      {/* Always occupies its line, whether or not this lectern has a badge
+          to show. HOST or PICKS on one podium and nothing on the next made
+          the two different heights in a row that should be level. */}
       <Stack
         direction="row"
         spacing={0.5}
         useFlexGap
         sx={{
           mt: 0.6,
+          minHeight: 11,
           justifyContent: "center",
           flexWrap: "wrap",
           fontFamily: jeopardyFonts.display,

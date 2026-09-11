@@ -221,7 +221,10 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
           gap: { xs: 1.5, sm: 2 },
           justifyContent: "center",
           alignItems: "flex-end",
-          py: 0,
+          // An avatar sits proud of its lectern by half its own height, so
+          // the row needs headroom or the badge lands on the clock above it.
+          pt: 2.5,
+          pb: 0,
         }}
       >
         {players.map((player) => (
@@ -243,6 +246,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
                   <PodiumClueButtons state={publicState} currentClientId={selfId} />
                 ) : undefined
               }
+              reserveControls={interactive && Boolean(publicState?.currentClue)}
             />
           </Box>
         ))}

@@ -215,7 +215,7 @@ function BoardFrame({
                 // While a clue is up there is a strip of controls under the
                 // board and lecterns under that. Give them the room rather
                 // than pushing a player's own score off a laptop screen.
-                md: tall ? "min(56vh, 620px)" : "min(62vh, 660px)",
+                md: tall ? "min(51vh, 580px)" : "min(62vh, 660px)",
               },
           width: `min(100%, calc(var(--board-height) * ${ratio}))`,
           // The grid keeps the set's proportions. A clue panel on a phone

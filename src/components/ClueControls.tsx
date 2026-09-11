@@ -124,11 +124,19 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
       }}
     >
       {!answerRevealed ? (
-        <Stack
-          direction="row"
-          spacing={1.5}
-          sx={{ alignItems: "center", justifyContent: "center", width: "100%" }}
+        // Three columns with matching outer thirds, so the lights sit on the
+        // centre line whatever is written beside them. Left as one row and
+        // the countdown shoved the lights off-centre by its own width.
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "1fr auto 1fr",
+            alignItems: "center",
+            columnGap: 1.5,
+            width: "100%",
+          }}
         >
+          <Box aria-hidden />
           <BuzzLights
             remaining={turn.lightsRemaining}
             reducedMotion={reducedMotion}
@@ -141,7 +149,7 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
             <Stack
               direction="row"
               spacing={1}
-              sx={{ alignItems: "center", flex: 1, maxWidth: 380 }}
+              sx={{ alignItems: "center", maxWidth: 380, justifySelf: "start" }}
             >
               <MicAnswerField
                 label={finalOpen ? "Final answer" : "What is…"}
@@ -170,12 +178,13 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
                 fontSize: { xs: 10, sm: 12 },
                 color: "rgba(255,255,255,0.6)",
                 whiteSpace: "nowrap",
+                justifySelf: "start",
               }}
             >
               {turn.countdown}
             </Typography>
           )}
-        </Stack>
+        </Box>
       ) : null}
 
       {wagerOpen ? (
@@ -280,7 +289,7 @@ export function PodiumClueButtons({ state, currentClientId }: ClueControlsProps)
   if (!showBuzzer && !showReveal && !showNext) return null;
 
   return (
-    <Stack spacing={0.5} sx={{ mt: 0.75 }}>
+    <Stack spacing={0.5} sx={{ pt: 0.75 }}>
       {showBuzzer ? (
         <Button
           ref={buzzerRef}
