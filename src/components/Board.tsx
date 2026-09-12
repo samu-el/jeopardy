@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import type { PublicBoardClue, PublicGameState } from "@/lib/game";
+import { layoutBoard } from "@/lib/game/board-layout";
 import { useGameStore } from "@/lib/state/game-store";
 import { primeAudio, primeSpeech, playSfx } from "@/lib/ai";
 import {
@@ -34,7 +35,8 @@ export function Board({ state, onPick, canPick = false, overlay, fill }: BoardPr
   const reducedMotion = useGameStore((s) => s.preferences.reducedMotion);
   const soundEnabled = useGameStore((s) => s.preferences.soundEnabled);
   const board = state?.board;
-  const byCategory = useMemo(() => groupByCategory(board ?? []), [board]);
+  const layout = useMemo(() => layoutBoard(board ?? []), [board]);
+  const byCategory = layout.columns;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const tileRefs = useRef(new Map<string, HTMLElement>());
@@ -88,7 +90,7 @@ export function Board({ state, onPick, canPick = false, overlay, fill }: BoardPr
     );
   }
 
-  const rowCount = Math.max(...byCategory.map((column) => column.clues.length));
+  const rowCount = layout.ladder.length;
 
   return (
     <BoardFrame
@@ -110,30 +112,43 @@ export function Board({ state, onPick, canPick = false, overlay, fill }: BoardPr
           />
         ))}
         {byCategory.flatMap((column, columnIndex) =>
-          column.clues.map((clue, rowIndex) => (
-            <ClueTile
-              key={clue.id}
-              clue={clue}
-              column={columnIndex + 1}
-              row={rowIndex + 2}
-              columns={byCategory.length}
-              disabled={!canPick || clue.revealed}
-              hidden={clue.id === activeClueId}
-              reducedMotion={reducedMotion}
-              animationKey={roundKey}
-              delayMs={reducedMotion ? 0 : 260 + (columnIndex + rowIndex * 2) * 45}
-              registerRef={(node) => {
-                if (node) tileRefs.current.set(clue.id, node);
-                else tileRefs.current.delete(clue.id);
-              }}
-              onPick={() => {
-                primeAudio();
-                primeSpeech();
-                if (soundEnabled) playSfx("select");
-                onPick?.(clue.id);
-              }}
-            />
-          )),
+          column.cells.map((clue, rowIndex) =>
+            clue === null ? (
+              // The archive has no clue here. Same cell as a played one, so
+              // the board reads as a whole board and not a broken one.
+              <EmptyCell
+                key={`${column.category}-empty-${layout.ladder[rowIndex]}`}
+                column={columnIndex + 1}
+                row={rowIndex + 2}
+                reducedMotion={reducedMotion}
+                animationKey={roundKey}
+                delayMs={reducedMotion ? 0 : 260 + (columnIndex + rowIndex * 2) * 45}
+              />
+            ) : (
+              <ClueTile
+                key={clue.id}
+                clue={clue}
+                column={columnIndex + 1}
+                row={rowIndex + 2}
+                columns={byCategory.length}
+                disabled={!canPick || clue.revealed}
+                hidden={clue.id === activeClueId}
+                reducedMotion={reducedMotion}
+                animationKey={roundKey}
+                delayMs={reducedMotion ? 0 : 260 + (columnIndex + rowIndex * 2) * 45}
+                registerRef={(node) => {
+                  if (node) tileRefs.current.set(clue.id, node);
+                  else tileRefs.current.delete(clue.id);
+                }}
+                onPick={() => {
+                  primeAudio();
+                  primeSpeech();
+                  if (soundEnabled) playSfx("select");
+                  onPick?.(clue.id);
+                }}
+              />
+            ),
+          ),
         )}
       </BoardGrid>
       {overlay ? (
@@ -299,7 +314,9 @@ function CategoryCell({
         overflow: "hidden",
         // Break inside a word only when a long category can't fit otherwise.
         overflowWrap: "break-word",
-        animation: reducedMotion ? "none" : `board-drop 420ms ${delayMs}ms both ease-out`,
+        animation: reducedMotion
+          ? "none"
+          : `board-drop 420ms ${delayMs}ms both ease-out`,
         "@keyframes board-drop": {
           from: { opacity: 0, transform: "translateY(-18px)" },
           to: { opacity: 1, transform: "translateY(0)" },
@@ -345,7 +362,9 @@ function ClueTile({
       onClick={onPick}
       disabled={disabled}
       focusRipple
-      aria-label={spent ? `${clue.category}, played` : `${clue.category}, $${clue.value}`}
+      aria-label={
+        spent ? `${clue.category}, played` : `${clue.category}, $${clue.value}`
+      }
       sx={{
         gridRow: row,
         gridColumn: column,
@@ -381,6 +400,40 @@ function ClueTile({
     >
       {spent ? "" : `$${clue.value}`}
     </ButtonBase>
+  );
+}
+
+/** A cell with nothing behind it: the archive never had this clue. */
+function EmptyCell({
+  column,
+  row,
+  reducedMotion,
+  delayMs,
+  animationKey,
+}: {
+  column: number;
+  row: number;
+  reducedMotion: boolean;
+  delayMs: number;
+  animationKey: string;
+}) {
+  return (
+    <Box
+      key={`${animationKey}-${column}-${row}`}
+      aria-hidden
+      sx={{
+        gridRow: row,
+        gridColumn: column,
+        ...cellSurface,
+        animation: reducedMotion
+          ? "none"
+          : `tile-in 320ms ${delayMs}ms both cubic-bezier(0.2, 0.8, 0.3, 1)`,
+        "@keyframes tile-in": {
+          from: { opacity: 0, transform: "scale(0.86)" },
+          to: { opacity: 1, transform: "scale(1)" },
+        },
+      }}
+    />
   );
 }
 
@@ -421,17 +474,4 @@ function useClueZoom(
       { duration: 380, easing: "cubic-bezier(0.22, 0.61, 0.36, 1)", fill: "none" },
     );
   }, [activeClueId, reducedMotion, containerRef, overlayRef, tileRefs]);
-}
-
-function groupByCategory(clues: PublicBoardClue[]) {
-  const map = new Map<string, PublicBoardClue[]>();
-  for (const clue of clues) {
-    const list = map.get(clue.category) ?? [];
-    list.push(clue);
-    map.set(clue.category, list);
-  }
-  return Array.from(map.entries()).map(([category, list]) => ({
-    category,
-    clues: list.sort((a, b) => a.value - b.value),
-  }));
 }
