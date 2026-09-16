@@ -11,7 +11,6 @@ import { AvatarHostController } from "./AvatarHostController";
 import { GameSurface } from "./GameSurface";
 import { RoomToolbar } from "./RoomToolbar";
 import { CustomGameBuilder } from "./CustomGameBuilder";
-import { EpisodeBrowser } from "./EpisodeBrowser";
 import { GamePicker } from "./GamePicker";
 import { ShortcutsOverlay } from "./ShortcutsOverlay";
 import { Onboarding } from "./Onboarding";
@@ -24,7 +23,6 @@ export function Room() {
   const exitToLobby = useGameStore((s) => s.exitToLobby);
   const chatEnabled = useGameStore((s) => s.preferences.chatEnabled);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [browserOpen, setBrowserOpen] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
@@ -48,7 +46,6 @@ export function Room() {
   const toolbar = (
     <RoomToolbar
       onOpenPicker={() => setPickerOpen(true)}
-      onOpenBrowser={() => setBrowserOpen(true)}
       onOpenBuilder={() => setBuilderOpen(true)}
       onToggleShortcuts={() => setShortcutsOpen((value) => !value)}
       onToggleTranscript={() => setTranscriptOpen((value) => !value)}
@@ -65,7 +62,6 @@ export function Room() {
           <ResultsView state={publicState} onPlayAgain={exitToLobby} onExit={exitToLobby} />
         </Box>
         <GamePicker open={pickerOpen} onClose={() => setPickerOpen(false)} />
-        <EpisodeBrowser open={browserOpen} onClose={() => setBrowserOpen(false)} />
       </Box>
     );
   }
@@ -88,7 +84,6 @@ export function Room() {
       </Box>
 
       <GamePicker open={pickerOpen} onClose={() => setPickerOpen(false)} />
-      <EpisodeBrowser open={browserOpen} onClose={() => setBrowserOpen(false)} />
       <CustomGameBuilder open={builderOpen} onClose={() => setBuilderOpen(false)} />
       <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       <TranscriptPane open={transcriptOpen} onClose={() => setTranscriptOpen(false)} />

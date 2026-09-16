@@ -1,43 +1,14 @@
-export const roundNames = [
-  "lobby",
-  "jeopardy",
-  "double-jeopardy",
-  "triple-jeopardy",
-  "final-jeopardy",
-  "complete",
-] as const;
-
-export type RoundName = (typeof roundNames)[number];
-
-export type PlayerKind = "human" | "ai-bot";
+/**
+ * The house voices, bots and hosts.
+ *
+ * These are presets, not game rules: the engine never reads them. A room
+ * stores only the id it was pointed at, so a profile can be re-tuned here
+ * without touching a single saved game.
+ */
 
 export type BotDifficulty = "rookie" | "casual" | "champion" | "legend";
-
 export type AvatarHostMode = "off" | "voice-only" | "avatar-and-voice";
-
-export type AvatarHostPersona =
-  | "classic-host"
-  | "friendly-coach"
-  | "dry-commentator";
-
-export interface Player {
-  id: string;
-  displayName: string;
-  kind: PlayerKind;
-  connected: boolean;
-  spectator: boolean;
-  score: number;
-}
-
-export interface Clue {
-  id: string;
-  round: Exclude<RoundName, "lobby" | "complete">;
-  category: string;
-  value: number;
-  clue: string;
-  correctResponse: string;
-  dailyDouble?: boolean;
-}
+export type AvatarHostPersona = "classic-host" | "friendly-coach" | "dry-commentator";
 
 export interface VoiceProfile {
   id: string;
@@ -56,9 +27,8 @@ export interface BotProfile {
   targetAccuracy: number;
   wagerAggression: number;
   /**
-   * Words/patterns the bot is biased toward in category names. Bots will
-   * prefer matching categories when picking, and get a small accuracy bump
-   * on clues whose category matches.
+   * Words the bot is drawn to in a category name: it prefers matching
+   * categories when picking, and answers them a little better.
    */
   categoryBias?: string[];
 }
@@ -72,18 +42,6 @@ export interface AvatarHostProfile {
   allowCommentary: boolean;
   allowRuleReminders: boolean;
   description: string;
-}
-
-export interface GameRoomSettings {
-  answerTimeoutMs: number;
-  finalTimeoutMs: number;
-  allowMultipleCorrect: boolean;
-  hostId?: string;
-  voiceProfileId?: string;
-  avatarHostProfileId?: string;
-  aiJudgeEnabled: boolean;
-  aiBotsEnabled: boolean;
-  aiAvatarHostEnabled: boolean;
 }
 
 export const baselineVoiceProfiles: VoiceProfile[] = [
@@ -110,6 +68,7 @@ export const baselineVoiceProfiles: VoiceProfile[] = [
   },
 ];
 
+/** Ordered easiest to hardest: a harder bot rings in sooner and is right more often. */
 export const baselineBotProfiles: BotProfile[] = [
   {
     id: "rookie",

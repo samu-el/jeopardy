@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Divider from "@mui/material/Divider";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Chip from "@mui/material/Chip";
+import Divider from "@mui/material/Divider";
 import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import IconButton from "@mui/material/IconButton";
@@ -14,21 +14,196 @@ import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import Tooltip from "@mui/material/Tooltip";
 import VolumeUpIcon from "@mui/icons-material/VolumeUpOutlined";
-import { baselineAvatarHostProfiles } from "@/lib/foundation/game-contracts";
-import {
-  createVoiceAdapter,
-  voicePersonas,
-  type DiscoveredVoice,
-} from "@/lib/ai";
-import { useGameStore } from "@/lib/state/game-store";
+import { baselineAvatarHostProfiles } from "@/lib/ai/profiles";
+import { createVoiceAdapter, voicePersonas, type DiscoveredVoice } from "@/lib/ai";
+import { useGameStore, type UiPreferences } from "@/lib/state/game-store";
 
 const voiceAdapter = typeof window === "undefined" ? null : createVoiceAdapter();
+
+/** Everything in here is one switch or one menu, so it is written as a list. */
+const toggles: { key: keyof UiPreferences; label: string }[] = [
+  { key: "soundEnabled", label: "Sound" },
+  { key: "subtitlesEnabled", label: "Subtitles" },
+  { key: "chatEnabled", label: "Chat" },
+  { key: "reducedMotion", label: "Reduced motion" },
+];
+
+const buzzWindows = [
+  { value: 5, label: "5 seconds — show pace" },
+  { value: 6, label: "6 seconds" },
+  { value: 10, label: "10 seconds" },
+  { value: 20, label: "20 seconds — relaxed" },
+];
+
+const hostModes = [
+  { value: "off", label: "Off" },
+  { value: "voice-only", label: "Voice" },
+  { value: "avatar-and-voice", label: "Avatar" },
+];
 
 export function SettingsPanel() {
   const preferences = useGameStore((s) => s.preferences);
   const setPreference = useGameStore((s) => s.setPreference);
-  const [voices, setVoices] = useState<DiscoveredVoice[]>([]);
+  const voices = useDiscoveredVoices();
 
+  // The browser hands out its voices late and in its own order, so the
+  // personas claim the ones they recognise first and the rest follow.
+  const voiceOptions = useMemo(() => {
+    const claimed = new Set<string>();
+    const personas = voicePersonas.flatMap((persona) => {
+      const match = voices.find(persona.predicate);
+      if (!match || claimed.has(match.id)) return [];
+      claimed.add(match.id);
+      return [{ id: persona.id, label: persona.label, sub: match.label, quality: match.quality }];
+    });
+    return [
+      ...personas,
+      ...voices
+        .filter((voice) => !claimed.has(voice.id))
+        .map((voice) => ({
+          id: voice.id,
+          label: voice.label,
+          sub: voice.locale,
+          quality: voice.quality,
+        })),
+    ];
+  }, [voices]);
+
+  return (
+    <Stack spacing={2}>
+      <Stack spacing={1.5}>
+        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+          <Choice
+            id="voice-profile"
+            label="Voice"
+            value={preferences.voiceProfileId}
+            onChange={(value) => setPreference("voiceProfileId", value)}
+            renderValue={(value) =>
+              voiceOptions.find((option) => option.id === value)?.label ?? "Default"
+            }
+          >
+            {voiceOptions.map((option) => (
+              <MenuItem key={option.id} value={option.id}>
+                <ListItemText primary={option.label} secondary={option.sub} />
+                {option.quality === "premium" ? (
+                  <Chip size="small" label="HD" color="secondary" sx={{ ml: 1 }} />
+                ) : null}
+              </MenuItem>
+            ))}
+          </Choice>
+          <Tooltip title="Preview">
+            <IconButton
+              onClick={() =>
+                voiceAdapter?.speak({
+                  text: "This is your Jeopardy host. Welcome to the game.",
+                  voiceProfileId: preferences.voiceProfileId,
+                })
+              }
+            >
+              <VolumeUpIcon />
+            </IconButton>
+          </Tooltip>
+        </Stack>
+
+        <Stack spacing={0}>
+          {toggles.map(({ key, label }) => (
+            <FormControlLabel
+              key={key}
+              label={label}
+              control={
+                <Switch
+                  checked={Boolean(preferences[key])}
+                  onChange={(_, value) => setPreference(key, value)}
+                />
+              }
+            />
+          ))}
+        </Stack>
+
+        <Choice
+          id="buzz-window"
+          label="Buzz window"
+          value={preferences.buzzWindowSeconds}
+          onChange={(value) => setPreference("buzzWindowSeconds", Number(value))}
+        >
+          {buzzWindows.map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
+        </Choice>
+      </Stack>
+
+      <Divider />
+
+      <Stack spacing={1.5}>
+        <Choice
+          id="host-mode"
+          label="Host"
+          value={preferences.avatarHostMode}
+          onChange={(value) =>
+            setPreference("avatarHostMode", value as UiPreferences["avatarHostMode"])
+          }
+        >
+          {hostModes.map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
+        </Choice>
+
+        <Choice
+          id="host-profile"
+          label="Persona"
+          value={preferences.avatarHostProfileId}
+          onChange={(value) => setPreference("avatarHostProfileId", value)}
+        >
+          {baselineAvatarHostProfiles.map((profile) => (
+            <MenuItem key={profile.id} value={profile.id}>
+              {profile.label}
+            </MenuItem>
+          ))}
+        </Choice>
+      </Stack>
+    </Stack>
+  );
+}
+
+/** A labelled menu. Five of these, spelled out, was most of this panel. */
+function Choice({
+  id,
+  label,
+  value,
+  onChange,
+  renderValue,
+  children,
+}: {
+  id: string;
+  label: string;
+  value: string | number;
+  onChange: (value: string) => void;
+  renderValue?: (value: string) => ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <FormControl fullWidth size="small">
+      <InputLabel id={id}>{label}</InputLabel>
+      <Select
+        labelId={id}
+        label={label}
+        value={value}
+        onChange={(event) => onChange(String(event.target.value))}
+        renderValue={renderValue ? (raw) => renderValue(String(raw)) : undefined}
+      >
+        {children}
+      </Select>
+    </FormControl>
+  );
+}
+
+/** The browser discovers voices asynchronously and keeps adding to the list. */
+function useDiscoveredVoices(): DiscoveredVoice[] {
+  const [voices, setVoices] = useState<DiscoveredVoice[]>([]);
   useEffect(() => {
     if (!voiceAdapter) return;
     const update = () => setVoices(voiceAdapter.listDiscoveredVoices());
@@ -36,169 +211,5 @@ export function SettingsPanel() {
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
   }, []);
-
-  const options = useMemo(() => {
-    const seen = new Set<string>();
-    const personaItems = voicePersonas
-      .map((persona) => {
-        const matched = voices.find(persona.predicate);
-        if (!matched || seen.has(matched.id)) return null;
-        seen.add(matched.id);
-        return {
-          id: persona.id,
-          label: persona.label,
-          sub: matched.label,
-          quality: matched.quality,
-        };
-      })
-      .filter(Boolean) as { id: string; label: string; sub: string; quality: DiscoveredVoice["quality"] }[];
-    const remaining = voices
-      .filter((voice) => !seen.has(voice.id))
-      .map((voice) => ({
-        id: voice.id,
-        label: voice.label,
-        sub: voice.locale,
-        quality: voice.quality,
-      }));
-    return [...personaItems, ...remaining];
-  }, [voices]);
-
-  function preview() {
-    voiceAdapter?.speak({
-      text: "This is your Jeopardy host. Welcome to the game.",
-      voiceProfileId: preferences.voiceProfileId,
-    });
-  }
-
-  return (
-    <Stack spacing={2}>
-          <Stack spacing={1.5}>
-            <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-              <FormControl fullWidth size="small">
-                <InputLabel id="voice-profile">Voice</InputLabel>
-                <Select
-                  labelId="voice-profile"
-                  label="Voice"
-                  value={preferences.voiceProfileId}
-                  onChange={(event) => setPreference("voiceProfileId", event.target.value)}
-                  renderValue={(value) =>
-                    options.find((opt) => opt.id === value)?.label ?? "Default"
-                  }
-                >
-                  {options.map((option) => (
-                    <MenuItem key={option.id} value={option.id}>
-                      <ListItemText primary={option.label} secondary={option.sub} />
-                      {option.quality === "premium" ? (
-                        <Chip size="small" label="HD" color="secondary" sx={{ ml: 1 }} />
-                      ) : null}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <Tooltip title="Preview">
-                <IconButton onClick={preview}>
-                  <VolumeUpIcon />
-                </IconButton>
-              </Tooltip>
-            </Stack>
-
-            <Stack spacing={0}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={preferences.soundEnabled}
-                  onChange={(_, value) => setPreference("soundEnabled", value)}
-                />
-              }
-              label="Sound"
-            />
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={preferences.subtitlesEnabled}
-                  onChange={(_, value) => setPreference("subtitlesEnabled", value)}
-                />
-              }
-              label="Subtitles"
-            />
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={preferences.chatEnabled}
-                  onChange={(_, value) => setPreference("chatEnabled", value)}
-                />
-              }
-              label="Chat"
-            />
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={preferences.reducedMotion}
-                  onChange={(_, value) => setPreference("reducedMotion", value)}
-                />
-              }
-              label="Reduced motion"
-            />
-            </Stack>
-
-            <FormControl fullWidth size="small">
-              <InputLabel id="buzz-window">Buzz window</InputLabel>
-              <Select
-                labelId="buzz-window"
-                label="Buzz window"
-                value={preferences.buzzWindowSeconds}
-                onChange={(event) =>
-                  setPreference("buzzWindowSeconds", Number(event.target.value))
-                }
-              >
-                <MenuItem value={5}>5 seconds — show pace</MenuItem>
-                <MenuItem value={6}>6 seconds</MenuItem>
-                <MenuItem value={10}>10 seconds</MenuItem>
-                <MenuItem value={20}>20 seconds — relaxed</MenuItem>
-              </Select>
-            </FormControl>
-          </Stack>
-
-          <Divider />
-
-          <Stack spacing={1.5}>
-            <FormControl fullWidth size="small">
-              <InputLabel id="host-mode">Host</InputLabel>
-              <Select
-                labelId="host-mode"
-                label="Host"
-                value={preferences.avatarHostMode}
-                onChange={(event) =>
-                  setPreference(
-                    "avatarHostMode",
-                    event.target.value as typeof preferences.avatarHostMode,
-                  )
-                }
-              >
-                <MenuItem value="off">Off</MenuItem>
-                <MenuItem value="voice-only">Voice</MenuItem>
-                <MenuItem value="avatar-and-voice">Avatar</MenuItem>
-              </Select>
-            </FormControl>
-
-            <FormControl fullWidth size="small">
-              <InputLabel id="host-profile">Persona</InputLabel>
-              <Select
-                labelId="host-profile"
-                label="Persona"
-                value={preferences.avatarHostProfileId}
-                onChange={(event) =>
-                  setPreference("avatarHostProfileId", event.target.value)
-                }
-              >
-                {baselineAvatarHostProfiles.map((profile) => (
-                  <MenuItem key={profile.id} value={profile.id}>
-                    {profile.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Stack>
-    </Stack>
-  );
+  return voices;
 }

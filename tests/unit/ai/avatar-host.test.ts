@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   baselineAvatarHostProfiles,
   type AvatarHostProfile,
-} from "@/lib/foundation/game-contracts";
+} from "@/lib/ai/profiles";
 import { generateAvatarHostCue } from "@/lib/ai";
 
 describe("avatar host cues", () => {

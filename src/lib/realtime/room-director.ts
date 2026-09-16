@@ -5,7 +5,7 @@ import {
   decideBotWager,
   type BotRng,
 } from "@/lib/ai/bots";
-import type { BotProfile } from "@/lib/foundation/game-contracts";
+import type { BotProfile } from "@/lib/ai/profiles";
 import type { GameState } from "@/lib/game";
 import type { InMemoryRealtimeRoom } from "./in-memory-room";
 

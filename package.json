@@ -12,8 +12,6 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

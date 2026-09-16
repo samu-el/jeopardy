@@ -22,7 +22,6 @@ import ReplayIcon from "@mui/icons-material/ReplayOutlined";
 import SettingsIcon from "@mui/icons-material/VolumeUpOutlined";
 import PeopleIcon from "@mui/icons-material/PeopleOutlineOutlined";
 import ShuffleIcon from "@mui/icons-material/ShuffleOutlined";
-import LibraryIcon from "@mui/icons-material/LibraryBooksOutlined";
 import { useGameStore } from "@/lib/state/game-store";
 import { primeAudio, primeSpeech } from "@/lib/ai";
 import { controls, ui } from "@/lib/foundation/jeopardy-style";
@@ -35,7 +34,6 @@ import { PlayersPanel } from "./PlayersPanel";
 
 interface RoomToolbarProps {
   onOpenPicker: () => void;
-  onOpenBrowser: () => void;
   onOpenBuilder: () => void;
   onToggleShortcuts: () => void;
   onToggleTranscript: () => void;
@@ -44,7 +42,6 @@ interface RoomToolbarProps {
 
 export function RoomToolbar({
   onOpenPicker,
-  onOpenBrowser,
   onOpenBuilder,
   onToggleShortcuts,
   onToggleTranscript,
@@ -218,17 +215,6 @@ export function RoomToolbar({
             <PeopleIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>Players</ListItemText>
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            closeMore();
-            onOpenBrowser();
-          }}
-        >
-          <ListItemIcon>
-            <LibraryIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Browse episodes</ListItemText>
         </MenuItem>
         <MenuItem
           data-testid="open-builder"

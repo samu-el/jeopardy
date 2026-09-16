@@ -1,7 +1,7 @@
 import {
   baselineVoiceProfiles as legacyProfiles,
   type VoiceProfile,
-} from "@/lib/foundation/game-contracts";
+} from "@/lib/ai/profiles";
 
 export interface SpeakRequest {
   text: string;

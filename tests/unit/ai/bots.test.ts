@@ -5,7 +5,7 @@ import {
   decideBotBuzz,
   decideBotWager,
 } from "@/lib/ai";
-import { baselineBotProfiles } from "@/lib/foundation/game-contracts";
+import { baselineBotProfiles } from "@/lib/ai/profiles";
 import type { GameClue } from "@/lib/game";
 
 const clue: GameClue = {

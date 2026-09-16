@@ -154,3 +154,61 @@ export const controls = {
 /** Standard board shape: six categories, five clues each. */
 export const boardColumns = 6;
 export const boardRows = 5;
+
+/**
+ * The set's face, in one call.
+ *
+ * Every category strip, eyebrow, button face and readout in the app is this
+ * recipe with a size and a colour on top. Spelling the four properties out
+ * per component is how fourteen slightly different versions of the same
+ * label appeared in the first place.
+ */
+const displayBase = {
+  fontFamily: jeopardyFonts.display,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+} as const;
+
+export function displayType<T extends object>(overrides?: T) {
+  return { ...displayBase, ...overrides };
+}
+
+/** The clue face: the slab serif, chiselled, the way the monitor sets it. */
+const clueBase = {
+  fontFamily: jeopardyFonts.clue,
+  textTransform: "uppercase",
+  fontWeight: 600,
+  textShadow: jeopardyClueShadow,
+} as const;
+
+export function clueType<T extends object>(overrides?: T) {
+  return { ...clueBase, ...overrides };
+}
+
+/**
+ * Longer clue, smaller type — the show sets a wordy clue down rather than
+ * letting it overrun the monitor, and gives it a wider measure so it still
+ * lands in about the same number of lines.
+ *
+ * One table for all three screens: the panel on a laptop, the television,
+ * and the measure they share. It used to be three `if` ladders in two files
+ * that drifted apart every time one of them was tuned.
+ */
+const clueScales = [
+  { upTo: 90, panel: "clamp(18px, 4.2cqw, 46px)", tv: "clamp(20px, 5cqw, 78px)", measure: "22ch" },
+  { upTo: 180, panel: "clamp(16px, 3.2cqw, 36px)", tv: "clamp(18px, 3.8cqw, 58px)", measure: "30ch" },
+  { upTo: 300, panel: "clamp(15px, 2.5cqw, 29px)", tv: "clamp(16px, 3cqw, 46px)", measure: "38ch" },
+  {
+    upTo: Number.POSITIVE_INFINITY,
+    panel: "clamp(13px, 2cqw, 24px)",
+    tv: "clamp(14px, 2.4cqw, 36px)",
+    measure: "46ch",
+  },
+] as const;
+
+export function clueScale(length: number) {
+  return clueScales.find((step) => length <= step.upTo) ?? clueScales[clueScales.length - 1];
+}
+
+/** The board's own gradient, on the panel and on the television alike. */
+export const boardGradient = `linear-gradient(180deg, ${jeopardyPalette.board} 0%, ${jeopardyPalette.boardShade} 100%)`;

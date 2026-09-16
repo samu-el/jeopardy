@@ -1,8 +1,9 @@
+import { roundName } from "@/lib/game";
 import {
   baselineAvatarHostProfiles,
   type AvatarHostMode,
   type AvatarHostProfile,
-} from "@/lib/foundation/game-contracts";
+} from "@/lib/ai/profiles";
 
 export type AvatarHostCueType =
   | "intro"
@@ -45,120 +46,76 @@ export function defaultAvatarHostProfile() {
   return baselineAvatarHostProfiles[0];
 }
 
+/**
+ * What the host says, as a table.
+ *
+ * Each cue names the line it reads, how it should move, and whether it is
+ * allowed to speak at all. It used to be an eleven-arm switch where every arm
+ * rebuilt the same object; the only things that ever actually differed are
+ * the three columns below.
+ */
+const cueScripts: Record<
+  AvatarHostCueType,
+  {
+    say: (context: NonNullable<AvatarHostInput["context"]>, profile: AvatarHostProfile) => string;
+    move?: AvatarHostCue["animationHint"];
+    /** Cues that are beats rather than lines, or that a profile can mute. */
+    silent?: boolean;
+    needsReminders?: boolean;
+  }
+> = {
+  intro: { say: () => "", silent: true },
+  "intro-categories": {
+    say: (context) =>
+      (context.categories ?? []).length === 0
+        ? "Here are your categories."
+        : `Today's categories are: ${formatCategoryList(context.categories ?? [])}.`,
+    move: "lean-in",
+  },
+  "clue-selected": {
+    say: ({ category, value }) =>
+      category && value !== undefined ? `${category}, for ${value}.` : category ?? `${value ?? ""}`,
+    move: "lean-in",
+  },
+  "clue-readout": { say: (context) => context.clueText ?? "", move: "lean-in" },
+  "buzzer-unlocked": { say: () => "", silent: true },
+  "answer-correct": {
+    say: ({ playerName }) =>
+      playerName ? `That is correct, ${playerName}.` : "That is correct.",
+    move: "applaud",
+  },
+  "answer-incorrect": {
+    say: (_context, profile) =>
+      profile.allowCommentary ? "Not quite. Anyone else want to give it a try?" : "Incorrect.",
+    move: "thoughtful",
+  },
+  "round-advance": {
+    say: ({ round }) => (round ? `Onward to ${roundName(round, "spoken")}.` : "Onward."),
+  },
+  "final-prompt": { say: () => "Final Jeopardy. Make your wagers.", move: "lean-in" },
+  "game-complete": {
+    say: ({ playerName }) =>
+      playerName ? `That's the game. Congratulations, ${playerName}.` : "That's the game.",
+    move: "applaud",
+  },
+  "pacing-reminder": {
+    say: () => "Make a selection when you're ready.",
+    needsReminders: true,
+  },
+};
+
 export function generateAvatarHostCue(input: AvatarHostInput): AvatarHostCue {
   const profile = input.profile ?? defaultAvatarHostProfile();
   const mode = input.mode ?? profile.defaultMode;
-  const speak = mode !== "off";
-
-  switch (input.type) {
-    case "intro":
-      return {
-        id: `intro-${Date.now()}`,
-        type: "intro",
-        text: "",
-        speak: false,
-        animationHint: "idle",
-      };
-    case "intro-categories": {
-      const categories = input.context?.categories ?? [];
-      const list = formatCategoryList(categories);
-      return {
-        id: `cats-${Date.now()}`,
-        type: "intro-categories",
-        text: categories.length === 0
-          ? "Here are your categories."
-          : `Today's categories are: ${list}.`,
-        speak,
-        animationHint: "lean-in",
-      };
-    }
-    case "clue-selected": {
-      const category = input.context?.category;
-      const value = input.context?.value;
-      const text = category && value !== undefined
-        ? `${category}, for ${value}.`
-        : category ?? `${value ?? ""}`;
-      return {
-        id: `pick-${Date.now()}`,
-        type: "clue-selected",
-        text,
-        speak,
-        animationHint: "lean-in",
-      };
-    }
-    case "clue-readout":
-      return {
-        id: `clue-${Date.now()}`,
-        type: "clue-readout",
-        text: input.context?.clueText ?? "",
-        speak,
-        animationHint: "lean-in",
-      };
-    case "buzzer-unlocked":
-      return {
-        id: `buzz-${Date.now()}`,
-        type: "buzzer-unlocked",
-        text: "",
-        speak: false,
-        animationHint: "idle",
-      };
-    case "answer-correct":
-      return {
-        id: `correct-${Date.now()}`,
-        type: "answer-correct",
-        text: input.context?.playerName
-          ? `That is correct, ${input.context.playerName}.`
-          : "That is correct.",
-        speak,
-        animationHint: "applaud",
-      };
-    case "answer-incorrect":
-      return {
-        id: `incorrect-${Date.now()}`,
-        type: "answer-incorrect",
-        text: profile.allowCommentary
-          ? "Not quite. Anyone else want to give it a try?"
-          : "Incorrect.",
-        speak,
-        animationHint: "thoughtful",
-      };
-    case "round-advance":
-      return {
-        id: `round-${Date.now()}`,
-        type: "round-advance",
-        text: input.context?.round
-          ? `Onward to ${humanRoundName(input.context.round)}.`
-          : "Onward.",
-        speak,
-        animationHint: "idle",
-      };
-    case "final-prompt":
-      return {
-        id: `final-${Date.now()}`,
-        type: "final-prompt",
-        text: "Final Jeopardy. Make your wagers.",
-        speak,
-        animationHint: "lean-in",
-      };
-    case "game-complete":
-      return {
-        id: `complete-${Date.now()}`,
-        type: "game-complete",
-        text: input.context?.playerName
-          ? `That's the game. Congratulations, ${input.context.playerName}.`
-          : "That's the game.",
-        speak,
-        animationHint: "applaud",
-      };
-    case "pacing-reminder":
-      return {
-        id: `pacing-${Date.now()}`,
-        type: "pacing-reminder",
-        text: "Make a selection when you're ready.",
-        speak: speak && profile.allowRuleReminders,
-        animationHint: "idle",
-      };
-  }
+  const script = cueScripts[input.type];
+  return {
+    id: `${input.type}-${Date.now()}`,
+    type: input.type,
+    text: script.say(input.context ?? {}, profile),
+    speak:
+      mode !== "off" && !script.silent && (!script.needsReminders || profile.allowRuleReminders),
+    animationHint: script.move ?? "idle",
+  };
 }
 
 function formatCategoryList(categories: string[]): string {
@@ -166,21 +123,4 @@ function formatCategoryList(categories: string[]): string {
   if (categories.length === 1) return categories[0];
   if (categories.length === 2) return `${categories[0]} and ${categories[1]}`;
   return `${categories.slice(0, -1).join(", ")}, and ${categories[categories.length - 1]}`;
-}
-
-function humanRoundName(round: string) {
-  switch (round) {
-    case "jeopardy":
-      return "Jeopardy";
-    case "double-jeopardy":
-      return "Double Jeopardy";
-    case "triple-jeopardy":
-      return "Triple Jeopardy";
-    case "final-jeopardy":
-      return "Final Jeopardy";
-    case "complete":
-      return "the end of the game";
-    default:
-      return round;
-  }
 }

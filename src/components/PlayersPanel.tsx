@@ -12,7 +12,7 @@ import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import AddIcon from "@mui/icons-material/AddOutlined";
 import DeleteIcon from "@mui/icons-material/DeleteOutlined";
-import { baselineBotProfiles } from "@/lib/foundation/game-contracts";
+import { baselineBotProfiles } from "@/lib/ai/profiles";
 import { useGameStore } from "@/lib/state/game-store";
 import { ui } from "@/lib/foundation/jeopardy-style";
 import { AvatarPicker } from "./AvatarPicker";

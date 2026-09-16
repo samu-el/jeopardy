@@ -485,3 +485,45 @@ export interface GameEngineResult {
   state: GameState;
   events: GameEvent[];
 }
+
+/**
+ * What each round is called out loud.
+ *
+ * Three modules used to keep their own spelling of this — one for the avatar
+ * host, one for the room's chat log, one for the game builder — and they
+ * disagreed about whether Double Jeopardy took an exclamation mark.
+ */
+export const roundNames: Record<
+  GameRound,
+  { plain: string; spoken: string; announced: string }
+> = {
+  lobby: { plain: "Lobby", spoken: "the lobby", announced: "Lobby" },
+  jeopardy: { plain: "Jeopardy", spoken: "Jeopardy", announced: "Jeopardy! round" },
+  "double-jeopardy": {
+    plain: "Double Jeopardy",
+    spoken: "Double Jeopardy",
+    announced: "Double Jeopardy! round",
+  },
+  "triple-jeopardy": {
+    plain: "Triple Jeopardy",
+    spoken: "Triple Jeopardy",
+    announced: "Triple Jeopardy! round",
+  },
+  "final-jeopardy": {
+    plain: "Final Jeopardy",
+    spoken: "Final Jeopardy",
+    announced: "Final Jeopardy!",
+  },
+  complete: {
+    plain: "Complete",
+    spoken: "the end of the game",
+    announced: "That's the game.",
+  },
+};
+
+export function roundName(
+  round: string,
+  style: "plain" | "spoken" | "announced" = "plain",
+): string {
+  return roundNames[round as GameRound]?.[style] ?? round;
+}
