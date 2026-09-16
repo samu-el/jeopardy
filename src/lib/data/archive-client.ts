@@ -1,16 +1,8 @@
 "use client";
 
-import type { ArchivedEpisodeInput } from "./contracts";
+import type { ArchivedEpisodeInput, EpisodeListing } from "./contracts";
 
-export interface ArchiveListing {
-  id: string;
-  number: string;
-  airDate?: string;
-  info?: string;
-  theme: string;
-  hasFinal: boolean;
-  clueCount: number;
-}
+export type ArchiveListing = EpisodeListing;
 
 export interface ArchiveListResponse {
   total: number;
@@ -22,36 +14,42 @@ export interface ArchiveEpisodeResponse {
   episode: ArchivedEpisodeInput;
 }
 
-export async function fetchEpisodeList(params: {
+/**
+ * Everything the archive answers sits on one route with a mode, so asking it
+ * anything is one function. Blank values and "all" are simply left off the
+ * query, which is what the route means by absent.
+ */
+async function ask<T>(
+  params: Record<string, string | number | undefined>,
+  fallback?: T,
+): Promise<T> {
+  const url = new URL("/api/episodes", window.location.origin);
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === "" || value === "all") continue;
+    url.searchParams.set(key, String(value));
+  }
+  const response = await fetch(url.toString());
+  if (response.ok) return (await response.json()) as T;
+  if (fallback !== undefined) return fallback;
+  throw new Error(`Failed to load episodes (${response.status})`);
+}
+
+export function fetchEpisodeList(params: {
   theme?: string;
   decade?: string;
   query?: string;
   limit?: number;
   offset?: number;
 }): Promise<ArchiveListResponse> {
-  const url = new URL("/api/episodes", window.location.origin);
-  if (params.theme && params.theme !== "all") url.searchParams.set("theme", params.theme);
-  if (params.decade && params.decade !== "all")
-    url.searchParams.set("decade", params.decade);
-  if (params.query) url.searchParams.set("q", params.query);
-  if (params.limit) url.searchParams.set("limit", String(params.limit));
-  if (params.offset) url.searchParams.set("offset", String(params.offset));
-  const response = await fetch(url.toString());
-  if (!response.ok) throw new Error(`Failed to load episodes (${response.status})`);
-  return (await response.json()) as ArchiveListResponse;
+  const { query, ...rest } = params;
+  return ask<ArchiveListResponse>({ ...rest, q: query });
 }
 
-export async function fetchRandomEpisode(
+export function fetchRandomEpisode(
   theme?: string,
   decade?: string,
 ): Promise<ArchiveEpisodeResponse> {
-  const url = new URL("/api/episodes", window.location.origin);
-  url.searchParams.set("mode", "random");
-  if (theme && theme !== "all") url.searchParams.set("theme", theme);
-  if (decade && decade !== "all") url.searchParams.set("decade", decade);
-  const response = await fetch(url.toString());
-  if (!response.ok) throw new Error(`Failed to load random episode (${response.status})`);
-  return (await response.json()) as ArchiveEpisodeResponse;
+  return ask<ArchiveEpisodeResponse>({ mode: "random", theme, decade });
 }
 
 export async function fetchEpisodeById(id: string): Promise<ArchiveEpisodeResponse> {
@@ -60,25 +58,18 @@ export async function fetchEpisodeById(id: string): Promise<ArchiveEpisodeRespon
   return (await response.json()) as ArchiveEpisodeResponse;
 }
 
-export async function fetchArchiveStats(): Promise<{ total: number }> {
-  const response = await fetch("/api/episodes?mode=stats");
-  if (!response.ok) return { total: 0 };
-  return (await response.json()) as { total: number };
+export function fetchArchiveStats(): Promise<{ total: number }> {
+  return ask<{ total: number }>({ mode: "stats" }, { total: 0 });
 }
 
-export async function fetchThemeCounts(): Promise<Record<string, number>> {
-  const response = await fetch("/api/episodes?mode=themes");
-  if (!response.ok) return {};
-  const data = (await response.json()) as { counts?: Record<string, number> };
+/** The two count endpoints answer in the same envelope. */
+async function counts(mode: "themes" | "decades"): Promise<Record<string, number>> {
+  const data = await ask<{ counts?: Record<string, number> }>({ mode }, {});
   return data.counts ?? {};
 }
 
-export async function fetchDecadeCounts(): Promise<Record<string, number>> {
-  const response = await fetch("/api/episodes?mode=decades");
-  if (!response.ok) return {};
-  const data = (await response.json()) as { counts?: Record<string, number> };
-  return data.counts ?? {};
-}
+export const fetchThemeCounts = () => counts("themes");
+export const fetchDecadeCounts = () => counts("decades");
 
 export const decadeOptions: { id: string; label: string }[] = [
   { id: "all", label: "All eras" },

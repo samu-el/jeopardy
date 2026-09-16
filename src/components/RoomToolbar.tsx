@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import IconButton, { type IconButtonProps } from "@mui/material/IconButton";
@@ -9,7 +9,6 @@ import ListItemText from "@mui/material/ListItemText";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import EditNoteIcon from "@mui/icons-material/EditNoteOutlined";
-import Popover from "@mui/material/Popover";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import LogoutIcon from "@mui/icons-material/LogoutOutlined";
@@ -29,6 +28,7 @@ import { Wordmark } from "./Wordmark";
 import { RoomBar } from "./RoomBar";
 import { Housing, HousingDivider } from "./Housing";
 import CastIcon from "@mui/icons-material/CastOutlined";
+import { AnchoredPanel } from "./AnchoredPanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { PlayersPanel } from "./PlayersPanel";
 
@@ -64,6 +64,25 @@ export function RoomToolbar({
   const isRoomHost = !publicState?.settings.hostId || publicState.settings.hostId === selfId;
   const canBegin = Boolean(lobby.loadedEpisode || lobby.customGame) && isRoomHost;
   const inGame = Boolean(runtime && publicState && publicState.round !== "lobby");
+
+  /** Everything the More key offers, in the order it offers it. */
+  const moreItems: {
+    label: string;
+    icon: ReactNode;
+    open: (anchor: HTMLElement) => void;
+    testId?: string;
+  }[] = [
+    { label: "Players", icon: <PeopleIcon fontSize="small" />, open: setPlayersAnchor },
+    {
+      label: "Build a game",
+      icon: <EditNoteIcon fontSize="small" />,
+      open: onOpenBuilder,
+      testId: "open-builder",
+    },
+    { label: "Transcript", icon: <HistoryIcon fontSize="small" />, open: onToggleTranscript },
+    { label: "Replay last game", icon: <ReplayIconAlt fontSize="small" />, open: onOpenReplay },
+    { label: "Shortcuts", icon: <KeyboardIcon fontSize="small" />, open: onToggleShortcuts },
+  ];
 
   return (
     // Three columns on a wide screen — mark, room, keys — so the room
@@ -205,91 +224,28 @@ export function RoomToolbar({
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        <MenuItem
-          onClick={(event) => {
-            closeMore();
-            setPlayersAnchor(event.currentTarget);
-          }}
-        >
-          <ListItemIcon>
-            <PeopleIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Players</ListItemText>
-        </MenuItem>
-        <MenuItem
-          data-testid="open-builder"
-          onClick={() => {
-            closeMore();
-            onOpenBuilder();
-          }}
-        >
-          <ListItemIcon>
-            <EditNoteIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Build a game</ListItemText>
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            closeMore();
-            onToggleTranscript();
-          }}
-        >
-          <ListItemIcon>
-            <HistoryIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Transcript</ListItemText>
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            closeMore();
-            onOpenReplay();
-          }}
-        >
-          <ListItemIcon>
-            <ReplayIconAlt fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Replay last game</ListItemText>
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            closeMore();
-            onToggleShortcuts();
-          }}
-        >
-          <ListItemIcon>
-            <KeyboardIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Shortcuts</ListItemText>
-        </MenuItem>
+        {moreItems.map((item) => (
+          <MenuItem
+            key={item.label}
+            data-testid={item.testId}
+            onClick={(event) => {
+              closeMore();
+              item.open(event.currentTarget);
+            }}
+          >
+            <ListItemIcon>{item.icon}</ListItemIcon>
+            <ListItemText>{item.label}</ListItemText>
+          </MenuItem>
+        ))}
       </Menu>
 
-      <Popover
-        open={Boolean(settingsAnchor)}
-        anchorEl={settingsAnchor}
-        onClose={() => setSettingsAnchor(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        transformOrigin={{ vertical: "top", horizontal: "right" }}
-        slotProps={{ paper: { sx: { minWidth: 320, maxWidth: 380, p: 2.5 } } }}
-      >
-        <Typography variant="overline">Settings</Typography>
-        <Box sx={{ mt: 1 }}>
-          <SettingsPanel />
-        </Box>
-      </Popover>
+      <AnchoredPanel title="Settings" anchor={settingsAnchor} onClose={() => setSettingsAnchor(null)}>
+        <SettingsPanel />
+      </AnchoredPanel>
 
-      <Popover
-        open={Boolean(playersAnchor)}
-        anchorEl={playersAnchor}
-        onClose={() => setPlayersAnchor(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        transformOrigin={{ vertical: "top", horizontal: "right" }}
-        slotProps={{ paper: { sx: { minWidth: 320, maxWidth: 380, p: 2.5 } } }}
-      >
-        <Typography variant="overline">Players</Typography>
-        <Box sx={{ mt: 1 }}>
-          <PlayersPanel />
-        </Box>
-      </Popover>
+      <AnchoredPanel title="Players" anchor={playersAnchor} onClose={() => setPlayersAnchor(null)}>
+        <PlayersPanel />
+      </AnchoredPanel>
     </Box>
   );
 }
