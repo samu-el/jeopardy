@@ -137,16 +137,8 @@ export interface GameState {
   undoSnapshot?: GameStateSnapshot;
 }
 
-export interface PublicPlayerState {
-  id: string;
-  displayName: string;
-  kind: PlayerKind;
-  connected: boolean;
-  spectator: boolean;
-  score: number;
-  emoji?: string;
-  color?: string;
-}
+/** A player as the table sees them: their seat, plus the score. */
+export type PublicPlayerState = GamePlayer & { score: number };
 
 export interface PublicBoardClue {
   id: string;
@@ -156,34 +148,26 @@ export interface PublicBoardClue {
   clue?: string;
 }
 
-export interface PublicActiveClueState {
-  clueId: string;
-  round: PlayableRound;
+/**
+ * The clue on the board as a client may see it.
+ *
+ * Derived from the room's own clue rather than restated: the same twenty-odd
+ * fields, minus the three the room keeps to itself, plus what the client
+ * would otherwise have to work out. Written out twice, the two drifted every
+ * time a window was added.
+ */
+export type PublicActiveClueState = Omit<
+  ActiveClueState,
+  "clueRevealed" | "answerRevealed" | "judgeQueue"
+> & {
   category: string;
   value: number;
+  /** Withheld until the clue goes up, and the response until it is revealed. */
   clue?: string;
   correctResponse?: string;
-  dailyDouble: boolean;
-  dailyDoublePlayerId?: string;
-  readoutEndsAt?: number;
-  buzzWindowEndsAt?: number;
-  answerWindowEndsAt?: number;
-  wagerWindowStartsAt?: number;
-  wagerWindowEndsAt?: number;
-  waitingForWager: string[];
+  /** Whether this client could ring in right now, worked out server-side. */
   canBuzz: boolean;
-  buzzes: Record<string, number>;
-  /** Which players have submitted an answer (content withheld until reveal). */
-  submitted: Record<string, boolean>;
-  answers: Record<string, string>;
-  wagers: Record<string, number>;
-  judges: Record<string, boolean | null>;
-  currentJudgePlayerId?: string;
-  canAdvance: boolean;
-  lockouts: Record<string, number>;
-  closesAt?: number;
-  timedOut?: boolean;
-}
+};
 
 export interface PublicGameState {
   roomId: string;
