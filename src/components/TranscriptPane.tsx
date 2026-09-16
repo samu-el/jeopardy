@@ -7,7 +7,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { ui } from "@/lib/foundation/jeopardy-style";
+import { speakerColor } from "./chat-style";
 import CloseIcon from "@mui/icons-material/CloseOutlined";
 import { useGameStore } from "@/lib/state/game-store";
 
@@ -84,7 +84,7 @@ export function TranscriptPane({ open, onClose }: TranscriptPaneProps) {
                 sx={{
                   fontSize: 10,
                   letterSpacing: 1,
-                  color: kindColor(message.kind),
+                  color: speakerColor(message.kind),
                   mr: 1,
                   textTransform: "uppercase",
                 }}
@@ -100,16 +100,4 @@ export function TranscriptPane({ open, onClose }: TranscriptPaneProps) {
       </Box>
     </Paper>
   );
-}
-
-function kindColor(kind: string): string {
-  switch (kind) {
-    case "system":
-      return ui.inkMuted;
-    case "host":
-    case "judge":
-      return ui.gold;
-    default:
-      return ui.blue;
-  }
 }

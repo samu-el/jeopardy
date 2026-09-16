@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
-import type { PublicGameState } from "@/lib/game";
+import { createEmptyStats, type PublicGameState } from "@/lib/game";
 import { useGameStore } from "@/lib/state/game-store";
 import { jeopardyPalette } from "@/lib/foundation/jeopardy-style";
 import { Board } from "./Board";
@@ -114,15 +114,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
         autoAdvanceMs: 0,
         earlyBuzzLockoutMs: 0,
       },
-      stats: {
-        questionsStarted: 0,
-        answeredByPlayer: {},
-        correctByPlayer: {},
-        incorrectByPlayer: {},
-        firstBuzzByPlayer: {},
-        reactionTimesByPlayer: {},
-        dailyDoublesByPlayer: {},
-      },
+      stats: createEmptyStats(),
     }),
     [players, lobby.hostId, lobby.aiJudgeEnabled, lobby.bots.length, online?.roomId],
   );

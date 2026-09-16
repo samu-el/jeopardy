@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -23,127 +23,64 @@ import {
   fetchEpisodeById,
   fetchEpisodeList,
   fetchRandomEpisode,
-  fetchThemeCounts,
-  themeOptions,
   type ArchiveListing,
 } from "@/lib/data";
-import { useGameStore } from "@/lib/state/game-store";
+import { useArchiveThemes, useEpisodeChooser, useWhileOpen } from "./use-archive";
 
 interface GamePickerProps {
   open: boolean;
   onClose: () => void;
 }
 
-type Mode = "random" | "theme" | "number";
+type Mode = "shuffle" | "browse" | "number";
 
+/**
+ * Choose a game: shuffle one, search the archive, or type a number.
+ *
+ * This used to be two dialogs behind two different menu items — one that
+ * shuffled and one that searched — with their own copies of the theme chips,
+ * the episode list and the fetch bookkeeping.
+ */
 export function GamePicker({ open, onClose }: GamePickerProps) {
-  const setLoadedEpisode = useGameStore((s) => s.setLoadedEpisode);
-  const [mode, setMode] = useState<Mode>("random");
+  const { busy, setBusy, error, setError, choose } = useEpisodeChooser(onClose);
+  const { themes } = useArchiveThemes(open);
+  const [mode, setMode] = useState<Mode>("shuffle");
   const [theme, setTheme] = useState("all");
   const [decade, setDecade] = useState("all");
+  const [query, setQuery] = useState("");
   const [numberInput, setNumberInput] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [listings, setListings] = useState<ArchiveListing[]>([]);
+  const [total, setTotal] = useState(0);
   const [stats, setStats] = useState<{ total: number } | null>(null);
-  const [themeCountMap, setThemeCountMap] = useState<Record<string, number>>({});
-  const [decadeCountMap, setDecadeCountMap] = useState<Record<string, number>>({});
+  const [decadeCounts, setDecadeCounts] = useState<Record<string, number>>({});
 
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    fetchArchiveStats().then((value) => {
-      if (!cancelled) setStats(value);
-    });
-    fetchThemeCounts().then((value) => {
-      if (!cancelled) setThemeCountMap(value);
-    });
-    fetchDecadeCounts().then((value) => {
-      if (!cancelled) setDecadeCountMap(value);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open || mode !== "theme") return;
-    let cancelled = false;
-    const id = setTimeout(() => {
-      if (cancelled) return;
-      setBusy(true);
+  useWhileOpen(open, fetchArchiveStats, setStats);
+  useWhileOpen(open, fetchDecadeCounts, setDecadeCounts);
+  // Typing shouldn't fire a request per keystroke.
+  useWhileOpen(
+    open && mode === "browse",
+    () => fetchEpisodeList({ theme, decade, query: query.trim() || undefined, limit: 60 }),
+    (response) => {
+      setListings(response.episodes);
+      setTotal(response.total);
+      setBusy(false);
       setError(null);
-      fetchEpisodeList({ theme, decade, limit: 30 })
-        .then((response) => {
-          if (cancelled) return;
-          setListings(response.episodes);
-        })
-        .catch((err: Error) => {
-          if (!cancelled) setError(err.message);
-        })
-        .finally(() => {
-          if (!cancelled) setBusy(false);
-        });
-    }, 0);
-    return () => {
-      cancelled = true;
-      clearTimeout(id);
-    };
-  }, [open, mode, theme, decade]);
+    },
+    [mode, theme, decade, query],
+    250,
+  );
 
-  async function pickRandom() {
-    setBusy(true);
-    setError(null);
-    try {
-      const response = await fetchRandomEpisode(theme, decade);
-      setLoadedEpisode({
-        id: response.id,
-        title: response.episode.title ?? `Episode ${response.id}`,
-        airDate: response.episode.airDate,
-        info: response.episode.info,
-        episode: response.episode,
-      });
-      onClose();
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
+  const decades = useMemo(
+    () =>
+      Object.keys(decadeCounts).length === 0
+        ? decadeOptions
+        : decadeOptions.filter(
+            (entry) => entry.id === "all" || (decadeCounts[entry.id] ?? 0) > 0,
+          ),
+    [decadeCounts],
+  );
 
-  async function pickById(id: string) {
-    setBusy(true);
-    setError(null);
-    try {
-      const response = await fetchEpisodeById(id);
-      setLoadedEpisode({
-        id: response.id,
-        title: response.episode.title ?? `Episode ${response.id}`,
-        airDate: response.episode.airDate,
-        info: response.episode.info,
-        episode: response.episode,
-      });
-      onClose();
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const themesAvailable = useMemo(() => {
-    if (Object.keys(themeCountMap).length === 0) return themeOptions;
-    return themeOptions.filter(
-      (entry) => entry.id === "all" || (themeCountMap[entry.id] ?? 0) > 0,
-    );
-  }, [themeCountMap]);
-
-  const decadesAvailable = useMemo(() => {
-    if (Object.keys(decadeCountMap).length === 0) return decadeOptions;
-    return decadeOptions.filter(
-      (entry) => entry.id === "all" || (decadeCountMap[entry.id] ?? 0) > 0,
-    );
-  }, [decadeCountMap]);
+  const pickById = (id: string) => choose(() => fetchEpisodeById(id));
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -157,135 +94,151 @@ export function GamePicker({ open, onClose }: GamePickerProps) {
       </DialogTitle>
       <DialogContent dividers>
         <Tabs value={mode} onChange={(_, value) => setMode(value)} sx={{ mb: 2 }}>
-          <Tab value="random" label="Random" />
-          <Tab value="theme" label="Theme" />
+          <Tab value="shuffle" label="Shuffle" />
+          <Tab value="browse" label="Browse" />
           <Tab value="number" label="By number" />
         </Tabs>
 
-        {mode === "random" ? (
-          <Stack spacing={2}>
-            <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
-              {themesAvailable.map((entry) => (
-                <Chip
-                  key={entry.id}
-                  label={entry.label}
-                  color={entry.id === theme ? "primary" : "default"}
-                  onClick={() => setTheme(entry.id)}
-                  variant={entry.id === theme ? "filled" : "outlined"}
-                />
-              ))}
-            </Stack>
-            <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
-              {decadesAvailable.map((entry) => (
-                <Chip
-                  key={entry.id}
-                  label={entry.label}
-                  size="small"
-                  color={entry.id === decade ? "primary" : "default"}
-                  onClick={() => setDecade(entry.id)}
-                  variant={entry.id === decade ? "filled" : "outlined"}
-                />
-              ))}
-            </Stack>
+        <Stack spacing={2}>
+          {mode !== "number" ? (
+            <ChipRow options={themes} selected={theme} onSelect={setTheme} />
+          ) : null}
+          {mode !== "number" ? (
+            <ChipRow options={decades} selected={decade} onSelect={setDecade} small />
+          ) : null}
+
+          {mode === "shuffle" ? (
             <Button
               startIcon={busy ? <CircularProgress size={16} /> : <ShuffleIcon />}
               variant="contained"
-              onClick={pickRandom}
+              onClick={() => choose(() => fetchRandomEpisode(theme, decade))}
               disabled={busy}
               sx={{ alignSelf: "flex-start" }}
             >
               Shuffle
             </Button>
-          </Stack>
-        ) : null}
+          ) : null}
 
-        {mode === "theme" ? (
-          <Stack spacing={2}>
-            <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
-              {themesAvailable.map((entry) => (
-                <Chip
-                  key={entry.id}
-                  label={entry.label}
-                  color={entry.id === theme ? "primary" : "default"}
-                  onClick={() => setTheme(entry.id)}
-                  variant={entry.id === theme ? "filled" : "outlined"}
-                />
-              ))}
-            </Stack>
-            {busy ? (
-              <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                <CircularProgress size={18} />
-                <Typography variant="caption" color="text.secondary">Loading…</Typography>
+          {mode === "browse" ? (
+            <>
+              <TextField
+                size="small"
+                label="Search categories and episodes"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                fullWidth
+              />
+              <Typography variant="caption" color="text.secondary">
+                {busy ? "Loading…" : `${total.toLocaleString()} matching`}
+              </Typography>
+              <Stack spacing={1} sx={{ maxHeight: 360, overflow: "auto" }}>
+                {listings.map((episode) => (
+                  <EpisodeRow
+                    key={episode.id}
+                    episode={episode}
+                    busy={busy}
+                    onUse={() => pickById(episode.id)}
+                  />
+                ))}
+                {!busy && listings.length === 0 ? (
+                  <Typography variant="caption" color="text.secondary">
+                    Nothing matched.
+                  </Typography>
+                ) : null}
               </Stack>
-            ) : null}
-            <Stack spacing={1} sx={{ maxHeight: 360, overflow: "auto" }}>
-              {listings.map((episode) => (
-                <Paper
-                  key={episode.id}
-                  variant="outlined"
-                  sx={{ p: 1.5, display: "flex", alignItems: "center", gap: 2 }}
-                >
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography sx={{ fontWeight: 700 }}>#{episode.number}</Typography>
-                    <Typography variant="caption" color="text.secondary" noWrap>
-                      {episode.airDate ?? ""}
-                      {episode.info ? ` · ${episode.info}` : ""}
-                    </Typography>
-                  </Box>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    onClick={() => pickById(episode.id)}
-                    disabled={busy}
-                  >
-                    Use
-                  </Button>
-                </Paper>
-              ))}
-              {!busy && listings.length === 0 ? (
-                <Typography variant="caption" color="text.secondary">—</Typography>
-              ) : null}
-            </Stack>
-          </Stack>
-        ) : null}
+            </>
+          ) : null}
 
-        {mode === "number" ? (
-          <Stack spacing={2}>
-            <TextField
-              size="small"
-              label="Episode number"
-              type="number"
-              value={numberInput}
-              onChange={(event) => setNumberInput(event.target.value)}
-              fullWidth
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && numberInput.trim()) {
-                  event.preventDefault();
-                  pickById(numberInput.trim());
-                }
-              }}
-            />
-            <Button
-              variant="contained"
-              disabled={!numberInput.trim() || busy}
-              onClick={() => pickById(numberInput.trim())}
-              sx={{ alignSelf: "flex-start" }}
-              startIcon={busy ? <CircularProgress size={16} /> : undefined}
-            >
-              Find
-            </Button>
-          </Stack>
-        ) : null}
+          {mode === "number" ? (
+            <>
+              <TextField
+                size="small"
+                label="Episode number"
+                type="number"
+                value={numberInput}
+                onChange={(event) => setNumberInput(event.target.value)}
+                fullWidth
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && numberInput.trim()) {
+                    event.preventDefault();
+                    pickById(numberInput.trim());
+                  }
+                }}
+              />
+              <Button
+                variant="contained"
+                disabled={!numberInput.trim() || busy}
+                onClick={() => pickById(numberInput.trim())}
+                sx={{ alignSelf: "flex-start" }}
+                startIcon={busy ? <CircularProgress size={16} /> : undefined}
+              >
+                Find
+              </Button>
+            </>
+          ) : null}
 
-        {error ? (
-          <Typography color="error" variant="caption" sx={{ mt: 2, display: "block" }}>
-            {error}
-          </Typography>
-        ) : null}
+          {error ? (
+            <Typography color="error" variant="caption">
+              {error}
+            </Typography>
+          ) : null}
+        </Stack>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Close</Button>
       </DialogActions>
     </Dialog>
+  );
+}
+
+function ChipRow({
+  options,
+  selected,
+  onSelect,
+  small,
+}: {
+  options: { id: string; label: string }[];
+  selected: string;
+  onSelect: (id: string) => void;
+  small?: boolean;
+}) {
+  return (
+    <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
+      {options.map((entry) => (
+        <Chip
+          key={entry.id}
+          label={entry.label}
+          size={small ? "small" : "medium"}
+          color={entry.id === selected ? "primary" : "default"}
+          variant={entry.id === selected ? "filled" : "outlined"}
+          onClick={() => onSelect(entry.id)}
+        />
+      ))}
+    </Stack>
+  );
+}
+
+function EpisodeRow({
+  episode,
+  busy,
+  onUse,
+}: {
+  episode: ArchiveListing;
+  busy: boolean;
+  onUse: () => void;
+}) {
+  return (
+    <Paper variant="outlined" sx={{ p: 1.5, display: "flex", alignItems: "center", gap: 2 }}>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography sx={{ fontWeight: 700 }}>#{episode.number}</Typography>
+        <Typography variant="caption" color="text.secondary" noWrap>
+          {episode.airDate ?? ""}
+          {episode.info ? ` · ${episode.info}` : ""}
+        </Typography>
+      </Box>
+      <Button variant="contained" size="small" onClick={onUse} disabled={busy}>
+        Use
+      </Button>
+    </Paper>
   );
 }

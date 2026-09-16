@@ -11,6 +11,7 @@ import VisibilityOffIcon from "@mui/icons-material/VisibilityOffOutlined";
 import { useGameStore } from "@/lib/state/game-store";
 import { controls, jeopardyFonts, ui } from "@/lib/foundation/jeopardy-style";
 import { Housing, HousingDivider, HousingLabel } from "./Housing";
+import { connectionState } from "./chat-style";
 
 interface RoomBarProps {
   /** Printed at the front of the housing: which episode is on the board. */
@@ -74,14 +75,14 @@ export function RoomBar({ episode }: RoomBarProps) {
       .catch(() => {});
   }
 
-  const lamp = statusColor(online.status);
+  const lamp = connectionState(online.status);
 
   return (
     <Housing data-testid="room-bar">
       {episodeLabel}
       {episodeLabel ? <HousingDivider sx={{ display: { xs: "none", md: "block" } }} /> : null}
 
-      <Tooltip title={statusLabel(online.status)}>
+      <Tooltip title={lamp.label}>
         <Box
           role="img"
           aria-label={`Connection ${online.status}`}
@@ -90,8 +91,8 @@ export function RoomBar({ episode }: RoomBarProps) {
             width: 8,
             height: 8,
             borderRadius: "50%",
-            background: lamp,
-            boxShadow: `0 0 8px ${lamp}, inset 0 1px 0 rgba(255,255,255,0.5)`,
+            background: lamp.color,
+            boxShadow: `0 0 8px ${lamp.color}, inset 0 1px 0 rgba(255,255,255,0.5)`,
             flex: "0 0 auto",
           }}
         />
@@ -156,31 +157,4 @@ export function RoomBar({ episode }: RoomBarProps) {
       <HousingLabel sx={wideOnly}>{connectedCount} in room</HousingLabel>
     </Housing>
   );
-}
-
-function statusColor(status: string) {
-  switch (status) {
-    case "connected":
-      return ui.green;
-    case "connecting":
-    case "reconnecting":
-      return ui.gold;
-    default:
-      return ui.red;
-  }
-}
-
-function statusLabel(status: string) {
-  switch (status) {
-    case "connected":
-      return "Connected — share the code to let people in";
-    case "connecting":
-      return "Connecting…";
-    case "reconnecting":
-      return "Reconnecting…";
-    case "rejected":
-      return "Room unavailable";
-    default:
-      return "Disconnected";
-  }
 }

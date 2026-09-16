@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
@@ -11,11 +11,12 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import type { PublicGameState } from "@/lib/game";
 import { useGameStore } from "@/lib/state/game-store";
-import { judgeAnswer as fuzzyJudge, primeAudio, primeSpeech } from "@/lib/ai";
-import { controls, jeopardyFonts, jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
+import { controls, ui } from "@/lib/foundation/jeopardy-style";
 import { MicAnswerField } from "./MicAnswerField";
 import { BuzzLights } from "./BuzzLights";
 import { Housing, HousingDivider, HousingLabel } from "./Housing";
+import { JudgeBench } from "./clue/JudgeBench";
+import { benchKeySx, wrapHousingSx } from "./clue/bench-style";
 import { useClueTurn } from "./use-clue-turn";
 
 interface ClueControlsProps {
@@ -238,7 +239,7 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
       ) : null}
 
       {iAmHost && answerRevealed && clue.currentJudgePlayerId ? (
-        <JudgePanel
+        <JudgeBench
           state={state}
           target={clue.currentJudgePlayerId}
           answer={clue.answers[clue.currentJudgePlayerId] ?? ""}
@@ -257,203 +258,4 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
     </Box>
   );
 }
-
-/**
- * The buttons, on your own lectern.
- *
- * Stacked and one width, so BUZZ and Reveal read as a pair rather than two
- * shapes that happen to be next to each other, and so the thing you press
- * every clue is always in the same place — under your own score, not
- * floating in the middle of the screen.
- */
-export function PodiumClueButtons({ state, currentClientId }: ClueControlsProps) {
-  const turn = useClueTurn(state, currentClientId);
-  const buzzerRef = useRef<HTMLButtonElement | null>(null);
-  const { clue, send } = turn;
-
-  useEffect(() => {
-    if (clue?.canBuzz && clue.buzzes[currentClientId] === undefined) {
-      buzzerRef.current?.focus();
-    }
-  }, [clue?.canBuzz, clue?.buzzes, currentClientId]);
-
-  if (!clue) return null;
-
-  const { iAmHost, isFinal, clueRevealed, answerRevealed, canIBuzz } = turn;
-  const showBuzzer = !isFinal && clueRevealed && !answerRevealed && !clue.dailyDouble;
-  const showReveal = iAmHost && clueRevealed && !answerRevealed;
-  const showNext = iAmHost && turn.canAdvance;
-  if (!showBuzzer && !showReveal && !showNext) return null;
-
-  return (
-    <Stack spacing={0.4} sx={{ pt: 0.5 }}>
-      {showBuzzer ? (
-        <Button
-          ref={buzzerRef}
-          onClick={() => {
-            primeAudio();
-            primeSpeech();
-            send({ type: "buzz" });
-          }}
-          disabled={!canIBuzz}
-          variant="contained"
-          data-testid="buzzer"
-          aria-label="Buzz in"
-          sx={{
-            ...stackedButtonSx,
-            ...(canIBuzz ? controls.buzzer : controls.keyOff),
-            fontSize: 13,
-            letterSpacing: "0.12em",
-            "&.Mui-disabled": controls.keyOff,
-          }}
-        >
-          {turn.buzzedByMe ? "IN!" : turn.isLockedOut ? "LOCKED" : "BUZZ"}
-        </Button>
-      ) : null}
-
-      {showReveal ? (
-        <Button
-          variant="outlined"
-          onClick={() => send({ type: "reveal-answer" })}
-          sx={{ ...stackedButtonSx, ...controls.key }}
-        >
-          Reveal
-        </Button>
-      ) : null}
-
-      {showNext ? (
-        <Button
-          variant="contained"
-          data-testid="next-clue"
-          onClick={() => send({ type: "skip" })}
-          sx={{ ...stackedButtonSx, ...controls.keyPrimary }}
-        >
-          Next clue
-        </Button>
-      ) : null}
-    </Stack>
-  );
-}
-
-function JudgePanel({
-  state,
-  target,
-  answer,
-  expected,
-  wager,
-  onJudge,
-}: {
-  state: PublicGameState;
-  target: string;
-  answer: string;
-  expected: string;
-  wager?: number;
-  onJudge: (correct: boolean | null) => void;
-}) {
-  const verdict = fuzzyJudge({ submittedAnswer: answer, expectedAnswer: expected });
-  const name = state.players.find((player) => player.id === target)?.displayName ?? target;
-  // The host's bench: what they said on a readout, and three keys to rule on
-  // it — mounted together, the same as every other instrument on the set.
-  return (
-    <Housing sx={wrapHousingSx}>
-      {/* On a phone the readout takes a row of its own and the keys sit
-          centred under it: two balanced rows, not a ragged wrap. */}
-      <Box
-        sx={{
-          ...controls.readout,
-          display: "inline-flex",
-          alignItems: "baseline",
-          justifyContent: "center",
-          gap: 1,
-          height: 32,
-          px: 1.5,
-          mr: { xs: 0, sm: 0.5 },
-          flexBasis: { xs: "100%", sm: "auto" },
-          fontSize: 14,
-          color: ui.ink,
-          whiteSpace: "nowrap",
-        }}
-      >
-        <Box component="span" sx={{ color: ui.inkMuted }}>
-          {name}
-        </Box>
-        <Box component="span" sx={{ color: jeopardyPalette.goldBright, fontWeight: 700 }}>
-          {answer || "—"}
-        </Box>
-        <Box
-          component="span"
-          sx={{
-            fontSize: 11,
-            fontFamily: jeopardyFonts.display,
-            letterSpacing: "0.08em",
-            color: verdict.correct ? jeopardyPalette.correct : jeopardyPalette.incorrect,
-          }}
-        >
-          {Math.round(verdict.confidence * 100)}%
-        </Box>
-        {wager !== undefined ? (
-          <Box component="span" sx={{ fontSize: 12, color: jeopardyPalette.gold }}>
-            wagered ${wager}
-          </Box>
-        ) : null}
-      </Box>
-      <HousingDivider sx={{ display: { xs: "none", sm: "block" } }} />
-      <Button
-        size="small"
-        variant="contained"
-        color="success"
-        onClick={() => onJudge(true)}
-        sx={benchKeySx}
-      >
-        Correct
-      </Button>
-      <Button
-        size="small"
-        variant="contained"
-        color="error"
-        onClick={() => onJudge(false)}
-        sx={benchKeySx}
-      >
-        Incorrect
-      </Button>
-      <Button size="small" variant="outlined" onClick={() => onJudge(null)} sx={benchKeySx}>
-        Skip
-      </Button>
-    </Housing>
-  );
-}
-
-/**
- * A bench that may need two rows on a phone: centred, with room at the
- * corners for what wraps. One row on anything wider, with the pill's ends.
- */
-const wrapHousingSx = {
-  flexWrap: "wrap",
-  justifyContent: "center",
-  rowGap: 0.75,
-  p: { xs: 1, sm: "3px" },
-  borderRadius: { xs: "16px", sm: "999px" },
-  maxWidth: "100%",
-} as const;
-
-/** A key on a bench: the housing's height, the housing's round ends. */
-const benchKeySx = { minHeight: 32, px: 1.5, borderRadius: "999px", fontSize: 12 } as const;
-
-/**
- * One width, one height: a stack of these reads as a set.
- *
- * Tight on purpose. Every lectern in the row carries the space for two of
- * them all game, so each millimetre here is one the board gets to keep.
- */
-const stackedButtonSx = {
-  width: "100%",
-  minWidth: 0,
-  minHeight: 0,
-  height: 22,
-  py: 0,
-  borderRadius: "6px",
-  fontFamily: jeopardyFonts.display,
-  fontSize: 12,
-  lineHeight: 1,
-} as const;
-
+export { PodiumClueButtons } from "./clue/PodiumClueButtons";

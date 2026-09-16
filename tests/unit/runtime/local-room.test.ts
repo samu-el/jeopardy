@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { baselineBotProfiles } from "@/lib/foundation/game-contracts";
+import { baselineBotProfiles } from "@/lib/ai/profiles";
 import type { GameClue } from "@/lib/game";
 import { LocalRoomRuntime } from "@/lib/runtime";
 

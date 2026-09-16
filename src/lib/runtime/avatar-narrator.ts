@@ -3,7 +3,7 @@ import {
   baselineVoiceProfiles,
   type AvatarHostMode,
   type AvatarHostProfile,
-} from "@/lib/foundation/game-contracts";
+} from "@/lib/ai/profiles";
 import {
   generateAvatarHostCue,
   type AvatarHostCue,

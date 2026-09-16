@@ -1,4 +1,4 @@
-import type { BotProfile } from "@/lib/foundation/game-contracts";
+import type { BotProfile } from "@/lib/ai/profiles";
 import type { GameState } from "@/lib/game";
 import type { ChatMessage } from "./chat";
 

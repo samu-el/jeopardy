@@ -9,7 +9,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import SendIcon from "@mui/icons-material/SendOutlined";
 import { useGameStore } from "@/lib/state/game-store";
-import type { ChatMessage } from "@/lib/runtime";
+import { speakerColor } from "./chat-style";
 
 export function Chat() {
   const chat = useGameStore((s) => s.chat);
@@ -59,7 +59,7 @@ export function Chat() {
               {message.kind === "player" && message.authorName ? (
                 <Typography
                   component="span"
-                  color={kindColor(message.kind)}
+                  color={speakerColor(message.kind)}
                   sx={{ flexShrink: 0, fontSize: 12, fontWeight: 700 }}
                 >
                   {message.authorName}
@@ -73,7 +73,7 @@ export function Chat() {
                     width: 6,
                     height: 6,
                     borderRadius: "50%",
-                    backgroundColor: kindColor(message.kind),
+                    backgroundColor: speakerColor(message.kind),
                   }}
                 />
               )}
@@ -114,17 +114,4 @@ export function Chat() {
       </Stack>
     </Paper>
   );
-}
-
-function kindColor(kind: ChatMessage["kind"]) {
-  switch (kind) {
-    case "system":
-      return "info.main";
-    case "host":
-      return "secondary.main";
-    case "judge":
-      return "warning.main";
-    default:
-      return "primary.light";
-  }
 }

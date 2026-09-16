@@ -49,7 +49,15 @@ export type GameDataNormalizationResult =
       issues: GameDataIssue[];
     };
 
-export interface ArchivedRawClue {
+/**
+ * One clue as it arrives, whatever wrote it.
+ *
+ * The archive uses three-letter keys and a CSV writes them out; the parser
+ * reads either, so both spellings live on one shape rather than on two that
+ * have to be kept in step.
+ */
+export interface RawClueRow {
+  round?: string;
   val?: number | string;
   value?: number | string;
   cat?: string;
@@ -64,6 +72,12 @@ export interface ArchivedRawClue {
   y?: number | string;
 }
 
+/** The archive's rows never carry a round: the key they sit under is the round. */
+export type ArchivedRawClue = Omit<RawClueRow, "round">;
+
+/** A CSV row says which round it belongs to. */
+export type CustomCsvRow = RawClueRow;
+
 export interface ArchivedEpisodeInput {
   epNum?: string;
   episodeNumber?: string;
@@ -76,22 +90,6 @@ export interface ArchivedEpisodeInput {
   final?: ArchivedRawClue[];
 }
 
-export interface CustomCsvRow {
-  round?: string;
-  cat?: string;
-  category?: string;
-  q?: string;
-  clue?: string;
-  a?: string;
-  answer?: string;
-  dd?: string;
-  dailyDouble?: string;
-  val?: string;
-  value?: string;
-  x?: string;
-  y?: string;
-}
-
 export interface NormalizationOptions {
   id?: string;
   title?: string;
@@ -101,4 +99,15 @@ export interface RoundDefinition {
   rawName: string;
   round: PlayableRound;
   valueMultiplier: number;
+}
+
+/** One episode as the archive index lists it. */
+export interface EpisodeListing {
+  id: string;
+  number: string;
+  airDate?: string;
+  info?: string;
+  theme: string;
+  hasFinal: boolean;
+  clueCount: number;
 }

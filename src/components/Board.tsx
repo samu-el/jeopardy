@@ -1,19 +1,29 @@
 "use client";
 
-import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useMemo, useRef, type ReactNode } from "react";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
-import type { PublicBoardClue, PublicGameState } from "@/lib/game";
+import type { PublicGameState } from "@/lib/game";
 import { layoutBoard } from "@/lib/game/board-layout";
 import { useGameStore } from "@/lib/state/game-store";
 import { primeAudio, primeSpeech, playSfx } from "@/lib/ai";
 import {
   boardColumns,
   boardRows,
-  jeopardyFonts,
+  displayType,
   jeopardyPalette,
   jeopardyTextShadow,
 } from "@/lib/foundation/jeopardy-style";
+import {
+  BoardFrame,
+  BoardGrid,
+  boardRatio,
+  categoryFontSize,
+  cellSurface,
+  enterAnimation,
+  valueFontSize,
+} from "./board/BoardFrame";
+import { useClueZoom } from "./board/use-clue-zoom";
 
 interface BoardProps {
   state: PublicGameState | null;
@@ -29,14 +39,25 @@ interface BoardProps {
   fill?: boolean;
 }
 
-const PLACEHOLDER_VALUES = [200, 400, 600, 800, 1000];
+/**
+ * One cell, whatever is behind it.
+ *
+ * A category strip, a value you can press, a square the archive never had,
+ * and the ghost board that stands in before a game is dealt are all the same
+ * blue rectangle with different text — so they are one component rather than
+ * four near-copies of the same `sx` block.
+ */
+type Tile =
+  | { kind: "category"; label: string }
+  | { kind: "value"; clueId: string; label: string; aria: string; pickable: boolean; hidden: boolean }
+  | { kind: "blank" }
+  | { kind: "ghost"; label: string };
 
 export function Board({ state, onPick, canPick = false, overlay, fill }: BoardProps) {
   const reducedMotion = useGameStore((s) => s.preferences.reducedMotion);
   const soundEnabled = useGameStore((s) => s.preferences.soundEnabled);
   const board = state?.board;
   const layout = useMemo(() => layoutBoard(board ?? []), [board]);
-  const byCategory = layout.columns;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const tileRefs = useRef(new Map<string, HTMLElement>());
@@ -45,110 +66,74 @@ export function Board({ state, onPick, canPick = false, overlay, fill }: BoardPr
 
   // The board only fills in once per round, the way the set lights up.
   const roundKey = state?.round ?? "empty";
+  const dealt = layout.columns.length > 0;
+  const columns = dealt ? layout.columns.length : boardColumns;
+  const rows = dealt ? layout.ladder.length : boardRows;
 
-  if (byCategory.length === 0) {
-    return (
-      <BoardFrame
-        ref={containerRef}
-        ratio={boardRatio(boardColumns, boardRows)}
-        tall={Boolean(overlay)}
-        fill={fill}
-      >
-        <BoardGrid columns={boardColumns} rows={boardRows}>
-          {Array.from({ length: boardColumns }).map((_, col) => (
-            <CategoryCell
-              key={`hdr-${col}`}
-              column={col + 1}
-              columns={boardColumns}
-              label=""
-            />
-          ))}
-          {Array.from({ length: boardColumns }).flatMap((_, col) =>
-            PLACEHOLDER_VALUES.map((value, row) => (
-              <Box
-                key={`cell-${col}-${row}`}
-                sx={{
-                  gridRow: row + 2,
-                  gridColumn: col + 1,
-                  ...cellSurface,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontFamily: jeopardyFonts.display,
-                  fontSize: valueFontSize(boardColumns),
-                  fontWeight: 700,
-                  color: "rgba(214,159,76,0.16)",
-                }}
-              >
-                ${value}
-              </Box>
-            )),
-          )}
-        </BoardGrid>
-        {overlay}
-      </BoardFrame>
-    );
-  }
-
-  const rowCount = layout.ladder.length;
+  // One grid for both states: before a game is dealt the same frame draws a
+  // ghost board, so there is no second copy of the board's markup to keep in
+  // step with this one.
+  const grid: Tile[][] = dealt
+    ? layout.columns.map((column) => [
+        { kind: "category", label: column.category },
+        ...column.cells.map<Tile>((clue) =>
+          clue === null
+            ? { kind: "blank" }
+            : {
+                kind: "value",
+                clueId: clue.id,
+                label: clue.revealed ? "" : `$${clue.value}`,
+                aria: clue.revealed
+                  ? `${clue.category}, played`
+                  : `${clue.category}, $${clue.value}`,
+                pickable: canPick && !clue.revealed,
+                hidden: clue.id === activeClueId,
+              },
+        ),
+      ])
+    : Array.from({ length: boardColumns }, () => [
+        { kind: "category", label: "" } as Tile,
+        ...ghostValues.map<Tile>((value) => ({ kind: "ghost", label: `$${value}` })),
+      ]);
 
   return (
     <BoardFrame
       ref={containerRef}
-      ratio={boardRatio(byCategory.length, rowCount)}
+      ratio={boardRatio(columns, rows)}
       tall={Boolean(overlay)}
       fill={fill}
     >
-      <BoardGrid columns={byCategory.length} rows={rowCount}>
-        {byCategory.map((column, columnIndex) => (
-          <CategoryCell
-            key={`hdr-${column.category}`}
-            column={columnIndex + 1}
-            columns={byCategory.length}
-            label={column.category}
-            delayMs={reducedMotion ? 0 : columnIndex * 70}
-            animationKey={roundKey}
-            reducedMotion={reducedMotion}
-          />
-        ))}
-        {byCategory.flatMap((column, columnIndex) =>
-          column.cells.map((clue, rowIndex) =>
-            clue === null ? (
-              // The archive has no clue here. Same cell as a played one, so
-              // the board reads as a whole board and not a broken one.
-              <EmptyCell
-                key={`${column.category}-empty-${layout.ladder[rowIndex]}`}
-                column={columnIndex + 1}
-                row={rowIndex + 2}
-                reducedMotion={reducedMotion}
-                animationKey={roundKey}
-                delayMs={reducedMotion ? 0 : 260 + (columnIndex + rowIndex * 2) * 45}
-              />
-            ) : (
-              <ClueTile
-                key={clue.id}
-                clue={clue}
-                column={columnIndex + 1}
-                row={rowIndex + 2}
-                columns={byCategory.length}
-                disabled={!canPick || clue.revealed}
-                hidden={clue.id === activeClueId}
-                reducedMotion={reducedMotion}
-                animationKey={roundKey}
-                delayMs={reducedMotion ? 0 : 260 + (columnIndex + rowIndex * 2) * 45}
-                registerRef={(node) => {
-                  if (node) tileRefs.current.set(clue.id, node);
-                  else tileRefs.current.delete(clue.id);
-                }}
-                onPick={() => {
-                  primeAudio();
-                  primeSpeech();
-                  if (soundEnabled) playSfx("select");
-                  onPick?.(clue.id);
-                }}
-              />
-            ),
-          ),
+      <BoardGrid columns={columns} rows={rows}>
+        {grid.flatMap((column, columnIndex) =>
+          column.map((tile, rowIndex) => (
+            <Cell
+              key={`${roundKey}-${columnIndex}-${rowIndex}-${tile.kind}`}
+              tile={tile}
+              column={columnIndex + 1}
+              row={rowIndex + 1}
+              columns={columns}
+              reducedMotion={reducedMotion}
+              delayMs={
+                reducedMotion
+                  ? 0
+                  : rowIndex === 0
+                    ? columnIndex * 70
+                    : 260 + (columnIndex + (rowIndex - 1) * 2) * 45
+              }
+              registerRef={(node) => {
+                if (tile.kind !== "value") return;
+                if (node) tileRefs.current.set(tile.clueId, node);
+                else tileRefs.current.delete(tile.clueId);
+              }}
+              onPick={() => {
+                if (tile.kind !== "value") return;
+                primeAudio();
+                primeSpeech();
+                if (soundEnabled) playSfx("select");
+                onPick?.(tile.clueId);
+              }}
+            />
+          )),
         )}
       </BoardGrid>
       {overlay ? (
@@ -169,228 +154,103 @@ export function Board({ state, onPick, canPick = false, overlay, fill }: BoardPr
   );
 }
 
-/**
- * Board proportions. Cells on the set are landscape, so the whole board is
- * far wider than the raw column/row count suggests.
- */
-const cellAspect = 1.6;
+const ghostValues = [200, 400, 600, 800, 1000];
 
-function boardRatio(columns: number, rows: number): number {
-  return (columns / (rows + 0.8)) * cellAspect;
-}
-
-/** Type that scales with the cell, expressed against the board's width. */
-function valueFontSize(columns: number): string {
-  return `clamp(11px, ${(25 / columns).toFixed(2)}cqw, 46px)`;
-}
-
-function categoryFontSize(columns: number): string {
-  return `clamp(7px, ${(9.5 / columns).toFixed(2)}cqw, 18px)`;
-}
-
-const cellSurface = {
-  background: `linear-gradient(180deg, ${jeopardyPalette.board} 0%, ${jeopardyPalette.boardDeep} 100%)`,
-  boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.05)",
-} as const;
-
-/**
- * The board keeps the set's proportions and never grows past the space it
- * has: width is capped by both the column and the height budget, so it
- * stays fully on screen with the podiums below it.
- */
-function BoardFrame({
-  children,
-  ref,
-  ratio,
-  tall,
-  fill,
-}: {
-  children: ReactNode;
-  ref: React.Ref<HTMLDivElement>;
-  ratio: number;
-  /** A clue panel needs more vertical room than the grid does on a phone. */
-  tall?: boolean;
-  /** Take the height the screen offers rather than the desk-sized cap. */
-  fill?: boolean;
-}) {
-  return (
-    <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
-      <Box
-        ref={ref}
-        data-testid="board"
-        sx={{
-          position: "relative",
-          // A 660px cap is right on a desk and wrong on a television: it
-          // leaves a small board marooned in black. When the screen says how
-          // much height there is, take it.
-          "--board-height": fill
-            ? "var(--board-fill-height, 74dvh)"
-            : {
-                xs: tall ? "min(64vh, 540px)" : "min(46vh, 420px)",
-                // While a clue is up there is a strip of controls under the
-                // board and lecterns under that. Give them the room rather
-                // than pushing a player's own score off a laptop screen.
-                md: tall ? "min(53vh, 590px)" : "min(60vh, 640px)",
-              },
-          width: `min(100%, calc(var(--board-height) * ${ratio}))`,
-          // The grid keeps the set's proportions. A clue panel on a phone
-          // does not — it needs height for the buzzer and the answer field.
-          // A television has the room for both, so it keeps the ratio.
-          aspectRatio: tall && !fill ? { xs: "auto", md: `${ratio}` } : `${ratio}`,
-          height: tall && !fill ? { xs: "min(66vh, 560px)", md: "auto" } : "auto",
-          // Cell type is sized from the board, not the viewport, so a
-          // six-category board and a two-category one both read correctly.
-          containerType: "inline-size",
-          background: jeopardyPalette.gap,
-          p: { xs: 0.5, sm: 0.75 },
-          overflow: "hidden",
-        }}
-      >
-        {children}
-      </Box>
-    </Box>
-  );
-}
-
-function BoardGrid({
-  columns,
-  rows,
-  children,
-}: {
-  columns: number;
-  rows: number;
-  children: ReactNode;
-}) {
-  return (
-    <Box
-      sx={{
-        display: "grid",
-        gap: { xs: "3px", sm: "6px" },
-        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-        gridTemplateRows: `0.8fr repeat(${rows}, 1fr)`,
-        height: "100%",
-      }}
-    >
-      {children}
-    </Box>
-  );
-}
-
-function CategoryCell({
+function Cell({
+  tile,
   column,
-  columns,
-  label,
-  delayMs = 0,
-  animationKey,
-  reducedMotion,
-}: {
-  column: number;
-  columns: number;
-  label: string;
-  delayMs?: number;
-  animationKey?: string;
-  reducedMotion?: boolean;
-}) {
-  return (
-    <Box
-      key={`${animationKey}-${column}`}
-      sx={{
-        gridRow: 1,
-        gridColumn: column,
-        ...cellSurface,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        px: 0.5,
-        textAlign: "center",
-        fontFamily: jeopardyFonts.display,
-        textTransform: "uppercase",
-        fontWeight: 600,
-        letterSpacing: "0.02em",
-        lineHeight: 1.05,
-        color: jeopardyPalette.categoryText,
-        textShadow: jeopardyTextShadow,
-        fontSize: categoryFontSize(columns),
-        overflow: "hidden",
-        // Break inside a word only when a long category can't fit otherwise.
-        overflowWrap: "break-word",
-        animation: reducedMotion
-          ? "none"
-          : `board-drop 420ms ${delayMs}ms both ease-out`,
-        "@keyframes board-drop": {
-          from: { opacity: 0, transform: "translateY(-18px)" },
-          to: { opacity: 1, transform: "translateY(0)" },
-        },
-      }}
-    >
-      {label}
-    </Box>
-  );
-}
-
-function ClueTile({
-  clue,
-  column,
-  columns,
   row,
-  disabled,
-  hidden,
+  columns,
   reducedMotion,
   delayMs,
-  animationKey,
   onPick,
   registerRef,
 }: {
-  clue: PublicBoardClue;
+  tile: Tile;
   column: number;
-  columns: number;
   row: number;
-  disabled: boolean;
-  hidden: boolean;
+  columns: number;
   reducedMotion: boolean;
   delayMs: number;
-  animationKey: string;
   onPick: () => void;
   registerRef: (node: HTMLElement | null) => void;
 }) {
-  // A played clue leaves an empty blue cell — the value simply goes away.
-  const spent = clue.revealed;
+  const place = { gridRow: row, gridColumn: column, ...cellSurface } as const;
+
+  if (tile.kind === "category") {
+    return (
+      <Box
+        sx={{
+          ...place,
+          ...displayType({
+            fontWeight: 600,
+            letterSpacing: "0.02em",
+            fontSize: categoryFontSize(columns),
+          }),
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          px: 0.5,
+          textAlign: "center",
+          lineHeight: 1.05,
+          color: jeopardyPalette.categoryText,
+          textShadow: jeopardyTextShadow,
+          overflow: "hidden",
+          // Break inside a word only when a long category can't fit otherwise.
+          overflowWrap: "break-word",
+          animation: reducedMotion ? "none" : `board-drop 420ms ${delayMs}ms both ease-out`,
+          "@keyframes board-drop": {
+            from: { opacity: 0, transform: "translateY(-18px)" },
+            to: { opacity: 1, transform: "translateY(0)" },
+          },
+        }}
+      >
+        {tile.label}
+      </Box>
+    );
+  }
+
+  // A square the archive never had, and a square in the board that stands in
+  // before a game is dealt: both are just the blue face, one with faint type.
+  if (tile.kind === "blank" || tile.kind === "ghost") {
+    return (
+      <Box
+        aria-hidden
+        sx={{
+          ...place,
+          ...enterAnimation(delayMs, reducedMotion),
+          ...displayType({ fontWeight: 700, fontSize: valueFontSize(columns) }),
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "rgba(214,159,76,0.16)",
+        }}
+      >
+        {tile.kind === "ghost" ? tile.label : ""}
+      </Box>
+    );
+  }
+
   return (
     <ButtonBase
-      key={`${animationKey}-${clue.id}`}
       ref={registerRef}
       onClick={onPick}
-      disabled={disabled}
+      disabled={!tile.pickable}
       focusRipple
-      aria-label={
-        spent ? `${clue.category}, played` : `${clue.category}, $${clue.value}`
-      }
+      aria-label={tile.aria}
       sx={{
-        gridRow: row,
-        gridColumn: column,
-        ...cellSurface,
+        ...place,
+        ...enterAnimation(delayMs, reducedMotion),
+        ...displayType({ fontWeight: 700, fontSize: valueFontSize(columns) }),
         justifyContent: "center",
-        fontFamily: jeopardyFonts.display,
-        fontWeight: 700,
-        fontSize: valueFontSize(columns),
         color: jeopardyPalette.gold,
         textShadow: jeopardyTextShadow,
-        opacity: hidden ? 0 : 1,
-        cursor: disabled ? "default" : "pointer",
+        opacity: tile.hidden ? 0 : 1,
+        cursor: tile.pickable ? "pointer" : "default",
         transition: reducedMotion ? "none" : "filter 140ms ease, transform 140ms ease",
-        animation: reducedMotion
-          ? "none"
-          : `tile-in 320ms ${delayMs}ms both cubic-bezier(0.2, 0.8, 0.3, 1)`,
-        "@keyframes tile-in": {
-          from: { opacity: 0, transform: "scale(0.86)" },
-          to: { opacity: 1, transform: "scale(1)" },
-        },
-        "&:hover": disabled
-          ? undefined
-          : {
-              filter: "brightness(1.35)",
-              transform: reducedMotion ? "none" : "scale(1.02)",
-            },
+        "&:hover": tile.pickable
+          ? { filter: "brightness(1.35)", transform: reducedMotion ? "none" : "scale(1.02)" }
+          : undefined,
         "&.Mui-disabled": { color: jeopardyPalette.gold },
         "&:focus-visible": {
           outline: `3px solid ${jeopardyPalette.goldBright}`,
@@ -398,80 +258,7 @@ function ClueTile({
         },
       }}
     >
-      {spent ? "" : `$${clue.value}`}
+      {tile.label}
     </ButtonBase>
   );
-}
-
-/** A cell with nothing behind it: the archive never had this clue. */
-function EmptyCell({
-  column,
-  row,
-  reducedMotion,
-  delayMs,
-  animationKey,
-}: {
-  column: number;
-  row: number;
-  reducedMotion: boolean;
-  delayMs: number;
-  animationKey: string;
-}) {
-  return (
-    <Box
-      key={`${animationKey}-${column}-${row}`}
-      aria-hidden
-      sx={{
-        gridRow: row,
-        gridColumn: column,
-        ...cellSurface,
-        animation: reducedMotion
-          ? "none"
-          : `tile-in 320ms ${delayMs}ms both cubic-bezier(0.2, 0.8, 0.3, 1)`,
-        "@keyframes tile-in": {
-          from: { opacity: 0, transform: "scale(0.86)" },
-          to: { opacity: 1, transform: "scale(1)" },
-        },
-      }}
-    />
-  );
-}
-
-/**
- * Grows the clue panel out of the square that was picked, the way the set's
- * monitor expands the selected cell. Driven straight through the Web
- * Animations API so no render depends on a measurement.
- */
-function useClueZoom(
-  containerRef: React.RefObject<HTMLDivElement | null>,
-  overlayRef: React.RefObject<HTMLDivElement | null>,
-  tileRefs: React.RefObject<Map<string, HTMLElement>>,
-  activeClueId: string | null,
-  reducedMotion: boolean,
-) {
-  useEffect(() => {
-    if (!activeClueId || reducedMotion) return;
-    const container = containerRef.current;
-    const overlay = overlayRef.current;
-    const tile = tileRefs.current?.get(activeClueId);
-    if (!container || !overlay || !tile) return;
-    if (typeof overlay.animate !== "function") return;
-
-    const board = container.getBoundingClientRect();
-    const cell = tile.getBoundingClientRect();
-    if (board.width === 0 || board.height === 0 || cell.width === 0) return;
-
-    overlay.animate(
-      [
-        {
-          transform: `translate(${cell.left - board.left}px, ${cell.top - board.top}px) scale(${
-            cell.width / board.width
-          }, ${cell.height / board.height})`,
-          opacity: 0.85,
-        },
-        { transform: "translate(0px, 0px) scale(1, 1)", opacity: 1 },
-      ],
-      { duration: 380, easing: "cubic-bezier(0.22, 0.61, 0.36, 1)", fill: "none" },
-    );
-  }, [activeClueId, reducedMotion, containerRef, overlayRef, tileRefs]);
 }

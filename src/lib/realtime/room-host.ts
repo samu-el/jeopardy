@@ -1,6 +1,7 @@
-import { baselineBotProfiles, type BotProfile } from "@/lib/foundation/game-contracts";
+import { baselineBotProfiles, type BotProfile } from "@/lib/ai/profiles";
 import {
   createGame,
+  roundName,
   type GameClue,
   type GameEvent,
   type GamePlayer,
@@ -234,7 +235,7 @@ export class RoomHost {
           break;
         }
         case "round-advanced":
-          this.room.postChat({ kind: "system", text: roundLabel(event.round) });
+          this.room.postChat({ kind: "system", text: roundName(event.round, "announced") });
           break;
         case "player-joined":
           if (!event.rejoined) {
@@ -280,21 +281,4 @@ function withEveryoneDisconnected(state: GameState): GameState {
       ]),
     ),
   };
-}
-
-function roundLabel(round: string): string {
-  switch (round) {
-    case "jeopardy":
-      return "Jeopardy! round";
-    case "double-jeopardy":
-      return "Double Jeopardy! round";
-    case "triple-jeopardy":
-      return "Triple Jeopardy! round";
-    case "final-jeopardy":
-      return "Final Jeopardy!";
-    case "complete":
-      return "That's the game.";
-    default:
-      return round;
-  }
 }

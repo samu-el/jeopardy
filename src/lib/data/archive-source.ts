@@ -2,7 +2,13 @@ import { gunzipSync } from "node:zlib";
 import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { ArchivedEpisodeInput, ArchivedRawClue } from "./contracts";
+import type {
+  ArchivedEpisodeInput,
+  ArchivedRawClue,
+  EpisodeListing,
+} from "./contracts";
+
+export type { EpisodeListing };
 
 // Same data source the upstream howardchung/jeopardy app uses.
 // The j-archive-parser repository publishes a compiled gzipped JSON to its
@@ -74,16 +80,6 @@ export async function loadArchive(force = false): Promise<RawEpisodeMap> {
     inflight = null;
   });
   return inflight;
-}
-
-export interface EpisodeListing {
-  id: string;
-  number: string;
-  airDate?: string;
-  info?: string;
-  theme: string;
-  hasFinal: boolean;
-  clueCount: number;
 }
 
 // J-Archive's `info` field is mostly short single-word tags ("kids",

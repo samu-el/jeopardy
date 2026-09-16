@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { AvatarNarrator, findAvatarProfile } from "@/lib/runtime";
-import { baselineAvatarHostProfiles } from "@/lib/foundation/game-contracts";
+import { baselineAvatarHostProfiles } from "@/lib/ai/profiles";
 
 describe("AvatarNarrator", () => {
   it("speaks clue readouts through the voice adapter when mode is on", () => {
