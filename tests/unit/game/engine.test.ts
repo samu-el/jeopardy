@@ -124,8 +124,12 @@ describe("game engine", () => {
       { type: "submit-answer", actorId: "p2", answer: "Mars" },
       130,
     ).state;
+    // The answer is public, but the response is not: p1 could still ring in
+    // on a rebound if this is ruled wrong.
     expect(getPublicGameState(state, 140).currentClue).toMatchObject({
-      correctResponse: "Mars",
+      correctResponse: undefined,
+      responseFinal: false,
+      phase: "judging",
       answers: {
         p2: "Mars",
       },
@@ -147,15 +151,29 @@ describe("game engine", () => {
       score: 200,
       delta: 200,
     });
-    expect(getPublicGameState(judged.state, 150).players[0]).toMatchObject({
-      id: "p2",
-      score: 200,
+    expect(getPublicGameState(judged.state, 150).currentClue).toMatchObject({
+      correctResponse: "Mars",
+      responseFinal: true,
+      phase: "resolved",
     });
+    expect(getPublicGameState(judged.state, 150).standings?.[0]).toMatchObject({
+      playerId: "p2",
+      score: 200,
+      rank: 1,
+    });
+    // Seats do not move with the score.
+    expect(getPublicGameState(judged.state, 150).players.map((p) => p.id)).toEqual([
+      "p1",
+      "p2",
+    ]);
 
+    // Undo reverses the ruling, back to the moment before it was made.
     const undone = run(judged.state, { type: "undo", actorId: "p1" }, 160);
     expect(getPublicGameState(undone.state, 160).currentClue).toMatchObject({
       correctResponse: undefined,
-      answers: {},
+      phase: "judging",
+      currentJudgePlayerId: "p2",
+      answers: { p2: "Mars" },
     });
     expect(getPublicGameState(undone.state, 160).players).toContainEqual(
       expect.objectContaining({ id: "p2", score: 0 }),
@@ -179,13 +197,25 @@ describe("game engine", () => {
     expect(JSON.stringify(publicState)).not.toContain("Two plus two");
     expect(JSON.stringify(publicState)).not.toContain("Four");
 
-    state = run(state, { type: "submit-wager", actorId: "p1", amount: 9_999 }, 30)
-      .state;
+    const wagered = run(state, { type: "submit-wager", actorId: "p1", amount: 9_999 }, 30);
+    // Over the ceiling ($0 score, $400 top clue this round): clamped, and says so.
+    expect(wagered.events[0]).toMatchObject({
+      type: "wager-submitted",
+      amount: 400,
+      requestedAmount: 9_999,
+      adjusted: "above-max",
+      min: 5,
+      max: 400,
+    });
+    state = wagered.state;
     publicState = getPublicGameState(state, 30);
+    // A Daily Double wager is announced as soon as it is made.
     expect(publicState.currentClue).toMatchObject({
       clue: "Two plus two.",
-      wagers: {},
+      kind: "daily-double",
+      wagers: { p1: 400 },
     });
+    expect(JSON.stringify(publicState)).not.toContain("Four");
 
     state = run(
       state,
@@ -197,7 +227,7 @@ describe("game engine", () => {
     expect(getPublicGameState(state, 150).currentClue).toMatchObject({
       correctResponse: "Four",
       wagers: {
-        p1: 1_000,
+        p1: 400,
       },
     });
   });
@@ -241,14 +271,20 @@ describe("game engine", () => {
       round: "final-jeopardy",
     });
     state = advanced.state;
+    // p1 finished at $0, so only p2 plays Final.
     expect(getPublicGameState(state, 160).currentClue).toMatchObject({
       clueId: "f-1",
       clue: undefined,
-      waitingForWager: ["p1", "p2"],
+      kind: "final",
+      phase: "wager",
+      waitingForWager: ["p2"],
+      wagerLimits: { p2: { min: 0, max: 200 } },
       wagers: {},
     });
+    expect(
+      run(state, { type: "submit-wager", actorId: "p1", amount: 0 }, 170).events[0],
+    ).toMatchObject({ type: "command-rejected", reason: "wager-not-open" });
 
-    state = run(state, { type: "submit-wager", actorId: "p1", amount: 0 }, 170).state;
     state = run(state, { type: "submit-wager", actorId: "p2", amount: 200 }, 180).state;
 
     expect(getPublicGameState(state, 180).currentClue).toMatchObject({

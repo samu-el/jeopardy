@@ -114,7 +114,49 @@ export interface ActiveClueState {
   closesAt?: number;
   /** Set when nobody rang in, so the UI can say so. */
   timedOut?: boolean;
+  /** Players whose answer clock ran out before they sent anything. */
+  answerTimedOut?: string[];
+  /**
+   * When the buzzer re-opened after a wrong answer. Lets a client time the
+   * rebound window from its real start rather than from the first readout.
+   */
+  reboundOpenedAt?: number;
 }
+
+/** One contestant's Final Jeopardy, kept after the clue leaves the board. */
+export interface FinalJeopardyEntry {
+  playerId: string;
+  answer: string;
+  wager: number;
+  /** The ruling, or undefined if the clue closed before one was made. */
+  correct?: boolean | null;
+}
+
+export interface FinalJeopardyRecord {
+  clueId: string;
+  /** In reveal order: lowest score going in, first. */
+  entries: FinalJeopardyEntry[];
+}
+
+/** A contestant's place in the scores, ties sharing a rank (1, 1, 3). */
+export interface Standing {
+  playerId: string;
+  score: number;
+  rank: number;
+}
+
+export interface WagerLimits {
+  min: number;
+  max: number;
+  /**
+   * True when the ceiling is the player's own score — "making it a true
+   * Daily Double" — rather than the house maximum they get when trailing it.
+   */
+  maxIsScore: boolean;
+}
+
+/** Why a wager was not taken exactly as sent. */
+export type WagerAdjustment = "above-max" | "below-min" | "not-a-number";
 
 export type GameStateSnapshot = Omit<GameState, "undoSnapshot">;
 
@@ -134,6 +176,12 @@ export interface GameState {
   roundIntroEndsAt?: number;
   settings: GameSettings;
   stats: GameStats;
+  /** How Final Jeopardy went, once it has been played. */
+  finalJeopardy?: FinalJeopardyRecord;
+  /**
+   * The position just before the last reveal or ruling. `undo` restores it,
+   * which is how a host reverses a misjudged answer.
+   */
   undoSnapshot?: GameStateSnapshot;
 }
 
@@ -167,14 +215,69 @@ export type PublicActiveClueState = Omit<
   correctResponse?: string;
   /** Whether this client could ring in right now, worked out server-side. */
   canBuzz: boolean;
+  /** What sort of clue this is, so a label never says "rang in" on a Final. */
+  kind: PublicClueKind;
+  /** Where the clue is in its life; see `PublicCluePhase`. */
+  phase: PublicCluePhase;
+  /** True while the buzzer is open again after a wrong answer. */
+  rebound: boolean;
+  /**
+   * True once the clue is settled and nobody can ring in on it any more —
+   * the only time `correctResponse` is sent to the table.
+   */
+  responseFinal: boolean;
+  /** Limits for each player still owing a wager, so a client can validate. */
+  wagerLimits: Record<string, WagerLimits>;
 };
+
+export type PublicClueKind = "standard" | "daily-double" | "final";
+
+/**
+ * - `wager`: waiting on wagers.
+ * - `reading`: the clue is up and the buzzer is still locked.
+ * - `buzzing`: anyone eligible may ring in (see `rebound`).
+ * - `answering`: someone owes an answer.
+ * - `judging`: answers are in and the host is ruling.
+ * - `resolved`: settled; the board comes back at `closesAt`, if set.
+ */
+export type PublicCluePhase =
+  | "wager"
+  | "reading"
+  | "buzzing"
+  | "answering"
+  | "judging"
+  | "resolved";
+
+export interface PublicFinalJeopardy extends FinalJeopardyRecord {
+  category: string;
+  clue: string;
+  correctResponse: string;
+}
+
+export interface PublicResults {
+  /** Everyone tied for the top score who finished above zero. */
+  winners: string[];
+  /** Everyone tied for the top score, whatever it is. */
+  leaders: string[];
+  finalJeopardy?: PublicFinalJeopardy;
+}
 
 export interface PublicGameState {
   roomId: string;
   round: GameRound;
   serverTime: number;
   pickerId?: string;
+  /**
+   * Everyone in the room — spectators and displays included — in seat order,
+   * which never changes with the score. Use `standings` to rank.
+   */
   players: PublicPlayerState[];
+  /** Contestants only, best score first; ties share a rank. Always set by the projection. */
+  standings?: Standing[];
+  /** Head counts, with spectators and displays kept apart from contestants. */
+  audience?: { contestants: number; spectators: number; connectedContestants: number };
+  /** Set once the game is over. */
+  results?: PublicResults;
   board: PublicBoardClue[];
   currentClue?: PublicActiveClueState;
   roundIntroEndsAt?: number;
@@ -368,7 +471,14 @@ export type GameEvent =
       type: "wager-submitted";
       clueId: string;
       actorId: string;
+      /** What was actually staked. */
       amount: number;
+      /** What was asked for, when it differs from `amount`. */
+      requestedAmount?: number;
+      /** Why the amount was changed, so the player can be told. */
+      adjusted?: WagerAdjustment;
+      min: number;
+      max: number;
     }
   | {
       type: "clue-revealed";
