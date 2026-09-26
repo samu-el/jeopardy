@@ -15,6 +15,7 @@ import AddIcon from "@mui/icons-material/AddOutlined";
 import DeleteIcon from "@mui/icons-material/DeleteOutlined";
 import { baselineBotProfiles } from "@/lib/ai/profiles";
 import { useGameStore } from "@/lib/state/game-store";
+import { selectCanHost } from "@/lib/state/selectors";
 import { ui } from "@/lib/foundation/jeopardy-style";
 import { AvatarPicker } from "./AvatarPicker";
 
@@ -37,7 +38,7 @@ export function PlayersPanel() {
   const [humanName, setHumanName] = useState("");
   // In a shared room the roster and the table rules are the host's. A guest
   // sees them, read-only, as the room has them — not their own old lobby.
-  const isRoomHost = !publicState?.settings.hostId || publicState.settings.hostId === selfId;
+  const isRoomHost = useGameStore(selectCanHost);
   const guest = Boolean(online) && !isRoomHost;
   const roomBots = (publicState?.players ?? []).filter((player) => player.kind === "ai-bot");
 
@@ -141,7 +142,7 @@ export function PlayersPanel() {
                       sx={{ flex: 1, justifyContent: "flex-start" }}
                       variant={player.connected ? "filled" : "outlined"}
                     />
-                    {publicState?.settings.hostId === selfId ? (
+                    {isRoomHost ? (
                       <IconButton
                         size="small"
                         aria-label={`Remove ${player.displayName}`}

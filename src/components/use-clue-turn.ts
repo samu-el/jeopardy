@@ -5,6 +5,7 @@ import type { PublicGameState } from "@/lib/game";
 import { deriveClueTurn, type ClueTurnView, type ObservedWindows } from "@/lib/game/clue-turn";
 import type { ClientGameCommand } from "@/lib/realtime";
 import { useGameStore } from "@/lib/state/game-store";
+import { selectCanHost, selectRoomInteractive } from "@/lib/state/selectors";
 
 export interface ClueTurn extends ClueTurnView {
   send: (command: ClientGameCommand) => void;
@@ -20,6 +21,10 @@ export interface ClueTurn extends ClueTurnView {
  */
 export function useClueTurn(state: PublicGameState, currentClientId: string): ClueTurn {
   const runtime = useGameStore((s) => s.runtime);
+  const canHost = useGameStore(selectCanHost);
+  // While a shared room is reconnecting, nothing pressed here would land on
+  // the board the room is actually on.
+  const live = useGameStore(selectRoomInteractive);
   const [now, setNow] = useState(() => (typeof window === "undefined" ? 0 : Date.now()));
 
   useEffect(() => {
@@ -74,5 +79,6 @@ export function useClueTurn(state: PublicGameState, currentClientId: string): Cl
     [runtime, currentClientId],
   );
 
-  return { ...deriveClueTurn(state, currentClientId, now, observed), send };
+  const view = deriveClueTurn(state, currentClientId, now, observed);
+  return { ...view, iAmHost: canHost, canIBuzz: view.canIBuzz && live, send };
 }

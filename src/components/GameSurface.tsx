@@ -5,6 +5,7 @@ import Box from "@mui/material/Box";
 import { createEmptyStats, type PublicGameState } from "@/lib/game";
 import { buzzOrder, seatOrder } from "@/lib/game/clue-turn";
 import { useGameStore } from "@/lib/state/game-store";
+import { selectCanHost, selectRoomInteractive } from "@/lib/state/selectors";
 import { jeopardyPalette } from "@/lib/foundation/jeopardy-style";
 import { Board } from "./Board";
 import { ClueStage } from "./ClueStage";
@@ -48,6 +49,8 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
   const online = useGameStore((s) => s.online);
   const selfId = useGameStore((s) => s.selfId)();
   const reducedMotion = useReducedMotion();
+  const canHost = useGameStore(selectCanHost);
+  const roomLive = useGameStore(selectRoomInteractive);
   const compact = useCompactPlay();
   const [now, setNow] = useState(() => Date.now());
 
@@ -137,10 +140,10 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
   // has dropped off — never for a bot, whose pick is already on its way.
   const picker = publicState?.players.find((player) => player.id === publicState.pickerId);
   const hostMayPick =
-    publicState?.settings.hostId === selfId &&
+    canHost &&
     (!picker || (picker.kind === "human" && !picker.connected));
   const canPick =
-    interactive && publicState
+    interactive && roomLive && publicState
       ? (publicState.pickerId === selfId || hostMayPick) &&
         publicState.round !== "lobby" &&
         publicState.round !== "complete" &&

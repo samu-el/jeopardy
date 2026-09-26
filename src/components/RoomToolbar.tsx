@@ -28,6 +28,7 @@ import SettingsIcon from "@mui/icons-material/VolumeUpOutlined";
 import PeopleIcon from "@mui/icons-material/PeopleOutlineOutlined";
 import ShuffleIcon from "@mui/icons-material/ShuffleOutlined";
 import { useGameStore } from "@/lib/state/game-store";
+import { selectCanHost } from "@/lib/state/selectors";
 import { primeAudio, primeSpeech } from "@/lib/ai";
 import { controls, ui } from "@/lib/foundation/jeopardy-style";
 import { Wordmark } from "./Wordmark";
@@ -53,8 +54,7 @@ export function RoomToolbar({
   onToggleTranscript,
   onOpenReplay,
 }: RoomToolbarProps) {
-  const setScreen = useGameStore((s) => s.setScreen);
-  const leaveOnlineRoom = useGameStore((s) => s.leaveOnlineRoom);
+  const goHome = useGameStore((s) => s.goHome);
   const startGame = useGameStore((s) => s.startGame);
   const lobby = useGameStore((s) => s.lobby);
   const publicState = useGameStore((s) => s.publicState);
@@ -68,17 +68,14 @@ export function RoomToolbar({
   const closeMore = () => setMoreAnchor(null);
 
   const online = useGameStore((s) => s.online);
-  const selfId = useGameStore((s) => s.selfId)();
-  const isRoomHost = !publicState?.settings.hostId || publicState.settings.hostId === selfId;
+  const isRoomHost = useGameStore(selectCanHost);
   const canBegin = Boolean(lobby.loadedEpisode || lobby.customGame) && isRoomHost;
   const inGame = Boolean(runtime && publicState && publicState.round !== "lobby");
 
   // Leaving for real: hand the seat back rather than holding a socket open
-  // behind the landing page. The wordmark and the Leave key do the same.
-  function leave() {
-    if (online) leaveOnlineRoom();
-    setScreen("landing");
-  }
+  // behind the landing page — asked first while a game is on. The wordmark
+  // and the Leave key do the same.
+  const leave = goHome;
 
   /** Everything the More key offers, in the order it offers it. */
   const moreItems: {

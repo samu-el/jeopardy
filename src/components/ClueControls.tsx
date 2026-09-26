@@ -12,6 +12,7 @@ import Typography from "@mui/material/Typography";
 import type { PublicGameState } from "@/lib/game";
 import { nameOf, validateWager } from "@/lib/game/clue-turn";
 import { useGameStore } from "@/lib/state/game-store";
+import { selectRoomInteractive } from "@/lib/state/selectors";
 import { controls, jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
 import { MicAnswerField } from "./MicAnswerField";
 import { BuzzLights } from "./BuzzLights";
@@ -52,6 +53,7 @@ const answerInputHints = {
 export function ClueControls({ state, currentClientId }: ClueControlsProps) {
   const reducedMotion = useReducedMotion();
   const shortcutsEnabled = useGameStore((s) => s.preferences.shortcutsEnabled !== false);
+  const roomLive = useGameStore(selectRoomInteractive);
   const [answerInput, setAnswerInput] = useState("");
   const [wagerInput, setWagerInput] = useState("");
   const [wagerError, setWagerError] = useState<string | null>(null);
@@ -76,7 +78,7 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
   // The shortcuts are registered here rather than in the hook, because the
   // hook runs in two components and a keystroke would fire twice.
   useEffect(() => {
-    if (!clue) return;
+    if (!clue || !roomLive) return;
     function handleKey(event: KeyboardEvent) {
       if (event.altKey || event.ctrlKey || event.metaKey) return;
       // Space rings in only when focus is on the game itself: the page, the
@@ -110,7 +112,7 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
     }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [clue, send, iAmHost, canAdvance, judgeTarget, answerRevealed, clueRevealed, shortcutsEnabled]);
+  }, [clue, send, iAmHost, canAdvance, judgeTarget, answerRevealed, clueRevealed, shortcutsEnabled, roomLive]);
 
   const { isFinal, iSubmitted, myWagerOpen, wagerSubmittedByMe, mayAnswer, spectatingFinal } = turn;
   const typing = mayAnswer;
