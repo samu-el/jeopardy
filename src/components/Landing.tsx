@@ -1,20 +1,29 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import dynamic from "next/dynamic";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Checkbox from "@mui/material/Checkbox";
 import CircularProgress from "@mui/material/CircularProgress";
 import Container from "@mui/material/Container";
-import FormControlLabel from "@mui/material/FormControlLabel";
+import InputBase from "@mui/material/InputBase";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForwardOutlined";
 import EditNoteIcon from "@mui/icons-material/EditNoteOutlined";
 import LoginIcon from "@mui/icons-material/LoginOutlined";
+import PersonIcon from "@mui/icons-material/PersonOutlined";
+import SmartToyIcon from "@mui/icons-material/SmartToyOutlined";
 import { baselineBotProfiles } from "@/lib/ai/profiles";
 import { primeAudio, primeSpeech } from "@/lib/ai";
 import { defaultPlayerName, useGameStore } from "@/lib/state/game-store";
@@ -25,7 +34,12 @@ import {
   parseInviteInput,
   roomCodeLength,
 } from "@/lib/realtime/invite-code";
-import { ui } from "@/lib/foundation/jeopardy-style";
+import {
+  controls,
+  jeopardyFonts,
+  jeopardyPalette,
+  ui,
+} from "@/lib/foundation/jeopardy-style";
 import { appViewport } from "@/lib/foundation/viewport";
 import { Wordmark } from "./Wordmark";
 
@@ -35,16 +49,18 @@ const CustomGameBuilder = dynamic(
   { ssr: false },
 );
 
-const notOpenMessage = "That room isn't open. Check the code with the host, or start your own game.";
+const notOpenMessage =
+  "That room isn't open. Check the code with the host, or start your own game.";
 const unreachableMessage =
   "Couldn't reach the room service. Check your connection and try again.";
-const slowMessage = "The room service is taking too long to answer. Try again in a moment.";
+const slowMessage =
+  "The room service is taking too long to answer. Try again in a moment.";
 const joinTimeoutMs = 12_000;
 
 /** The bot a first game gets when asked for one: the middle of the four tiers. */
 const defaultBotProfile =
-  baselineBotProfiles.find((profile) => profile.id === "casual") ?? baselineBotProfiles[0];
-
+  baselineBotProfiles.find((profile) => profile.id === "casual") ??
+  baselineBotProfiles[0];
 
 /**
  * The name field shows what's typed until it's left, and only then stores
@@ -181,7 +197,9 @@ export function Landing() {
     try {
       const outcome = await Promise.race([
         joinOnlineRoom(code),
-        new Promise<"slow">((resolve) => setTimeout(() => resolve("slow"), joinTimeoutMs)),
+        new Promise<"slow">((resolve) =>
+          setTimeout(() => resolve("slow"), joinTimeoutMs),
+        ),
       ]);
       if (outcome === "slow") {
         setJoinError(slowMessage);
@@ -219,7 +237,10 @@ export function Landing() {
         flexDirection: "column",
       }}
     >
-      <Container maxWidth="lg" sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      <Container
+        maxWidth="lg"
+        sx={{ flex: 1, display: "flex", flexDirection: "column" }}
+      >
         {/* Everything on the centre line: the mark, the line under it, the
             keys, the three notes at the foot. */}
         <Box
@@ -235,14 +256,21 @@ export function Landing() {
             py: { xs: 6, md: 8 },
           }}
         >
-          <Stack spacing={{ xs: 3, md: 5 }} sx={{ maxWidth: 760, width: "100%", alignItems: "center" }}>
+          <Stack
+            spacing={{ xs: 3, md: 5 }}
+            sx={{ maxWidth: 760, width: "100%", alignItems: "center" }}
+          >
             <Typography component="h1" id="landing-title" sx={{ m: 0, lineHeight: 0 }}>
               {/* The mark is an image named "Jeopardy!", which names the heading. */}
               <Wordmark size="xl" />
             </Typography>
 
             {sharedLink.status === "loading" ? (
-              <Alert severity="info" icon={<CircularProgress size={18} />} role="status">
+              <Alert
+                severity="info"
+                icon={<CircularProgress size={18} />}
+                role="status"
+              >
                 Loading shared game…
               </Alert>
             ) : null}
@@ -263,7 +291,11 @@ export function Landing() {
                 sx={{ textAlign: "left", width: "100%", maxWidth: 560 }}
                 action={
                   <Stack direction="row" spacing={1}>
-                    <Button color="inherit" size="small" onClick={() => setScreen("play")}>
+                    <Button
+                      color="inherit"
+                      size="small"
+                      onClick={() => setScreen("play")}
+                    >
                       Return
                     </Button>
                     <Button color="inherit" size="small" onClick={leaveLingeringRoom}>
@@ -349,7 +381,9 @@ export function Landing() {
                     <Button
                       type="submit"
                       variant="contained"
-                      startIcon={joining ? <CircularProgress size={16} /> : <LoginIcon />}
+                      startIcon={
+                        joining ? <CircularProgress size={16} /> : <LoginIcon />
+                      }
                       disabled={joining}
                     >
                       {joining ? "Joining…" : "Join"}
@@ -365,123 +399,177 @@ export function Landing() {
                 <Typography
                   sx={{
                     color: ui.inkMuted,
-                    fontSize: { xs: 18, md: 22 },
+                    fontSize: { xs: 17, md: 20 },
                     maxWidth: 560,
-                    lineHeight: 1.4,
+                    lineHeight: 1.45,
                   }}
                 >
-                  Play Jeopardy from the archive.
+                  Thousands of real games from the archive. Play solo, against bots, or
+                  with a room full of friends.
                 </Typography>
-                <Stack spacing={1.5} sx={{ alignItems: "center", width: "100%", maxWidth: 520 }}>
-                  <Stack
-                    direction={{ xs: "column", sm: "row" }}
-                    spacing={1.5}
-                    sx={{ alignItems: "center", justifyContent: "center", width: "100%" }}
-                    component="form"
-                    onSubmit={(event) => {
-                      event.preventDefault();
+
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: { xs: "1fr", md: "1fr auto 1fr" },
+                    gap: { xs: 2, md: 3 },
+                    width: "100%",
+                    maxWidth: 880,
+                    alignItems: "stretch",
+                    textAlign: "left",
+                  }}
+                >
+                  <LandingPanel
+                    tone="board"
+                    eyebrow="Host"
+                    title="Start a new game"
+                    titleId="landing-host-title"
+                    onSubmit={() => {
                       if (!dealing) void newGame();
                     }}
                   >
-                    <TextField
-                      size="small"
-                      label="Player name"
-                      placeholder={defaultPlayerName(hostId)}
-                      value={name.value}
-                      onChange={(event) => name.onChange(event.target.value)}
-                      onBlur={name.commit}
-                      slotProps={{
-                        htmlInput: {
+                    <LandingField label="Player name" htmlFor="landing-player-name">
+                      <InputBase
+                        id="landing-player-name"
+                        placeholder={defaultPlayerName(hostId)}
+                        value={name.value}
+                        onChange={(event) => name.onChange(event.target.value)}
+                        onBlur={name.commit}
+                        inputProps={{
                           maxLength: 40,
                           autoComplete: "nickname",
                           enterKeyHint: "go",
                           autoCapitalize: "words",
-                        },
-                        inputLabel: { shrink: true },
-                      }}
-                      sx={{ width: { xs: "100%", sm: 200 }, "& .MuiInputBase-root": { height: 48 } }}
-                    />
+                        }}
+                        sx={fieldSx}
+                      />
+                    </LandingField>
+
+                    <LandingField label="Opponents" id="landing-opponents-label">
+                      <ToggleButtonGroup
+                        exclusive
+                        fullWidth
+                        aria-labelledby="landing-opponents-label"
+                        value={bots.length > 0 ? "bots" : "solo"}
+                        onChange={(_, value: "solo" | "bots" | null) => {
+                          if (value) toggleBot(value === "bots");
+                        }}
+                        sx={segmentedSx}
+                      >
+                        <ToggleButton value="solo" disableRipple>
+                          <PersonIcon fontSize="small" />
+                          Just me
+                        </ToggleButton>
+                        <ToggleButton value="bots" disableRipple>
+                          <SmartToyIcon fontSize="small" />
+                          {bots.length > 1 ? `${bots.length} bots` : "Add a bot"}
+                        </ToggleButton>
+                      </ToggleButtonGroup>
+                    </LandingField>
+
                     <Button
                       type="submit"
-                      variant="contained"
-                      size="large"
                       data-testid="new-game"
+                      disableElevation
+                      disabled={dealing}
                       endIcon={
                         dealing ? (
-                          <CircularProgress size={18} sx={{ color: "inherit" }} />
+                          <CircularProgress size={20} sx={{ color: "inherit" }} />
                         ) : (
                           <ArrowForwardIcon />
                         )
                       }
-                      disabled={dealing}
-                      sx={{ px: 4, minHeight: 48, width: { xs: "100%", sm: "auto" } }}
+                      sx={goldCtaSx}
                     >
                       {dealing ? "Dealing…" : "New Game"}
                     </Button>
-                  </Stack>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={bots.length > 0}
-                        onChange={(_, checked) => toggleBot(checked)}
-                      />
-                    }
-                    label={
-                      bots.length > 1
-                        ? `Play against bots (${bots.length})`
-                        : "Play against a bot"
-                    }
-                  />
-                </Stack>
+                    {dealError ? (
+                      <Typography
+                        role="alert"
+                        variant="body2"
+                        sx={{
+                          color: ui.onRed,
+                          background: ui.red,
+                          px: 1.5,
+                          py: 1,
+                          borderRadius: "6px",
+                        }}
+                      >
+                        {dealError}
+                      </Typography>
+                    ) : null}
+                  </LandingPanel>
 
-                <Box
-                  component="form"
-                  noValidate
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    openJoinCard();
-                  }}
-                  sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}
-                >
-                  <TextField
-                    size="small"
-                    label="Room code"
-                    value={codeInput}
-                    helperText={codeHint}
-                    error={hasImpossibleCharacters(codeInput)}
-                    slotProps={{
-                      htmlInput: {
-                        "aria-label": "Room code",
-                        autoCapitalize: "characters",
-                        autoCorrect: "off",
-                        autoComplete: "off",
-                        spellCheck: false,
-                        enterKeyHint: "go",
-                      },
-                    }}
-                    onChange={(event) => setCodeInput(parseInviteInput(event.target.value))}
+                  <Box
+                    aria-hidden
                     sx={{
-                      width: 170,
-                      "& .MuiInputBase-root": { height: 48 },
-                      "& input": { letterSpacing: "0.2em", textTransform: "uppercase" },
+                      display: "flex",
+                      flexDirection: { xs: "row", md: "column" },
+                      alignItems: "center",
+                      gap: 1.5,
+                      color: ui.inkFaint,
+                      fontFamily: jeopardyFonts.display,
+                      fontSize: 14,
+                      letterSpacing: "0.16em",
                     }}
-                  />
-                  <Button
-                    type="submit"
-                    variant="outlined"
-                    size="large"
-                    startIcon={<LoginIcon />}
-                    disabled={!codeReady}
-                    sx={{ minHeight: 48 }}
                   >
-                    Join
-                  </Button>
+                    <Box sx={dividerLineSx} />
+                    OR
+                    <Box sx={dividerLineSx} />
+                  </Box>
+
+                  <LandingPanel
+                    tone="surface"
+                    eyebrow="Join"
+                    title="Join a room"
+                    titleId="landing-join-title"
+                    noValidate
+                    onSubmit={openJoinCard}
+                  >
+                    <LandingField
+                      label="Room code"
+                      htmlFor="landing-room-code"
+                      hint={
+                        codeHint.trim()
+                          ? codeHint
+                          : "Ask the host for their 4-character code."
+                      }
+                      hintId="landing-room-code-hint"
+                      error={hasImpossibleCharacters(codeInput)}
+                    >
+                      <InputBase
+                        id="landing-room-code"
+                        placeholder="ABCD"
+                        value={codeInput}
+                        onChange={(event) =>
+                          setCodeInput(parseInviteInput(event.target.value))
+                        }
+                        error={hasImpossibleCharacters(codeInput)}
+                        inputProps={{
+                          "aria-describedby": "landing-room-code-hint",
+                          "aria-invalid":
+                            hasImpossibleCharacters(codeInput) || undefined,
+                          autoCapitalize: "characters",
+                          autoCorrect: "off",
+                          autoComplete: "off",
+                          spellCheck: false,
+                          enterKeyHint: "go",
+                        }}
+                        sx={codeFieldSx}
+                      />
+                    </LandingField>
+                    <Button
+                      type="submit"
+                      disableElevation
+                      startIcon={<LoginIcon />}
+                      disabled={!codeReady}
+                      sx={joinCtaSx}
+                    >
+                      Join
+                    </Button>
+                  </LandingPanel>
                 </Box>
-                {dealError ? (
-                  <Typography color="error" variant="body2" role="alert">
-                    {dealError}
-                  </Typography>
-                ) : null}
+
                 <Button
                   variant="text"
                   startIcon={<EditNoteIcon />}
@@ -490,6 +578,10 @@ export function Landing() {
                     setBuilderOpen(true);
                   }}
                   data-testid="landing-build"
+                  sx={{
+                    color: ui.inkMuted,
+                    "&:hover": { color: ui.ink, background: ui.blueTint },
+                  }}
                 >
                   Build or import a game
                 </Button>
@@ -516,7 +608,7 @@ export function Landing() {
             />
             <LandingFeature
               title="Bots that play"
-              body="Tick “Play against a bot”, or add any of four tiers from Players. They buzz, answer and wager."
+              body="Pick “Add a bot”, or add any of four tiers from Players. They buzz, answer and wager."
             />
             <LandingFeature
               title="Play with friends"
@@ -544,5 +636,240 @@ function LandingFeature({ title, body }: { title: string; body: string }) {
       </Typography>
       <Typography variant="body2">{body}</Typography>
     </Stack>
+  );
+}
+
+const focusRing = {
+  outline: `3px solid ${ui.goldBright}`,
+  outlineOffset: "2px",
+} as const;
+
+const fieldSx = {
+  ...controls.readout,
+  width: "100%",
+  height: 52,
+  px: 1.75,
+  color: ui.ink,
+  fontSize: 17,
+  transition: "border-color 120ms, box-shadow 120ms",
+  "&.Mui-focused": {
+    borderColor: ui.goldBright,
+    boxShadow: `inset 0 2px 6px rgba(0,0,0,0.65), 0 0 0 3px ${ui.goldTint}`,
+  },
+  "& input::placeholder": { color: ui.inkFaint, opacity: 1 },
+} as const;
+
+const codeFieldSx = {
+  ...fieldSx,
+  height: 64,
+  "& input": {
+    textAlign: "center",
+    fontFamily: jeopardyFonts.display,
+    fontSize: 32,
+    fontWeight: 700,
+    letterSpacing: "0.42em",
+    // The trailing letter-space would push the code off centre.
+    textIndent: "0.42em",
+    textTransform: "uppercase",
+  },
+  "&.Mui-error": { borderColor: ui.red },
+} as const;
+
+const ctaBase = {
+  height: 56,
+  width: "100%",
+  borderRadius: "10px",
+  fontFamily: jeopardyFonts.display,
+  fontSize: 20,
+  fontWeight: 700,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  "&:focus-visible": focusRing,
+  "&.Mui-disabled": { ...controls.keyOff, color: ui.inkFaint },
+} as const;
+
+/** Gold, like the dollar values on the board: the one thing to press. */
+const goldCtaSx = {
+  ...ctaBase,
+  color: ui.onGold,
+  background: `linear-gradient(180deg, ${ui.goldBright} 0%, ${ui.goldDeep} 100%)`,
+  border: "1px solid rgba(255,230,160,0.6)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.45), 0 6px 18px rgba(242,193,78,0.22)",
+  "&:hover": {
+    background: `linear-gradient(180deg, #FFD36A 0%, ${ui.goldBright} 100%)`,
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.5), 0 8px 24px rgba(242,193,78,0.32)",
+  },
+  "&:active": { transform: "translateY(1px)" },
+} as const;
+
+const joinCtaSx = {
+  ...ctaBase,
+  ...controls.keyPrimary,
+  "&.Mui-disabled": { ...controls.keyOff, color: ui.inkFaint },
+} as const;
+
+const segmentedSx = {
+  ...controls.readout,
+  p: "4px",
+  gap: "4px",
+  "& .MuiToggleButton-root": {
+    flex: 1,
+    gap: 1,
+    height: 44,
+    border: 0,
+    borderRadius: "6px !important",
+    color: ui.inkMuted,
+    fontSize: 15,
+    fontWeight: 600,
+    textTransform: "none",
+    "&:hover": { background: "rgba(255,255,255,0.06)", color: ui.ink },
+    "&:focus-visible": focusRing,
+    "&.Mui-selected": {
+      ...controls.key,
+      color: ui.ink,
+      "&:hover": controls.key["&:hover"],
+    },
+  },
+} as const;
+
+const dividerLineSx = {
+  flex: 1,
+  width: { xs: "auto", md: "1px" },
+  height: { xs: "1px", md: "auto" },
+  background: ui.line,
+} as const;
+
+/** One of the two ways in: a card with its own form. */
+function LandingPanel({
+  tone,
+  eyebrow,
+  title,
+  titleId,
+  noValidate,
+  onSubmit,
+  children,
+}: {
+  tone: "board" | "surface";
+  eyebrow: string;
+  title: string;
+  titleId: string;
+  noValidate?: boolean;
+  onSubmit: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <Box
+      component="form"
+      aria-labelledby={titleId}
+      noValidate={noValidate}
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSubmit();
+      }}
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 2.25,
+        p: { xs: 2.5, sm: 3.5 },
+        borderRadius: "16px",
+        border: `1px solid ${tone === "board" ? "rgba(140,150,255,0.35)" : ui.line}`,
+        background:
+          tone === "board"
+            ? `radial-gradient(120% 90% at 0% 0%, ${jeopardyPalette.board} 0%, ${jeopardyPalette.boardDeep} 45%, ${jeopardyPalette.boardShade} 100%)`
+            : `linear-gradient(180deg, ${ui.surfaceRaised} 0%, ${ui.surface} 100%)`,
+        boxShadow:
+          tone === "board"
+            ? "inset 0 1px 0 rgba(255,255,255,0.14), 0 20px 50px rgba(6,12,233,0.25)"
+            : "inset 0 1px 0 rgba(255,255,255,0.08)",
+      }}
+    >
+      <Box>
+        <Typography
+          sx={{
+            fontFamily: jeopardyFonts.display,
+            color: ui.goldBright,
+            fontSize: 13,
+            fontWeight: 700,
+            letterSpacing: "0.2em",
+            textTransform: "uppercase",
+          }}
+        >
+          {eyebrow}
+        </Typography>
+        <Typography
+          component="h2"
+          id={titleId}
+          sx={{
+            fontFamily: jeopardyFonts.display,
+            color: ui.ink,
+            fontSize: { xs: 26, sm: 30 },
+            fontWeight: 700,
+            lineHeight: 1.1,
+            textTransform: "uppercase",
+            letterSpacing: "0.02em",
+          }}
+        >
+          {title}
+        </Typography>
+      </Box>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 2.25,
+          flex: 1,
+          justifyContent: "flex-end",
+        }}
+      >
+        {children}
+      </Box>
+    </Box>
+  );
+}
+
+/** A visible label over its control, plus an optional hint under it. */
+function LandingField({
+  label,
+  htmlFor,
+  id,
+  hint,
+  hintId,
+  error,
+  children,
+}: {
+  label: string;
+  htmlFor?: string;
+  id?: string;
+  hint?: string;
+  hintId?: string;
+  error?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
+      <Box
+        component={htmlFor ? "label" : "span"}
+        htmlFor={htmlFor}
+        id={id}
+        sx={{
+          color: ui.inkMuted,
+          fontSize: 13,
+          fontWeight: 600,
+          letterSpacing: "0.04em",
+        }}
+      >
+        {label}
+      </Box>
+      {children}
+      {hint ? (
+        <Typography
+          id={hintId}
+          variant="caption"
+          sx={{ color: error ? ui.red : ui.inkFaint, minHeight: "1.25em" }}
+        >
+          {hint}
+        </Typography>
+      ) : null}
+    </Box>
   );
 }
