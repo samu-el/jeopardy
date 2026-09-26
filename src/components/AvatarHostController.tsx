@@ -30,16 +30,16 @@ const clueLines: AvatarHostCue["type"][] = ["clue-selected", "clue-readout"];
 /** How long a caption stays up after its line, so it doesn't sit over the podiums. */
 const captionHoldMs = 6_000;
 
-/** Remembered event keys for sound effects, so a replayed batch never replays a sting. */
-const rememberedSfx = 200;
+/** How many narrated event keys are remembered. */
+const rememberedEvents = 200;
 
 /**
- * Batches already played, and the events whose stings already sounded. Kept
- * at module scope: the controller remounts (results, display mode), and a
- * fresh instance must not replay the batch that is still in the store.
+ * Batches whose stings already sounded, and the events the host already
+ * narrated. Kept at module scope: the controller remounts (results, display
+ * mode), and a fresh instance must not replay what is still in the store.
  */
 const processedBatches = new WeakSet<GameEvent[]>();
-const playedSfx = new Set<string>();
+const narratedEvents = new Set<string>();
 
 export function AvatarHostController() {
   const events = useGameStore((s) => s.lastEvents);
@@ -47,6 +47,7 @@ export function AvatarHostController() {
   const setLastCue = useGameStore((s) => s.setLastCue);
   const lastCue = useGameStore((s) => s.lastCue);
   const runtime = useGameStore((s) => s.runtime);
+  const publicState = useGameStore((s) => s.publicState);
   const screen = useGameStore((s) => s.screen);
 
   const narratorRef = useRef<AvatarNarrator | null>(null);
@@ -142,40 +143,44 @@ export function AvatarHostController() {
     narratorRef.current?.cancel();
   }, [runtime, screen]);
 
-  // Each batch of events is played once. The room publishes its events and
-  // then its state; keying on the batch (not on the state) is what keeps a
-  // buzz from sounding twice.
+  // The room publishes its events and then its state. Stings play once per
+  // batch, the moment it lands — never again when the state catches up. The
+  // host's lines need that state (the clue's text arrives with it), so an
+  // event that couldn't be narrated yet is retried when the state changes,
+  // and one that was narrated is never said twice.
   useEffect(() => {
     const narrator = narratorRef.current;
     if (!narrator) return;
-    if (processedBatches.has(events)) return;
+    const firstTime = !processedBatches.has(events);
     processedBatches.add(events);
-    const state = useGameStore.getState();
+    const soundOn = useGameStore.getState().preferences.soundEnabled;
     const playedInBatch = new Set<string>();
     for (const event of events) {
       const key = gameEventKey(event);
-      if (event.type === "game-started" || event.type === "undo-applied") {
-        narrator.resetEvents();
-        playedSfx.clear();
-      }
-      if (event.type === "clue-completed" || event.type === "round-advanced") {
-        narrator.cancelIfSpeaking(clueLines);
-      }
-      if (state.preferences.soundEnabled) {
-        const sfx = sfxForEvent(event);
+      if (firstTime) {
+        if (event.type === "game-started" || event.type === "undo-applied") {
+          narrator.resetEvents();
+          narratedEvents.clear();
+        }
+        if (event.type === "clue-completed" || event.type === "round-advanced") {
+          narrator.cancelIfSpeaking(clueLines);
+        }
+        const sfx = soundOn ? sfxForEvent(event) : null;
         // One batch can carry a timeout per player; the cue plays once.
-        if (sfx && !playedInBatch.has(sfx) && !playedSfx.has(key)) {
+        if (sfx && !playedInBatch.has(sfx)) {
           playedInBatch.add(sfx);
-          rememberKey(playedSfx, key);
           playSfx(sfx);
         }
       }
-      const cue = handleEvent(narrator, event, state.publicState, key);
+      if (narratedEvents.has(key)) continue;
+      const cue = handleEvent(narrator, event, publicState, key);
+      if (!cue) continue;
+      rememberKey(narratedEvents, key);
       // The stage already shows the clue; a caption of it would only cover
       // the podiums.
-      if (cue && cue.text && cue.type !== "clue-readout") setLastCue(cue);
+      if (cue.text && cue.type !== "clue-readout") setLastCue(cue);
     }
-  }, [events, setLastCue]);
+  }, [events, publicState, setLastCue]);
 
   const captionVisible = useCaptionTimer(lastCue, speaking);
 
@@ -317,7 +322,7 @@ function useCaptionTimer(cue: AvatarHostCue | null, speaking: boolean): boolean 
 
 function rememberKey(set: Set<string>, key: string) {
   set.add(key);
-  if (set.size > rememberedSfx) {
+  if (set.size > rememberedEvents) {
     const oldest = set.values().next().value;
     if (oldest !== undefined) set.delete(oldest);
   }
@@ -397,6 +402,8 @@ function handleEvent(
       // Real Jeopardy: host echoes "Science, four hundred" when the
       // player makes a selection — before reading the clue itself.
       const active = state.currentClue;
+      // The state that names this clue hasn't arrived yet: try again when it does.
+      if (active?.clueId !== event.clueId) return null;
       const category = active?.category;
       const value = active?.value;
       if (!category) return null;
@@ -410,7 +417,7 @@ function handleEvent(
     }
     case "clue-revealed": {
       const active = state.currentClue;
-      if (!active?.clue) return null;
+      if (active?.clueId !== event.clueId || !active.clue) return null;
       return narrator.emit(
         { type: "clue-readout", context: { clueText: active.clue, category: active.category } },
         { eventId },
