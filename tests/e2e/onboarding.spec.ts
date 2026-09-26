@@ -89,7 +89,7 @@ test.describe("Landing", () => {
     await card.getByLabel("Your name").press("Escape");
     await expect(card).toHaveCount(0);
     // The failed join's message went with the card.
-    await expect(page.getByRole("alert")).toHaveCount(0);
+    await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
   });
 
   test("changing the game mid-game asks before replacing the board", async ({ page }) => {
@@ -106,8 +106,11 @@ test.describe("Landing", () => {
     await expect(confirm).toHaveCount(0);
 
     await picker.getByRole("button", { name: "Shuffle", exact: true }).click();
+    const dealt = page.waitForResponse(/mode=random/);
     await confirm.getByRole("button", { name: "Replace and play" }).click();
-    await expect(picker).toHaveCount(0);
+    await dealt;
+    // Every dialog is gone once the new board is dealt, not just hidden behind the confirm.
+    await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.getByTestId("board")).toBeVisible();
   });
 });

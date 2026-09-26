@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -26,8 +27,13 @@ import {
 } from "@/lib/realtime/invite-code";
 import { ui } from "@/lib/foundation/jeopardy-style";
 import { appViewport } from "@/lib/foundation/viewport";
-import { CustomGameBuilder } from "./CustomGameBuilder";
 import { Wordmark } from "./Wordmark";
+
+// The builder is a big form most visitors never open: load it on demand.
+const CustomGameBuilder = dynamic(
+  () => import("./CustomGameBuilder").then((m) => m.CustomGameBuilder),
+  { ssr: false },
+);
 
 const notOpenMessage = "That room isn't open. Check the code with the host, or start your own game.";
 const unreachableMessage =
@@ -39,17 +45,6 @@ const joinTimeoutMs = 12_000;
 const defaultBotProfile =
   baselineBotProfiles.find((profile) => profile.id === "casual") ?? baselineBotProfiles[0];
 
-const visuallyHidden = {
-  position: "absolute",
-  width: 1,
-  height: 1,
-  padding: 0,
-  margin: -1,
-  overflow: "hidden",
-  clip: "rect(0 0 0 0)",
-  whiteSpace: "nowrap",
-  border: 0,
-} as const;
 
 /**
  * The name field shows what's typed until it's left, and only then stores
@@ -91,6 +86,7 @@ export function Landing() {
   const [dealing, setDealing] = useState(false);
   const [dealError, setDealError] = useState<string | null>(null);
   const [builderOpen, setBuilderOpen] = useState(false);
+  const [builderRequested, setBuilderRequested] = useState(false);
   const joinErrorRef = useRef<HTMLDivElement>(null);
 
   const stillInRoom = online && online.status !== "rejected" ? online : null;
@@ -223,12 +219,8 @@ export function Landing() {
         >
           <Stack spacing={{ xs: 3, md: 5 }} sx={{ maxWidth: 760, width: "100%", alignItems: "center" }}>
             <Typography component="h1" id="landing-title" sx={{ m: 0, lineHeight: 0 }}>
-              <Box component="span" sx={visuallyHidden}>
-                Jeopardy!
-              </Box>
-              <Box component="span" aria-hidden="true">
-                <Wordmark size="xl" />
-              </Box>
+              {/* The mark is an image named "Jeopardy!", which names the heading. */}
+              <Wordmark size="xl" />
             </Typography>
 
             {sharedLink.status === "loading" ? (
@@ -471,7 +463,10 @@ export function Landing() {
                 <Button
                   variant="text"
                   startIcon={<EditNoteIcon />}
-                  onClick={() => setBuilderOpen(true)}
+                  onClick={() => {
+                    setBuilderRequested(true);
+                    setBuilderOpen(true);
+                  }}
                   data-testid="landing-build"
                 >
                   Build or import a game
@@ -508,11 +503,13 @@ export function Landing() {
           </Box>
         </Box>
       </Container>
-      <CustomGameBuilder
-        open={builderOpen}
-        onClose={() => setBuilderOpen(false)}
-        onBeforeDeal={leaveLingeringRoom}
-      />
+      {builderRequested ? (
+        <CustomGameBuilder
+          open={builderOpen}
+          onClose={() => setBuilderOpen(false)}
+          onBeforeDeal={leaveLingeringRoom}
+        />
+      ) : null}
     </Box>
   );
 }

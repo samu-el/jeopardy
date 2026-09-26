@@ -78,7 +78,12 @@ export function CategoryCard({
   return (
     <Card variant="outlined" component="section" aria-label={`${roundName}: ${spoken}`}>
       <CardContent>
-        <Stack direction="row" spacing={1} sx={{ alignItems: "flex-start", mb: expanded ? 2 : 0 }}>
+        <Stack
+          direction="row"
+          useFlexGap
+          spacing={1}
+          sx={{ alignItems: "flex-start", flexWrap: "wrap", mb: expanded ? 2 : 0 }}
+        >
           <TextField
             id={nameId}
             size="small"
@@ -88,7 +93,7 @@ export function CategoryCard({
             error={Boolean(nameError)}
             helperText={limitHelper(category.name, builderLimits.category, nameError)}
             slotProps={{ htmlInput: { maxLength: builderLimits.category } }}
-            sx={{ flex: 1 }}
+            sx={{ flex: "1 1 200px" }}
           />
           <Chip
             label={`${complete}/${clues.length}`}

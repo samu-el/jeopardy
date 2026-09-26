@@ -35,6 +35,7 @@ import UploadIcon from "@mui/icons-material/UploadFileOutlined";
 import {
   builderLimits,
   categoriesForRound,
+  emptyBuilderGame,
   type BoardRound,
   type GameDataIssue,
   type NormalizedGame,
@@ -42,6 +43,7 @@ import {
 import { roundNames } from "@/lib/game";
 import { primeAudio, primeSpeech } from "@/lib/ai";
 import { useGameStore } from "@/lib/state/game-store";
+import { BuilderErrorBoundary } from "./builder/BuilderErrorBoundary";
 import { CategoryCard, limitHelper } from "./builder/CategoryCard";
 import { IssueList } from "./builder/IssueSummary";
 import { ShareLink } from "./builder/ShareLink";
@@ -73,6 +75,7 @@ export function CustomGameBuilder({ open, onClose, onBeforeDeal }: CustomGameBui
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const titleId = useId();
+  const saveDraft = useGameStore((s) => s.saveBuilderDraft);
   return (
     <Dialog
       open={open}
@@ -85,10 +88,21 @@ export function CustomGameBuilder({ open, onClose, onBeforeDeal }: CustomGameBui
       fullScreen={fullScreen}
       aria-labelledby={titleId}
     >
-      {open ? <BuilderBody titleId={titleId} onClose={onClose} onBeforeDeal={onBeforeDeal} /> : null}
+      {open ? (
+        <BuilderErrorBoundary onClose={onClose} onReset={() => saveDraft(emptyBuilderGame())}>
+          <BuilderBody titleId={titleId} onClose={onClose} onBeforeDeal={onBeforeDeal} />
+        </BuilderErrorBoundary>
+      ) : null}
     </Dialog>
   );
 }
+
+/** One row of keys fits a 320px phone: the icons go, the words stay. */
+const compactOnPhone = {
+  whiteSpace: "nowrap",
+  px: { xs: 1, sm: 2 },
+  "& .MuiButton-startIcon": { display: { xs: "none", sm: "inherit" } },
+} as const;
 
 interface Pending {
   title: string;
@@ -215,8 +229,8 @@ function BuilderBody({
 
   return (
     <>
-      <DialogTitle id={titleId} sx={{ pb: 1 }}>
-        Build a game
+      <DialogTitle sx={{ pb: 1 }}>
+        <span id={titleId}>Build a game</span>
         <Typography
           component="span"
           variant="caption"
@@ -322,7 +336,12 @@ function BuilderBody({
             onClick={(event) => setFileMenu(event.currentTarget)}
             aria-haspopup="menu"
             aria-label="File: import, export, start over"
-            sx={{ minWidth: 0, "& .label": { display: { xs: "none", sm: "inline" } } }}
+            sx={{
+              minWidth: 0,
+              px: { xs: 1, sm: 1.5 },
+              "& .label": { display: { xs: "none", sm: "inline" } },
+              "& .MuiButton-startIcon": { mr: { xs: 0, sm: 1 }, ml: { xs: 0, sm: -0.5 } },
+            }}
           >
             <span className="label">File</span>
           </Button>
@@ -341,7 +360,9 @@ function BuilderBody({
           }}
         />
         <Box sx={{ flex: 1 }} />
-        <Button onClick={onClose}>Close</Button>
+        <Button onClick={onClose} sx={{ minWidth: 0, px: { xs: 1, sm: 2 } }}>
+          Close
+        </Button>
         <Tooltip
           title={
             isRoomHost
@@ -357,7 +378,7 @@ function BuilderBody({
               disabled={!isRoomHost}
               startIcon={<PlayArrowIcon />}
               data-testid="play-custom-game"
-              sx={{ whiteSpace: "nowrap" }}
+              sx={compactOnPhone}
             >
               Play now
             </Button>
@@ -369,7 +390,7 @@ function BuilderBody({
           disabled={builder.publishing}
           data-testid="publish-game"
           startIcon={builder.publishing ? <CircularProgress size={16} /> : <ShareIcon />}
-          sx={{ whiteSpace: "nowrap" }}
+          sx={compactOnPhone}
         >
           {builder.publishing ? "Publishing…" : builder.hasPublishedLink ? "Update link" : "Publish"}
         </Button>
