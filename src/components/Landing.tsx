@@ -67,11 +67,9 @@ function useNameField() {
 export function Landing() {
   const pendingRoomId = useGameStore((s) => s.pendingRoomId);
   const hostId = useGameStore((s) => s.lobby.hostId);
-  const hostName = useGameStore((s) => s.lobby.hostName);
   const bots = useGameStore((s) => s.lobby.bots);
   const online = useGameStore((s) => s.online);
   const setPendingRoomId = useGameStore((s) => s.setPendingRoomId);
-  const setHostName = useGameStore((s) => s.setHostName);
   const setScreen = useGameStore((s) => s.setScreen);
   const leaveOnlineRoom = useGameStore((s) => s.leaveOnlineRoom);
   const addBot = useGameStore((s) => s.addBot);
@@ -165,9 +163,12 @@ export function Landing() {
         return;
       }
       if (!outcome) {
-        // The store says why: a lookup that answered "no", or one that failed.
-        const reason = useGameStore.getState().online?.error ?? "";
-        setJoinError(/not open/i.test(reason) ? notOpenMessage : unreachableMessage);
+        // The store says which: no such room, or no answer from the server.
+        const { online: failed } = useGameStore.getState();
+        setJoinError(
+          failed?.error ??
+            (failed?.problem === "unreachable" ? unreachableMessage : notOpenMessage),
+        );
         return;
       }
       setPendingRoomId(null);
@@ -177,14 +178,6 @@ export function Landing() {
       setJoining(false);
     }
   }
-
-  // What the room will call you if you say nothing. Showing it beats a field
-  // reading "You" over a room that calls you something else entirely.
-  useEffect(() => {
-    if (!pendingRoomId) return;
-    const current = hostName.trim();
-    if (!current || current === "You") setHostName(defaultPlayerName(hostId));
-  }, [pendingRoomId, hostName, hostId, setHostName]);
 
   // A failed join moves focus to the reason, so it is heard as well as seen.
   useEffect(() => {
@@ -296,6 +289,9 @@ export function Landing() {
                 <Stack spacing={2}>
                   <TextField
                     label="Your name"
+                    // What the room will call you if you say nothing — shown,
+                    // not written into the field, so clearing it stays cleared.
+                    placeholder={defaultPlayerName(hostId)}
                     fullWidth
                     autoFocus
                     value={name.value}
@@ -309,6 +305,7 @@ export function Landing() {
                         enterKeyHint: "go",
                         autoCapitalize: "words",
                       },
+                      inputLabel: { shrink: true },
                     }}
                   />
                   {joinError ? (

@@ -107,6 +107,39 @@ describe("RoomDirector", () => {
   });
 });
 
+describe("AI judge switch", () => {
+  async function answeredClue() {
+    const room = makeRoom([]);
+    room.room.dispatch("bea", { type: "join-game", displayName: "Bea" });
+    room.room.dispatch("ada", { type: "start-game" });
+    room.room.dispatch("ada", { type: "pick-clue", clueId: "j-200" });
+    await vi.advanceTimersByTimeAsync(500);
+    room.room.dispatch("bea", { type: "buzz" });
+    room.room.dispatch("bea", { type: "submit-answer", answer: "Mars" });
+    await vi.advanceTimersByTimeAsync(300);
+    expect(room.getState().activeClue?.answerRevealed).toBe(true);
+    return room;
+  }
+
+  it("rules on its own while the judge is on", async () => {
+    const room = await answeredClue();
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(room.getState().scores.bea).toBe(200);
+  });
+
+  it("stops ruling the moment the host switches it off", async () => {
+    const room = await answeredClue();
+    // The ruling is already queued; switching off has to cancel it.
+    room.room.dispatch("ada", {
+      type: "update-settings",
+      settings: { aiJudgeEnabled: false },
+    });
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(room.getState().scores.bea).toBe(0);
+    expect(room.getState().activeClue?.judges.bea).toBeUndefined();
+  });
+});
+
 describe("timer wiring", () => {
   it("calls the platform timers with their own receiver", () => {
     // A browser's setTimeout throws "Illegal invocation" when it is called as

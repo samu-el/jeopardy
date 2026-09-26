@@ -22,6 +22,7 @@ import SettingsIcon from "@mui/icons-material/TuneOutlined";
 import PeopleIcon from "@mui/icons-material/PeopleOutlineOutlined";
 import ShuffleIcon from "@mui/icons-material/ShuffleOutlined";
 import { useGameStore } from "@/lib/state/game-store";
+import { selectCanHost } from "@/lib/state/selectors";
 import { primeAudio, primeSpeech } from "@/lib/ai";
 import { controls, ui } from "@/lib/foundation/jeopardy-style";
 import { Wordmark } from "./Wordmark";
@@ -62,6 +63,7 @@ export function RoomToolbar({
   const online = useGameStore((s) => s.online);
   const selfId = useGameStore((s) => s.selfId)();
   const isRoomHost = !publicState?.settings.hostId || publicState.settings.hostId === selfId;
+  const canHost = useGameStore(selectCanHost);
   const canBegin = Boolean(lobby.loadedEpisode || lobby.customGame) && isRoomHost;
   const inGame = Boolean(runtime && publicState && publicState.round !== "lobby");
 
@@ -181,9 +183,12 @@ export function RoomToolbar({
         ) : null}
 
         <Housing>
-          <ToolKey title="Change game" aria-label="Change game" data-testid="change-game" onClick={onOpenPicker}>
-            <ShuffleIcon />
-          </ToolKey>
+          {/* Only the host changes the board; a guest's pick would do nothing. */}
+          {canHost ? (
+            <ToolKey title="Change game" aria-label="Change game" data-testid="change-game" onClick={onOpenPicker}>
+              <ShuffleIcon />
+            </ToolKey>
+          ) : null}
           <DisplayButton />
           <ToolKey
             title="Settings"
