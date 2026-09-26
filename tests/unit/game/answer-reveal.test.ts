@@ -104,6 +104,8 @@ describe("Reveal on the last answer", () => {
     s = run(s, { type: "submit-wager", actorId: "p1", amount: 5 }, 310).state;
     s = run(s, { type: "submit-answer", actorId: "p1", answer: "Saturn" }, 500).state;
     s = run(s, { type: "judge-answer", actorId: "p1", targetPlayerId: "p1", correct: true }, 520).state;
+    // Final is only for contestants in the black, so give p2 something too.
+    s = { ...s, scores: { ...s.scores, p2: 100 } };
     s = run(s, { type: "skip", actorId: "p1" }, 540).state;
     expect(s.round).toBe("final-jeopardy");
 
