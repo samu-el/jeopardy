@@ -52,6 +52,12 @@ export interface UiPreferences {
   buzzWindowSeconds: number;
   /** Single-key shortcuts (R, Y, N, S). On unless switched off (WCAG 2.1.4). */
   shortcutsEnabled?: boolean;
+  /** Reading speed for the host's voice, 0.8–1.2 (1 = normal). Unset means 1. */
+  speechRate?: number;
+  /** Levels, 0–1, for the host's voice, sound effects and music. Unset means the audio-mix default. */
+  voiceVolume?: number;
+  effectsVolume?: number;
+  musicVolume?: number;
 }
 
 export interface LobbyBotConfig {

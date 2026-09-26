@@ -2,6 +2,7 @@ import {
   baselineVoiceProfiles as legacyProfiles,
   type VoiceProfile,
 } from "@/lib/ai/profiles";
+import { getAudioMix } from "./audio-mix";
 
 export interface SpeakRequest {
   text: string;
@@ -76,14 +77,21 @@ function scoreVoice(voice: SpeechSynthesisVoice): {
   return { score, quality };
 }
 
-function detectGender(name: string): DiscoveredVoice["gender"] {
+const femaleNames =
+  /\b(aria|jenny|samantha|zira|karen|kate|allison|ava|moira|serena|veena|tessa|libby|sonia|emma|michelle|natasha|nora|olivia|nicole|susan|hazel|catherine|clara|jane|joanna|salli|kimberly|ivy|kendra|amy|emily|fiona|victoria|zoe|sara|nancy|heather|linda|elizabeth|monica|paulina|ana|aubrey|ashley|cora|elena|jessa|isla|maisie|abbie|bella|hollie|mia|molly|neerja|leah|luna|nova|shimmer)\b/;
+const maleNames =
+  /\b(guy|david|mark|alex|daniel|fred|tom|matthew|ryan|brian|james|sean|carter|andrew|christopher|eric|roger|steffan|davis|brandon|tony|jason|jacob|william|liam|george|oliver|arthur|aaron|gordon|lee|rishi|thomas|ralph|junior|albert|bruce|ethan|noah|elliot|kai|prabhat|wayne|mitchell|connor|duncan|luke|nathan|oscar|reed|evan|rocko|grandpa|onyx|fable)\b/;
+
+/** Pure: which way a voice's name reads. Exported for tests. */
+export function detectGender(name: string): DiscoveredVoice["gender"] {
   const lower = name.toLowerCase();
-  if (/(aria|jenny|samantha|zira|female|woman|karen|kate|allison|ava|moira|serena|veena|tessa|libby|sonia)/.test(lower)) {
-    return "female";
-  }
-  if (/(guy|david|mark|alex|daniel|fred|tom|matthew|ryan|brian|james|sean|carter)/.test(lower)) {
-    return "male";
-  }
+  // "Female" before "male": the word boundary keeps "female" out of \bmale\b.
+  if (/\b(female|woman|girl)\b/.test(lower)) return "female";
+  if (/\b(male|man|boy)\b/.test(lower)) return "male";
+  if (femaleNames.test(lower)) return "female";
+  if (maleNames.test(lower)) return "male";
+  // Chrome's unnamed "Google US English" is a female voice.
+  if (lower.trim() === "google us english") return "female";
   return "neutral";
 }
 
@@ -102,7 +110,11 @@ function prettifyLabel(voice: SpeechSynthesisVoice): string {
 }
 
 function discover(synth: SpeechSynthesis): DiscoveredVoice[] {
-  const all = synth.getVoices();
+  return discoverVoices(synth.getVoices());
+}
+
+/** Pure: English voices, best first. Exported for tests. */
+export function discoverVoices(all: SpeechSynthesisVoice[]): DiscoveredVoice[] {
   return all
     .filter((voice) => voice.lang.toLowerCase().startsWith("en"))
     .map((voice) => {
@@ -169,7 +181,7 @@ class BrowserVoiceAdapter implements VoiceAdapter {
     const utterance = new SpeechSynthesisUtterance(request.text);
     utterance.rate = request.rate ?? 1;
     utterance.pitch = request.pitch ?? 1;
-    utterance.volume = request.volume ?? 1;
+    utterance.volume = Math.max(0, Math.min(1, request.volume ?? getAudioMix().voice));
 
     const chosen = this.pickVoice(request.voiceProfileId);
     if (chosen) {
@@ -190,15 +202,7 @@ class BrowserVoiceAdapter implements VoiceAdapter {
   }
 
   private pickVoice(requestedId: string | undefined): DiscoveredVoice | undefined {
-    if (!requestedId || requestedId === "browser-default") {
-      return this.discovered[0];
-    }
-    if (requestedId.startsWith("browser:")) {
-      return this.discovered.find((voice) => voice.id === requestedId) ?? this.discovered[0];
-    }
-    // Persona ids: female-natural, male-natural, female-warm, male-warm, deep, bright
-    const filtered = matchPersona(this.discovered, requestedId);
-    return filtered ?? this.discovered[0];
+    return resolveVoice(this.discovered, requestedId).voice;
   }
 }
 
@@ -321,16 +325,139 @@ export const voicePersonas: VoicePersona[] = [
   },
 ];
 
-function matchPersona(
+/**
+ * Which voice each persona speaks with on this machine. A persona only claims
+ * a voice its description fits, and never one another persona already took,
+ * so the menu never offers two names for the same voice.
+ */
+export function assignPersonas(discovered: DiscoveredVoice[]): Map<string, DiscoveredVoice> {
+  const claimed = new Set<string>();
+  const assigned = new Map<string, DiscoveredVoice>();
+  for (const persona of voicePersonas) {
+    const match = discovered.find((voice) => persona.predicate(voice) && !claimed.has(voice.id));
+    if (!match) continue;
+    claimed.add(match.id);
+    assigned.set(persona.id, match);
+  }
+  return assigned;
+}
+
+export interface ResolvedVoice {
+  voice: DiscoveredVoice | undefined;
+  /** False when the persona or voice asked for isn't on this machine. */
+  exact: boolean;
+  persona?: VoicePersona;
+}
+
+export const browserDefaultVoiceId = "browser-default";
+
+/**
+ * The voice a stored id speaks with. When a persona has no voice of its own
+ * here, it falls back to the best voice of the right gender — never to a
+ * voice of the other gender while one of the right gender exists.
+ */
+export function resolveVoice(
   discovered: DiscoveredVoice[],
-  personaId: string,
-): DiscoveredVoice | undefined {
-  const persona = voicePersonas.find((entry) => entry.id === personaId);
-  if (!persona) return undefined;
-  const matches = discovered.filter(persona.predicate);
-  if (matches.length > 0) return matches[0];
-  // Fallback: any voice with the right gender, otherwise the highest-ranked.
-  return (
-    discovered.find((voice) => voice.gender === persona.gender) ?? discovered[0]
-  );
+  requestedId: string | undefined,
+): ResolvedVoice {
+  if (!requestedId || requestedId === browserDefaultVoiceId) {
+    return { voice: discovered[0], exact: true };
+  }
+  if (requestedId.startsWith("browser:")) {
+    const voice = discovered.find((entry) => entry.id === requestedId);
+    return { voice: voice ?? discovered[0], exact: Boolean(voice) };
+  }
+  const persona = voicePersonas.find((entry) => entry.id === requestedId);
+  if (!persona) return { voice: discovered[0], exact: false };
+  const assigned = assignPersonas(discovered).get(persona.id);
+  if (assigned) return { voice: assigned, exact: true, persona };
+  // Best of the right gender (the list is already ranked), then anyone.
+  const fallback =
+    discovered.find((voice) => voice.gender === persona.gender) ??
+    discovered.find((voice) => voice.gender === "neutral") ??
+    discovered[0];
+  return { voice: fallback, exact: false, persona };
+}
+
+export interface VoiceOption {
+  id: string;
+  label: string;
+  /** Secondary line: the voice it resolves to, or why it can't. */
+  sub: string;
+  quality?: DiscoveredVoice["quality"];
+  unavailable?: boolean;
+}
+
+/**
+ * The voice menu. Always starts with "Browser default", names the voice each
+ * choice actually uses, and always contains the selected id — a stored
+ * persona this machine can't voice shows as "Aria (unavailable)" with the
+ * voice it falls back to, instead of an out-of-range select value.
+ */
+export function buildVoiceOptions(
+  discovered: DiscoveredVoice[],
+  selectedId?: string,
+): VoiceOption[] {
+  const assigned = assignPersonas(discovered);
+  const claimed = new Set([...assigned.values()].map((voice) => voice.id));
+  const options: VoiceOption[] = [
+    {
+      id: browserDefaultVoiceId,
+      label: "Browser default",
+      sub: discovered[0]?.label ?? "System voice",
+      quality: discovered[0]?.quality,
+    },
+  ];
+  for (const persona of voicePersonas) {
+    const voice = assigned.get(persona.id);
+    if (voice) {
+      options.push({ id: persona.id, label: persona.label, sub: voice.label, quality: voice.quality });
+    }
+  }
+  for (const voice of discovered) {
+    if (claimed.has(voice.id)) continue;
+    options.push({ id: voice.id, label: voice.label, sub: voice.locale, quality: voice.quality });
+  }
+  if (selectedId && !options.some((option) => option.id === selectedId)) {
+    const resolved = resolveVoice(discovered, selectedId);
+    const label = resolved.persona?.label ?? selectedId.replace(/^browser:/, "");
+    options.push({
+      id: selectedId,
+      label: `${label} (unavailable)`,
+      sub: resolved.voice ? `using ${resolved.voice.label}` : "no voices installed",
+      unavailable: true,
+    });
+  }
+  return options;
+}
+
+/** The narrator's reading pace: a touch slower than the engine default. */
+export const baseReadoutRate = 0.92;
+export const speechRateRange = { min: 0.8, max: 1.2 } as const;
+
+/**
+ * The utterance rate for a player's reading-speed setting (1 = normal).
+ * Everything that speaks for the game — readout, host, preview — uses this,
+ * so the preview sounds like the game.
+ */
+export function readoutRate(speechRate: number | undefined = 1): number {
+  const setting = Number.isFinite(speechRate) ? speechRate : 1;
+  const clamped = Math.max(speechRateRange.min, Math.min(speechRateRange.max, setting));
+  return Number((baseReadoutRate * clamped).toFixed(3));
+}
+
+export const voicePreviewText = "This is your Jeopardy host. Welcome to the game.";
+
+/** Plays the preview line, cutting off any earlier preview instead of queueing. */
+export function previewVoice(
+  adapter: VoiceAdapter | null | undefined,
+  voiceProfileId: string,
+  speechRate?: number,
+) {
+  adapter?.speak({
+    text: voicePreviewText,
+    voiceProfileId,
+    rate: readoutRate(speechRate),
+    interrupt: true,
+  });
 }

@@ -10,7 +10,7 @@ import WarningIcon from "@mui/icons-material/WarningAmberOutlined";
 import type { PublicGameState } from "@/lib/game";
 import { lastRuling, nameOf } from "@/lib/game/clue-turn";
 import type { ClientGameCommand } from "@/lib/realtime";
-import { judgeAnswer as fuzzyJudge } from "@/lib/ai";
+import { describeVerdict, judgeAnswer as fuzzyJudge } from "@/lib/ai";
 import { controls, jeopardyFonts, jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
 import { Housing, HousingDivider } from "../Housing";
 import { benchKeySx, wrapHousingSx } from "./bench-style";
@@ -21,21 +21,18 @@ const incorrectFill = "#C8102E";
 const correctInk = "#03220F";
 
 /**
- * The fuzzy matcher's opinion, in words. Its number is string similarity,
- * not certainty, so it is printed as a match score beside a verdict — and
- * anything near the line is flagged for the host to look at.
+ * The AI judge's opinion, in words, with how sure it is of that ruling —
+ * and anything it calls ambiguous flagged for the host to look at.
  */
 export function describeSuggestion(answer: string, expected: string) {
   if (!answer.trim()) return { verdict: "No answer", correct: false, nearMiss: false, match: null };
   if (!expected.trim()) return { verdict: "no suggestion", correct: false, nearMiss: false, match: null };
   const result = fuzzyJudge({ submittedAnswer: answer, expectedAnswer: expected });
-  const match = Math.round(result.confidence * 100);
-  const nearMiss = result.confidence >= 0.6 && result.confidence < 0.9;
   return {
-    verdict: result.correct ? "Looks right" : "Looks wrong",
+    verdict: describeVerdict(result),
     correct: result.correct,
-    nearMiss,
-    match,
+    nearMiss: result.ambiguous,
+    match: Math.round(result.confidence * 100),
   };
 }
 
@@ -245,7 +242,7 @@ function Suggestion({
         <CloseIcon sx={{ fontSize: 14 }} aria-hidden />
       )}
       AI: {verdict}
-      {match !== null ? ` · ${match}% match` : ""}
+      {match !== null ? ` · ${match}% sure` : ""}
       {nearMiss ? (
         <Box component="span" sx={{ color: jeopardyPalette.gold, fontWeight: 700 }}>
           · close, check it
