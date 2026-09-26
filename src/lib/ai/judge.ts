@@ -489,7 +489,9 @@ export function similarityScore(a: string, b: string): number {
 function allowedEdits(a: string, b: string): number {
   const longest = Math.max(a.length, b.length);
   const lengthGap = Math.abs(a.length - b.length);
-  if (longest <= 4) return 0;
+  // Judged on the shorter word: one letter added to "Mars" is "Marsh", a
+  // different word, not a typo.
+  if (Math.min(a.length, b.length) <= 4) return 0;
   if (longest >= 8 && lengthGap < 2) return 2;
   return 1;
 }
