@@ -116,3 +116,46 @@ export function startSpeechRecognition(
     abort: () => recognition.abort(),
   };
 }
+
+export interface SpeechRecognitionErrorInfo {
+  /** Short, plain-language line for helper text and the live region. */
+  message: string;
+  /** The microphone can't be used until the player changes a setting. */
+  blocked: boolean;
+}
+
+/**
+ * What a recognition error code means to the player. Pure; the codes are the
+ * Web Speech API's (`not-allowed`, `no-speech`, `network`, ...). A user-
+ * initiated `aborted` is not an error and maps to no message.
+ */
+export function describeSpeechRecognitionError(
+  code: string | undefined,
+): SpeechRecognitionErrorInfo | null {
+  switch (code) {
+    case "aborted":
+      return null;
+    case "not-allowed":
+    case "service-not-allowed":
+      return {
+        message: "Microphone blocked. Allow it in the address bar, then try again.",
+        blocked: true,
+      };
+    case "audio-capture":
+      return { message: "No microphone found. Check it's plugged in.", blocked: false };
+    case "no-speech":
+      return { message: "Didn't catch that. Tap the mic and try again.", blocked: false };
+    case "network":
+      return {
+        message: "Voice answers need a connection. Type your answer instead.",
+        blocked: false,
+      };
+    case "language-not-supported":
+      return { message: "Voice answers aren't available in this language.", blocked: true };
+    default:
+      return { message: "Voice input stopped. Type your answer or try again.", blocked: false };
+  }
+}
+
+/** Shown in place of the mic where the browser has no speech recognition. */
+export const speechRecognitionUnsupportedMessage = "Voice answers need Chrome, Edge or Safari";

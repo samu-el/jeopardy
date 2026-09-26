@@ -1,12 +1,11 @@
 import {
+  BotClueMemory,
   createSeededRng,
-  decideBotAnswer,
-  decideBotBuzz,
   decideBotWager,
   type BotRng,
 } from "@/lib/ai/bots";
 import type { BotProfile } from "@/lib/ai/profiles";
-import type { GameState } from "@/lib/game";
+import { leadingOpponentScore, type GameState } from "@/lib/game";
 import type { InMemoryRealtimeRoom } from "./in-memory-room";
 
 export interface RoomDirectorOptions {
@@ -32,6 +31,8 @@ export class RoomDirector {
   private readonly categoryPreference = new Map<string, Map<string, number>>();
   private readonly pending = new Map<string, { timer: Timer; scope: string }>();
   private readonly rng: BotRng;
+  /** Each bot's knowledge of the clue on screen, rolled once per clue. */
+  private readonly memory: BotClueMemory;
   private readonly schedule: (action: () => void, delayMs: number) => Timer;
   private readonly unschedule: (timer: Timer) => void;
   private unsubscribe: (() => void) | undefined;
@@ -40,6 +41,7 @@ export class RoomDirector {
   constructor(room: InMemoryRealtimeRoom, options: RoomDirectorOptions = {}) {
     this.room = room;
     this.rng = createSeededRng(options.seed ?? Date.now());
+    this.memory = new BotClueMemory(this.rng);
     // Wrapped, not stored bare: `this.schedule(...)` would call the browser's
     // setTimeout with the director as its receiver, which throws
     // "Illegal invocation" and silently kills every deferred bot action.
@@ -197,6 +199,7 @@ export class RoomDirector {
         clue,
         currentScore: state.scores[playerId] ?? 0,
         leaderScore: Math.max(...Object.values(state.scores), 1),
+        bestOpponentScore: leadingOpponentScore(state, playerId),
         round: clue.round,
         rng: this.rng,
       });
@@ -221,7 +224,7 @@ export class RoomDirector {
     if (active.round === "final-jeopardy") {
       for (const [botId, profile] of this.profiles.entries()) {
         if (active.submitted[botId]) continue;
-        const decision = decideBotAnswer(profile, clue, this.rng);
+        const decision = this.memory.answerFor(botId, profile, clue);
         this.defer(
           `${botId}:final`,
           RoomDirector.scopeOf(state),
@@ -239,7 +242,7 @@ export class RoomDirector {
       if (active.buzzes[botId] !== undefined) {
         // Already at the podium — make sure an answer is on its way.
         if (!active.submitted[botId]) {
-          const decision = decideBotAnswer(profile, clue, this.rng);
+          const decision = this.memory.answerFor(botId, profile, clue);
           this.defer(
             `${botId}:answer`,
             RoomDirector.scopeOf(state),
@@ -258,7 +261,7 @@ export class RoomDirector {
       if (active.judges[botId] !== undefined) continue;
       if (state.players[botId]?.spectator) continue;
 
-      const decision = decideBotBuzz(profile, clue, this.rng);
+      const decision = this.memory.buzzFor(botId, profile, clue);
       if (!decision.shouldBuzz) continue;
       const readoutRemaining = Math.max(0, (active.readoutEndsAt ?? now) - now);
       this.defer(

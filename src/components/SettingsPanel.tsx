@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import Alert from "@mui/material/Alert";
+import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
 import FormControl from "@mui/material/FormControl";
@@ -17,8 +19,14 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import PlayCircleIcon from "@mui/icons-material/PlayCircleOutlined";
 import { baselineAvatarHostProfiles } from "@/lib/ai/profiles";
-import { createVoiceAdapter, voicePersonas, type DiscoveredVoice } from "@/lib/ai";
+import {
+  buildVoiceOptions,
+  createVoiceAdapter,
+  previewVoice,
+  type DiscoveredVoice,
+} from "@/lib/ai";
 import { useGameStore, type UiPreferences } from "@/lib/state/game-store";
+import { AudioMixControls } from "./AudioMixControls";
 import { useOsPrefersReducedMotion } from "./use-reduced-motion";
 import { useRoomRole } from "./use-room-role";
 
@@ -33,20 +41,17 @@ const buzzWindows = [
   { value: 20, label: "20 seconds — relaxed" },
 ];
 
-/**
- * The host modes on offer. Nothing draws an avatar yet — "Avatar" behaved
- * exactly like "Voice" — so it is listed as coming rather than offered.
- */
-const hostModes: { value: UiPreferences["avatarHostMode"]; label: string; disabled?: boolean }[] = [
-  { value: "off", label: "Off" },
+const hostModes: { value: UiPreferences["avatarHostMode"]; label: string }[] = [
+  { value: "off", label: "Off (clues still read)" },
   { value: "voice-only", label: "Voice" },
-  { value: "avatar-and-voice", label: "Avatar (coming soon)", disabled: true },
+  { value: "avatar-and-voice", label: "Avatar" },
 ];
 
 /**
  * What each control does, and what it depends on, said next to it: the old
  * panel showed "Host: Voice" over a host that couldn't speak because Sound
- * was off, and nothing said why.
+ * was off, and nothing said why. Choosing a speaking host now turns Sound
+ * on, and a muted board says so with a switch to fix it.
  */
 export function SettingsPanel() {
   const preferences = useGameStore((s) => s.preferences);
@@ -56,49 +61,44 @@ export function SettingsPanel() {
   const voices = useDiscoveredVoices();
 
   // The browser hands out its voices late and in its own order, so the
-  // personas claim the ones they recognise first and the rest follow.
-  const voiceOptions = useMemo(() => {
-    const claimed = new Set<string>();
-    const personas = voicePersonas.flatMap((persona) => {
-      const match = voices.find(persona.predicate);
-      if (!match || claimed.has(match.id)) return [];
-      claimed.add(match.id);
-      return [{ id: persona.id, label: persona.label, sub: match.label, quality: match.quality }];
-    });
-    return [
-      ...personas,
-      ...voices
-        .filter((voice) => !claimed.has(voice.id))
-        .map((voice) => ({
-          id: voice.id,
-          label: voice.label,
-          sub: voice.locale,
-          quality: voice.quality,
-        })),
-    ];
-  }, [voices]);
+  // personas claim the ones they recognise first and the rest follow. The
+  // stored choice is always listed, with the voice it really uses.
+  const voiceOptions = useMemo(
+    () => buildVoiceOptions(voices, preferences.voiceProfileId),
+    [voices, preferences.voiceProfileId],
+  );
 
   const hostOff = preferences.avatarHostMode === "off";
   const muted = !preferences.soundEnabled;
 
+  function chooseHostMode(mode: UiPreferences["avatarHostMode"]) {
+    setPreference("avatarHostMode", mode);
+    // Asking for a host that talks is asking to hear it.
+    if (mode !== "off" && muted) setPreference("soundEnabled", true);
+  }
+
   const hostHelp = hostOff
-    ? "No readout and no host lines. Clues are only shown."
-    : muted
-      ? preferences.subtitlesEnabled
-        ? "Sound is off: the host's lines are printed but not spoken."
-        : "Sound is off, so the host is silent. Turn Sound on to hear it, or Subtitles to read along."
+    ? "No host lines or avatar. Clues are still read aloud when Sound is on."
+    : preferences.avatarHostMode === "avatar-and-voice"
+      ? "An animated host on screen who reads the clues and calls the game."
       : "Reads each clue aloud and calls the game.";
 
-  const toggles: { key: ToggleKey; label: string; help: string; disabled?: boolean; checked?: boolean }[] = [
+  const toggles: {
+    key: ToggleKey;
+    label: string;
+    help: string;
+    disabled?: boolean;
+    checked?: boolean;
+  }[] = [
     {
       key: "soundEnabled",
       label: "Sound",
-      help: hostOff ? "Effects only: the host is off." : "The host's voice and the game's effects.",
+      help: "Clue readouts, the host's voice and the game's effects.",
     },
     {
       key: "subtitlesEnabled",
       label: "Subtitles",
-      help: hostOff ? "Needs the host on." : "Prints what the host says.",
+      help: hostOff ? "Needs the host on: it prints the host's lines." : "Prints what the host says.",
       disabled: hostOff,
     },
     { key: "chatEnabled", label: "Chat", help: "A chat box under the lecterns." },
@@ -122,19 +122,30 @@ export function SettingsPanel() {
 
   return (
     <Stack spacing={2}>
+      {muted ? (
+        <Alert
+          severity="warning"
+          data-testid="sound-off-hint"
+          action={
+            <Button color="inherit" size="small" onClick={() => setPreference("soundEnabled", true)}>
+              Turn on
+            </Button>
+          }
+        >
+          Sound is off: clues aren&rsquo;t read aloud and the host is silent.
+        </Alert>
+      ) : null}
+
       <Stack spacing={1.5}>
         <Choice
           id="host-mode"
           label="Host"
           value={preferences.avatarHostMode}
           helper={hostHelp}
-          warn={!hostOff && muted && !preferences.subtitlesEnabled}
-          onChange={(value) =>
-            setPreference("avatarHostMode", value as UiPreferences["avatarHostMode"])
-          }
+          onChange={(value) => chooseHostMode(value as UiPreferences["avatarHostMode"])}
         >
           {hostModes.map((option) => (
-            <MenuItem key={option.value} value={option.value} disabled={option.disabled}>
+            <MenuItem key={option.value} value={option.value}>
               {option.label}
             </MenuItem>
           ))}
@@ -145,18 +156,12 @@ export function SettingsPanel() {
             id="voice-profile"
             label="Voice"
             value={preferences.voiceProfileId}
-            disabled={hostOff}
-            helper={hostOff ? "Turn the host on to choose a voice." : undefined}
+            helper="Reads the clues, with or without the host."
             onChange={(value) => setPreference("voiceProfileId", value)}
             renderValue={(value) =>
-              voiceOptions.find((option) => option.id === value)?.label ?? "Default"
+              voiceOptions.find((option) => option.id === value)?.label ?? "Browser default"
             }
           >
-            {voiceOptions.length === 0 ? (
-              <MenuItem value={preferences.voiceProfileId} disabled>
-                <ListItemText primary="Default" secondary="This browser lists no voices" />
-              </MenuItem>
-            ) : null}
             {voiceOptions.map((option) => (
               <MenuItem key={option.id} value={option.id}>
                 <ListItemText primary={option.label} secondary={option.sub} />
@@ -167,23 +172,14 @@ export function SettingsPanel() {
             ))}
           </Choice>
           <Tooltip title="Hear this voice">
-            <span>
-              <IconButton
-                aria-label="Hear this voice"
-                disabled={hostOff}
-                onClick={() =>
-                  voiceAdapter?.speak({
-                    text: "This is your Jeopardy host. Welcome to the game.",
-                    voiceProfileId: preferences.voiceProfileId,
-                    // Replace a preview still playing rather than queueing behind it.
-                    interrupt: true,
-                    rate: 0.92,
-                  })
-                }
-              >
-                <PlayCircleIcon />
-              </IconButton>
-            </span>
+            <IconButton
+              aria-label="Hear this voice"
+              onClick={() =>
+                previewVoice(voiceAdapter, preferences.voiceProfileId, preferences.speechRate)
+              }
+            >
+              <PlayCircleIcon />
+            </IconButton>
           </Tooltip>
         </Stack>
 
@@ -192,7 +188,9 @@ export function SettingsPanel() {
           label="Persona"
           value={preferences.avatarHostProfileId}
           disabled={hostOff}
-          helper={hostOff ? "Turn the host on to choose a persona." : "How the host talks between clues."}
+          helper={
+            hostOff ? "Turn the host on to choose a persona." : "How the host talks between clues."
+          }
           onChange={(value) => setPreference("avatarHostProfileId", value)}
         >
           {baselineAvatarHostProfiles.map((profile) => (
@@ -231,6 +229,8 @@ export function SettingsPanel() {
           />
         ))}
       </Stack>
+
+      <AudioMixControls />
 
       <Divider />
 
@@ -271,7 +271,6 @@ function Choice({
   onChange,
   renderValue,
   helper,
-  warn,
   disabled,
   children,
 }: {
@@ -281,7 +280,6 @@ function Choice({
   onChange: (value: string) => void;
   renderValue?: (value: string) => ReactNode;
   helper?: string;
-  warn?: boolean;
   disabled?: boolean;
   children: ReactNode;
 }) {
@@ -299,11 +297,7 @@ function Choice({
       >
         {children}
       </Select>
-      {helper ? (
-        <FormHelperText id={helperId} sx={warn ? { color: "warning.main" } : undefined}>
-          {helper}
-        </FormHelperText>
-      ) : null}
+      {helper ? <FormHelperText id={helperId}>{helper}</FormHelperText> : null}
     </FormControl>
   );
 }

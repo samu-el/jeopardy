@@ -53,15 +53,27 @@ export function Room() {
     />
   );
 
+  // Mounted on both screens: the More menu offers them on the results
+  // screen too, where "Replay last game" matters most.
+  const dialogs = (
+    <>
+      <GamePicker open={pickerOpen} onClose={() => setPickerOpen(false)} />
+      <CustomGameBuilder open={builderOpen} onClose={() => setBuilderOpen(false)} />
+      <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <TranscriptPane open={transcriptOpen} onClose={() => setTranscriptOpen(false)} />
+      <ReplayView open={replayOpen} onClose={() => setReplayOpen(false)} />
+    </>
+  );
+
   if (showResults && publicState) {
     return (
       <Box sx={{ minHeight: "100vh", background: ui.stage }}>
         <ConnectionBanner />
         <Box sx={{ maxWidth: 1400, mx: "auto", px: { xs: 2, md: 3 } }}>
           {toolbar}
-          <ResultsView state={publicState} onPlayAgain={exitToLobby} onExit={exitToLobby} />
+          <ResultsView state={publicState} onPlayAgain={exitToLobby} />
         </Box>
-        <GamePicker open={pickerOpen} onClose={() => setPickerOpen(false)} />
+        {dialogs}
       </Box>
     );
   }
@@ -83,11 +95,7 @@ export function Room() {
         ) : null}
       </Box>
 
-      <GamePicker open={pickerOpen} onClose={() => setPickerOpen(false)} />
-      <CustomGameBuilder open={builderOpen} onClose={() => setBuilderOpen(false)} />
-      <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
-      <TranscriptPane open={transcriptOpen} onClose={() => setTranscriptOpen(false)} />
-      <ReplayView open={replayOpen} onClose={() => setReplayOpen(false)} />
+      {dialogs}
       <Onboarding />
     </Box>
   );
