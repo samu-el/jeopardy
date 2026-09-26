@@ -270,7 +270,7 @@ export function Landing() {
               <Box
                 component="form"
                 role="dialog"
-                aria-labelledby="join-card-title"
+                aria-label="Join room"
                 noValidate
                 onSubmit={(event) => {
                   event.preventDefault();
