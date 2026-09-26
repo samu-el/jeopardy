@@ -17,8 +17,7 @@ export function DailyDoubleSplash({ visible, reducedMotion }: DailyDoubleSplashP
   if (!visible) return null;
   return (
     <Box
-      role="status"
-      aria-label="Daily Double"
+      aria-hidden
       data-testid="daily-double-splash"
       sx={{
         position: "absolute",

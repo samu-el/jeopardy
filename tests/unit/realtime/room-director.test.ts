@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { baselineBotProfiles } from "@/lib/ai/profiles";
-import type { GameClue } from "@/lib/game";
+import type { GameClue, GameState } from "@/lib/game";
 import { RoomHost } from "@/lib/realtime";
 
 const clues: GameClue[] = [
@@ -108,14 +108,14 @@ describe("RoomDirector", () => {
 });
 
 describe("AI judge switch", () => {
-  async function answeredClue() {
+  async function answeredClue(answer = "Mars") {
     const room = makeRoom([]);
     room.room.dispatch("bea", { type: "join-game", displayName: "Bea" });
     room.room.dispatch("ada", { type: "start-game" });
     room.room.dispatch("ada", { type: "pick-clue", clueId: "j-200" });
     await vi.advanceTimersByTimeAsync(500);
     room.room.dispatch("bea", { type: "buzz" });
-    room.room.dispatch("bea", { type: "submit-answer", answer: "Mars" });
+    room.room.dispatch("bea", { type: "submit-answer", answer });
     await vi.advanceTimersByTimeAsync(300);
     expect(room.getState().activeClue?.answerRevealed).toBe(true);
     return room;
@@ -125,6 +125,63 @@ describe("AI judge switch", () => {
     const room = await answeredClue();
     await vi.advanceTimersByTimeAsync(2_000);
     expect(room.getState().scores.bea).toBe(200);
+  });
+
+  it("does not rule again after the host undoes its ruling", async () => {
+    const room = await answeredClue();
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(room.getState().scores.bea).toBe(200);
+
+    room.room.dispatch("ada", { type: "undo" });
+    expect(room.getState().activeClue?.judges.bea).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(room.getState().activeClue?.judges.bea).toBeUndefined();
+
+    room.room.dispatch("ada", {
+      type: "judge-answer",
+      targetPlayerId: "bea",
+      correct: false,
+    });
+    expect(room.getState().scores.bea).toBe(-200);
+  });
+
+  it("leaves a too-close-to-call answer for the host present to rule", async () => {
+    // "Mars bar" for "Mars" sits in the judge's ambiguous band.
+    const room = await answeredClue("Mars bar");
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(room.getState().activeClue?.judges.bea).toBeUndefined();
+    expect(
+      room.room.getChatHistory().some((line) => line.text.includes("the host rules")),
+    ).toBe(true);
+    // Held once, not re-asked on every change.
+    const held = room.room
+      .getChatHistory()
+      .filter((line) => line.text.includes("the host rules"));
+    expect(held).toHaveLength(1);
+
+    // The host's own ruling still lands.
+    room.room.dispatch("ada", {
+      type: "judge-answer",
+      targetPlayerId: "bea",
+      correct: true,
+    });
+    expect(room.getState().scores.bea).toBe(200);
+  });
+
+  it("rules a close call itself when no host is present to ask", async () => {
+    const room = await answeredClue("Mars bar");
+    // The host's socket is gone before the ruling is due: nobody to ask.
+    (room.room as unknown as { state: GameState }).state = {
+      ...room.room.getState(),
+      players: {
+        ...room.room.getState().players,
+        ada: { ...room.room.getState().players.ada, connected: false },
+      },
+    };
+    room.director.evaluate();
+    await vi.advanceTimersByTimeAsync(2_000);
+    // Ruled (as wrong) rather than left hanging with nobody to decide.
+    expect(room.getState().scores.bea).toBe(-200);
   });
 
   it("stops ruling the moment the host switches it off", async () => {

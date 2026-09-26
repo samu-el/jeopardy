@@ -7,7 +7,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { speakerColor } from "./chat-style";
+import { speakerColor, speakerLabel } from "./chat-style";
 import CloseIcon from "@mui/icons-material/CloseOutlined";
 import { useGameStore } from "@/lib/state/game-store";
 
@@ -19,6 +19,8 @@ interface TranscriptPaneProps {
 export function TranscriptPane({ open, onClose }: TranscriptPaneProps) {
   const chat = useGameStore((s) => s.chat);
   const ref = useRef<HTMLDivElement | null>(null);
+  const paneRef = useRef<HTMLDivElement | null>(null);
+  const openerRef = useRef<Element | null>(null);
 
   useEffect(() => {
     if (open && ref.current) {
@@ -26,12 +28,34 @@ export function TranscriptPane({ open, onClose }: TranscriptPaneProps) {
     }
   }, [chat, open]);
 
+  // Opening moves focus into the pane; closing hands it back to whatever
+  // opened it. Esc closes, as the shortcut list promises.
+  useEffect(() => {
+    if (!open) return;
+    openerRef.current = document.activeElement;
+    paneRef.current?.focus();
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      const opener = openerRef.current;
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+    };
+  }, [open, onClose]);
+
   if (!open) return null;
 
   return (
     <Paper
+      ref={paneRef}
       role="region"
-      aria-label="Game transcript"
+      aria-labelledby="transcript-title"
+      tabIndex={-1}
       variant="outlined"
       sx={{
         position: "fixed",
@@ -54,7 +78,9 @@ export function TranscriptPane({ open, onClose }: TranscriptPaneProps) {
           borderColor: "divider",
         }}
       >
-        <Typography variant="overline">Transcript</Typography>
+        <Typography variant="overline" component="h2" id="transcript-title">
+          Transcript
+        </Typography>
         <Tooltip title="Close">
           <IconButton size="small" onClick={onClose} aria-label="Close transcript">
             <CloseIcon fontSize="small" />
@@ -63,6 +89,8 @@ export function TranscriptPane({ open, onClose }: TranscriptPaneProps) {
       </Stack>
       <Box
         ref={ref}
+        role="log"
+        aria-label="Game log"
         sx={{
           flex: 1,
           overflowY: "auto",
@@ -89,7 +117,7 @@ export function TranscriptPane({ open, onClose }: TranscriptPaneProps) {
                   textTransform: "uppercase",
                 }}
               >
-                {message.kind}
+                {speakerLabel(message.kind)}
               </Typography>
               <Typography component="span" sx={{ color: "rgba(255,255,255,0.85)" }}>
                 {message.text}

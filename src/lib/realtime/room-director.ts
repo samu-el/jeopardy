@@ -30,8 +30,8 @@ export class RoomDirector {
   private readonly profiles = new Map<string, BotProfile>();
   private readonly categoryPreference = new Map<string, Map<string, number>>();
   private readonly pending = new Map<string, { timer: Timer; scope: string }>();
-  /** Close calls handed to the host, by `clueId:playerId`. */
-  private readonly heldJudgements = new Set<string>();
+  /** `clueId:playerId` verdicts left for the host because the judge was unsure. */
+  private readonly heldForHost = new Set<string>();
   private readonly rng: BotRng;
   /** Each bot's knowledge of the clue on screen, rolled once per clue. */
   private readonly memory: BotClueMemory;
@@ -208,6 +208,8 @@ export class RoomDirector {
         clue,
         currentScore: state.scores[playerId] ?? 0,
         leaderScore: Math.max(...Object.values(state.scores), 1),
+        // The best score among the others, not the table's: a leader weighing
+        // itself against its own total always bet everything.
         bestOpponentScore: leadingOpponentScore(state, playerId),
         round: clue.round,
         rng: this.rng,
@@ -302,9 +304,10 @@ export class RoomDirector {
     if (!active?.answerRevealed) return;
     const target = active.currentJudgePlayerId;
     if (!target || active.judges[target] !== undefined) return;
-    // A close call already handed to the host is not re-judged on every
-    // state change; the host's ruling (or an override) settles it.
-    if (this.heldJudgements.has(`${active.clueId}:${target}`)) return;
+    // Already handed to the host as too close to call, or already ruled once
+    // (the host undid it to overrule): the answer is the host's now.
+    const heldKey = `${active.clueId}:${target}`;
+    if (this.heldForHost.has(heldKey)) return;
 
     this.defer(`judge:${target}`, RoomDirector.scopeOf(state), 900, () => {
       const current = this.room.getState();
@@ -313,9 +316,10 @@ export class RoomDirector {
       const clue = current.cluesById[active.clueId];
       const verdict = this.room.runAiJudge(target, { holdAmbiguous: true });
       if (verdict?.held) {
-        this.heldJudgements.add(`${active.clueId}:${target}`);
+        this.heldForHost.add(heldKey);
         return;
       }
+      if (verdict) this.heldForHost.add(heldKey);
       if (verdict && clue) {
         this.noteJudgement(target, clue.category, verdict.correct);
       }

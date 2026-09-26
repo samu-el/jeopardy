@@ -32,6 +32,8 @@ interface MicAnswerFieldProps {
   size?: "small" | "medium";
   fullWidth?: boolean;
   autoFocus?: boolean;
+  /** Extra attributes for the `<input>` itself (keyboard hints and the like). */
+  htmlInputProps?: Record<string, string | number | boolean | undefined>;
 }
 
 /** Support never changes while the page is open. */
@@ -41,8 +43,9 @@ const listeningText = "Listening… speak now";
 
 const visuallyHidden = {
   position: "absolute",
-  width: 1,
-  height: 1,
+  // Strings: MUI reads a bare 1 as 100%.
+  width: "1px",
+  height: "1px",
   overflow: "hidden",
   clip: "rect(0 0 0 0)",
   whiteSpace: "nowrap",
@@ -58,6 +61,7 @@ export function MicAnswerField({
   size = "small",
   fullWidth = true,
   autoFocus,
+  htmlInputProps,
 }: MicAnswerFieldProps) {
   const [listening, setListening] = useState(false);
   const [status, setStatus] = useState<{ text: string; error: boolean } | null>(null);
@@ -91,7 +95,10 @@ export function MicAnswerField({
       sessionRef.current?.abort();
       sessionRef.current = null;
       setListening(false);
-      setStatus({ text: "Stopped. Check your answer, then press Enter.", error: false });
+      setStatus({
+        text: "Stopped. Check your answer, then press Enter.",
+        error: false,
+      });
       inputRef.current?.focus();
       return;
     }
@@ -130,7 +137,9 @@ export function MicAnswerField({
     if (!sessionRef.current) {
       setListening(false);
       setStatus((current) =>
-        current?.error ? current : { text: "Couldn't start the microphone.", error: true },
+        current?.error
+          ? current
+          : { text: "Couldn't start the microphone.", error: true },
       );
     }
   }, [supported, disabled, blocked, listening, onChange, onSubmit]);
@@ -238,6 +247,7 @@ export function MicAnswerField({
               lineHeight: 1.25,
             },
           } as Record<string, unknown>,
+          htmlInput: htmlInputProps,
           input: { endAdornment: micButton },
         }}
       />

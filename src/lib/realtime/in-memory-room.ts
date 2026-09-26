@@ -167,10 +167,7 @@ export class InMemoryRealtimeRoom {
     request: RealtimeConnectionRequest,
     sink: RealtimeMessageSink,
   ): RealtimeConnectResult {
-    const reject = (
-      reason: RealtimeRejectReason,
-      message: string,
-    ): RealtimeConnectResult => {
+    const reject = (reason: RealtimeRejectReason, message: string): RealtimeConnectResult => {
       sink({
         type: "session-rejected",
         connectionId: request.connectionId,
@@ -183,10 +180,7 @@ export class InMemoryRealtimeRoom {
 
     const session = this.sessions.get(request.clientId);
     if (!session || session.sessionToken !== request.sessionToken) {
-      return reject(
-        "invalid-session",
-        "Session token does not match the requested client id.",
-      );
+      return reject("invalid-session", "Session token does not match the requested client id.");
     }
 
     const bannedUntil = this.bans.get(request.clientId);
@@ -312,11 +306,7 @@ export class InMemoryRealtimeRoom {
 
     switch (message.type) {
       case "game-command":
-        return this.applyCommand(
-          connection.clientId,
-          message.command,
-          message.commandId,
-        );
+        return this.applyCommand(connection.clientId, message.command, message.commandId);
       case "chat": {
         const player = this.state.players[connection.clientId];
         this.postChat({
@@ -409,31 +399,27 @@ export class InMemoryRealtimeRoom {
       submittedAnswer: answer,
       expectedAnswer: clue.correctResponse,
     });
-    const hostId = this.state.settings.hostId ?? targetPlayerId;
-    const host = this.state.players[hostId];
-    // A near miss is the host's call when there is a connected host other
-    // than the player being judged; the verdict is posted as advice instead.
-    if (
-      options.holdAmbiguous &&
-      verdict.ambiguous &&
-      hostId !== targetPlayerId &&
-      host?.connected
-    ) {
-      const player = this.state.players[targetPlayerId];
+    const player = this.state.players[targetPlayerId];
+
+    // A close call is the host's, when there is a host here to make it. The
+    // automatic judge used to rule on "Henry VIII" for "Henry VII" 900ms
+    // after the reveal, with nobody given the chance to say otherwise.
+    if (verdict.ambiguous && options.holdAmbiguous && this.hasHumanHostPresent()) {
       this.postChat({
         kind: "judge",
         text: `? ${player?.displayName ?? targetPlayerId} · "${
           answer.trim() || "—"
-        }" · close call, waiting for the host`,
+        }" · too close to call — the host rules`,
       });
       return { ...verdict, held: true as const };
     }
+
+    const hostId = this.state.settings.hostId ?? targetPlayerId;
     this.applyCommand(hostId, {
       type: "judge-answer",
       targetPlayerId,
       correct: verdict.correct,
     });
-    const player = this.state.players[targetPlayerId];
     this.postChat({
       kind: "judge",
       text: `${verdict.correct ? "✓" : "✗"} ${
@@ -441,6 +427,13 @@ export class InMemoryRealtimeRoom {
       } · "${answer.trim() || "—"}" · ${(verdict.confidence * 100).toFixed(0)}%`,
     });
     return { ...verdict, held: false as const };
+  }
+
+  /** A connected human holds the chair, so there is someone to rule. */
+  private hasHumanHostPresent(): boolean {
+    const hostId = this.state.settings.hostId;
+    const host = hostId ? this.state.players[hostId] : undefined;
+    return Boolean(host && host.kind === "human" && host.connected);
   }
 
   private applyCommand(
@@ -462,11 +455,7 @@ export class InMemoryRealtimeRoom {
    * The room's own bookkeeping around a command the engine accepted: a
    * removal that should stick, and a host coming back for their chair.
    */
-  private afterCommand(
-    actorId: string,
-    command: ClientGameCommand,
-    events: GameEvent[],
-  ) {
+  private afterCommand(actorId: string, command: ClientGameCommand, events: GameEvent[]) {
     for (const event of events) {
       if (event.type === "host-configured") {
         // Handed over on purpose: there is no claim left to honour.
@@ -549,10 +538,7 @@ export class InMemoryRealtimeRoom {
   private broadcastPublicState() {
     for (const connection of this.connections.values()) {
       if (connection.status === "connected") {
-        connection.sink({
-          type: "public-state",
-          state: this.getPublicState(connection.clientId),
-        });
+        connection.sink({ type: "public-state", state: this.getPublicState(connection.clientId) });
       }
     }
   }
@@ -578,7 +564,10 @@ export class InMemoryRealtimeRoom {
 
   /** Keeps the room playable when the host or picker drops off. */
   private migrateRolesAwayFrom(clientId: string) {
-    if (this.state.settings.hostId !== clientId && this.state.pickerId !== clientId) {
+    if (
+      this.state.settings.hostId !== clientId &&
+      this.state.pickerId !== clientId
+    ) {
       return;
     }
     const next = reassignRoles(this.state, clientId);
