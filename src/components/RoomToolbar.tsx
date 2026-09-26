@@ -15,6 +15,7 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import EditNoteIcon from "@mui/icons-material/EditNoteOutlined";
 import Tooltip from "@mui/material/Tooltip";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import Typography from "@mui/material/Typography";
 import LogoutIcon from "@mui/icons-material/LogoutOutlined";
 import KeyboardIcon from "@mui/icons-material/KeyboardOutlined";
@@ -63,6 +64,7 @@ export function RoomToolbar({
   const [playersAnchor, setPlayersAnchor] = useState<HTMLElement | null>(null);
   const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
   const [confirmRestart, setConfirmRestart] = useState(false);
+  const narrow = useMediaQuery("(max-width:599.95px)", { noSsr: true });
   const closeMore = () => setMoreAnchor(null);
 
   const online = useGameStore((s) => s.online);
@@ -96,6 +98,18 @@ export function RoomToolbar({
     { label: "Replay last game", icon: <ReplayIconAlt fontSize="small" />, open: onOpenReplay },
     { label: "Shortcuts", icon: <KeyboardIcon fontSize="small" />, open: onToggleShortcuts },
   ];
+  // A phone has room for three 44px keys beside the room code, not five:
+  // the host's two less frequent ones move into More.
+  if (narrow && isRoomHost) {
+    moreItems.unshift({ label: "Change game", icon: <ShuffleIcon fontSize="small" />, open: onOpenPicker });
+    if (inGame) {
+      moreItems.push({
+        label: "Restart",
+        icon: <ReplayIcon fontSize="small" />,
+        open: () => setConfirmRestart(true),
+      });
+    }
+  }
 
   return (
     // Three columns on a wide screen — mark, room, keys — so the room
@@ -195,7 +209,7 @@ export function RoomToolbar({
         ) : null}
 
         <Housing>
-          {isRoomHost ? (
+          {isRoomHost && !narrow ? (
             <ToolKey title="Change game" aria-label="Change game" data-testid="change-game" onClick={onOpenPicker}>
               <ShuffleIcon />
             </ToolKey>
@@ -212,7 +226,7 @@ export function RoomToolbar({
             <MoreVertIcon />
           </ToolKey>
           <HousingDivider />
-          {inGame && isRoomHost ? (
+          {inGame && isRoomHost && !narrow ? (
             <ToolKey title="Restart" aria-label="Restart" onClick={() => setConfirmRestart(true)}>
               <ReplayIcon />
             </ToolKey>

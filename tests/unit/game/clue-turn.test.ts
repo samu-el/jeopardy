@@ -190,7 +190,7 @@ describe("announce", () => {
 
     const rang = state(clue({ buzzes: { sam: 2_000 } }));
     expect(announce({ state: opened, phase: "ring-in" }, { state: rang, phase: "answering" }, "me")).toEqual([
-      "Sam rang in.",
+      "Sam buzzed in.",
     ]);
 
     const revealed = state(clue({ buzzes: { sam: 2_000 }, correctResponse: "Four" }));

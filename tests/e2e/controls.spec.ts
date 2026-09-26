@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Page } from "@playwright/test";
 import { startFixtureGame } from "./helpers";
 
 /**
@@ -241,18 +241,168 @@ test.describe("Clue controls", () => {
       revealBelowBoard: true,
     });
   });
+
+  test("Space on a focused button presses the button, not the buzzer", async ({ page }) => {
+    await openClue(page);
+
+    await page.getByRole("button", { name: "Settings" }).focus();
+    await page.keyboard.press("Space");
+    // The settings panel opened, and nobody rang in.
+    await expect(page.getByLabel("Chat")).toBeVisible();
+    await expect(page.getByTestId("buzzer")).toHaveText("BUZZ");
+    await page.keyboard.press("Escape");
+  });
+
+  test("a clue takes focus and is read out; the board gets focus back", async ({ page }) => {
+    await openClue(page);
+
+    // Focus moved from the square into the clue, and the live region said it.
+    await expect(page.getByTestId("clue-region")).toBeFocused({ timeout: 5_000 }).catch(async () => {
+      // Once the buzzer opens it takes focus from the clue — also on the surface.
+      await expect(page.getByTestId("buzzer")).toBeFocused();
+    });
+    await expect(page.getByTestId("clue-region")).toHaveAttribute("aria-label", /\$200/);
+    await expect(page.getByTestId("game-announcer")).toContainText(/Buzzers open|Two plus two/);
+    await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuetext", /seconds left to ring in/);
+
+    // Ring in: the buzzer autofocused, so Space rings in from where focus is.
+    await page.keyboard.press("Space");
+    await expect(page.getByTestId("game-announcer")).toContainText("You buzzed in");
+    await page.keyboard.type("four");
+    await page.keyboard.press("Enter");
+
+    // The host skips the rest; focus comes back to the board, not the page.
+    await expect(page.getByTestId("next-clue")).toBeVisible({ timeout: 15_000 });
+    await page.getByTestId("next-clue").click();
+    await expect(page.getByTestId("clue-stage")).toBeHidden();
+    const focused = await page.evaluate(() =>
+      Boolean(document.activeElement?.closest('[data-testid="board"]')),
+    );
+    expect(focused).toBe(true);
+  });
+
+  test("the host can overrule the AI judge", async ({ page }) => {
+    await openClue(page);
+    const selfId = await page.evaluate(
+      () => (window as unknown as { __game: { getState: () => { selfId: () => string } } }).__game.getState().selfId(),
+    );
+
+    await page.keyboard.press("Space");
+    await expect(page.getByTestId("buzzer")).toHaveText("IN!", { timeout: 15_000 });
+    await page.keyboard.type("a wrong guess");
+    await page.keyboard.press("Enter");
+
+    // The AI rules it wrong; the bench stays up with the ruling, in words.
+    const override = page.getByTestId("judge-override");
+    await expect(override).toContainText("RULED INCORRECT", { timeout: 15_000 });
+    await expect(page.getByTestId(`score-${selfId}`)).toHaveText("-$200");
+
+    // Reverse it: the score swings to the right answer's value.
+    await override.getByRole("button", { name: "Mark correct" }).click();
+    await expect(page.getByTestId(`score-${selfId}`)).toHaveText("$200", { timeout: 10_000 });
+    await expect(page.getByTestId("judge-override")).toContainText("RULED CORRECT");
+  });
+
+  test("a Daily Double wager out of range is refused with a message", async ({ page }) => {
+    await openClue(page, {
+      clues: [
+        {
+          id: "dd-1",
+          round: "jeopardy",
+          category: "MATH",
+          value: 200,
+          clue: "Two plus two.",
+          correctResponse: "Four",
+          dailyDouble: true,
+        },
+      ],
+    });
+
+    const wager = page.getByLabel("Wager", { exact: true });
+    await expect(wager).toBeVisible({ timeout: 10_000 });
+    await wager.fill("99999");
+    await wager.press("Enter");
+    // A one-clue board's house maximum is its one $200 clue.
+    await expect(page.locator("#wager-error")).toHaveText("Maximum wager is $200.");
+    await expect(wager).toHaveAttribute("aria-invalid", "true");
+
+    // A wager in range goes through, and only the Daily Double player answers.
+    await wager.fill("150");
+    await wager.press("Enter");
+    await expect(page.getByTestId("clue-stage")).toContainText("DAILY DOUBLE · $150", { timeout: 10_000 });
+  });
+
+  test("Restart asks first", async ({ page }) => {
+    await openClue(page);
+    await page.getByRole("button", { name: "Restart" }).click();
+    const dialog = page.getByRole("dialog", { name: "Restart the game?" });
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: "Keep playing" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByTestId("clue-stage")).toBeVisible();
+  });
 });
+
+/**
+ * On a phone the buzzer is the whole game: it has to be on screen, thumb
+ * sized, and take the press on the way down.
+ */
+test.describe("Phone buzzer", () => {
+  for (const viewport of [
+    { width: 375, height: 667 },
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+  ]) {
+    test(`is on screen and thumb-sized at ${viewport.width}x${viewport.height}`, async ({ browser }) => {
+      const page = await phonePage(browser, viewport);
+      await openClue(page);
+
+      const layout = await page.evaluate(() => {
+        const buzzer = document.querySelector('[data-testid="buzzer"]');
+        const text = document.querySelector('[data-testid="clue-text"]');
+        const b = buzzer?.getBoundingClientRect();
+        const t = text?.getBoundingClientRect();
+        return {
+          buzzerTop: b?.top ?? -1,
+          buzzerBottom: b?.bottom ?? -1,
+          buzzerHeight: b?.height ?? 0,
+          textTop: t?.top ?? -1,
+          touchAction: buzzer ? getComputedStyle(buzzer).touchAction : "",
+          viewportHeight: window.innerHeight,
+          scrollWidth: document.documentElement.scrollWidth,
+          clientWidth: document.documentElement.clientWidth,
+        };
+      });
+      expect(layout.buzzerTop).toBeGreaterThanOrEqual(0);
+      expect(layout.buzzerBottom).toBeLessThanOrEqual(layout.viewportHeight);
+      expect(layout.buzzerHeight).toBeGreaterThanOrEqual(44);
+      expect(layout.textTop, JSON.stringify(layout)).toBeGreaterThanOrEqual(0);
+      expect(layout.textTop).toBeLessThan(layout.viewportHeight);
+      expect(layout.touchAction).toBe("manipulation");
+      expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth);
+
+      await page.getByTestId("buzzer").tap();
+      await expect(page.getByTestId("buzzer")).toHaveText("IN!", { timeout: 10_000 });
+      await page.context().close();
+    });
+  }
+});
+
+async function phonePage(browser: Browser, viewport: { width: number; height: number }) {
+  const context = await browser.newContext({ viewport, hasTouch: true, isMobile: true });
+  return context.newPage();
+}
 
 /** Starts a solo game on the fixture board and opens the first clue. */
 async function openClue(
   page: Page,
-  options: { long?: boolean; keepPacing?: boolean } = {},
+  options: { long?: boolean; keepPacing?: boolean; clues?: unknown[] } = {},
 ) {
   await startFixtureGame(page);
 
   // Give the buzzer room so the test isn't racing the show's pacing, and swap
   // in a wordy clue when the layout is what's under test.
-  await page.evaluate(([long, keepPacing]) => {
+  await page.evaluate(([long, keepPacing, customClues]) => {
     const store = (window as unknown as { __game: { getState: () => Record<string, never> } })
       .__game.getState() as unknown as {
       runtime: { sendCommand: (id: string, command: unknown) => void };
@@ -272,10 +422,10 @@ async function openClue(
           { buzzWindowMs: 120_000, autoAdvanceMs: 0, roundIntroMs: 0, buzzUnlockDelayMs: 200, readoutPerCharMs: 0 }
         : { buzzWindowMs: 120_000, autoAdvanceMs: 0, roundIntroMs: 0 },
     });
-    if (long) {
+    if (long || customClues) {
       store.runtime.sendCommand(store.lobby.hostId, {
         type: "load-game",
-        clues: [
+        clues: customClues ?? [
           {
             id: "long-1",
             round: "jeopardy",
@@ -297,11 +447,11 @@ async function openClue(
         settings: { buzzWindowMs: 120_000, autoAdvanceMs: 0, roundIntroMs: 0 },
       });
     }
-  }, [Boolean(options.long), Boolean(options.keepPacing)] as const);
+  }, [Boolean(options.long), Boolean(options.keepPacing), options.clues ?? null] as const);
 
   await page.getByRole("button", { name: /\$200/ }).first().click({ timeout: 20_000 });
   await expect(page.getByTestId("clue-stage")).toBeVisible();
-  if (options.keepPacing) return;
+  if (options.keepPacing || options.clues) return;
   if (options.long) {
     // The layout is what's under test; the clue only has to be on screen, and
     // a wordy one is read for far longer than a spec should sit waiting.

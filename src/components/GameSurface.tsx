@@ -163,7 +163,16 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
   useEffect(() => {
     if (!openClueId || !interactive || tv) return;
     if (mayTakeFocus()) clueRegionRef.current?.focus({ preventScroll: true });
-  }, [openClueId, interactive, tv]);
+    // On a phone the clue, its clock and the buzz bar are sized to fit one
+    // screen together — so make sure that screen is the one showing.
+    if (compact) {
+      const board = document.querySelector('[data-testid="board"]');
+      const strip = document.querySelector('[data-testid="clue-controls"]');
+      const top = board?.getBoundingClientRect().top ?? 0;
+      const bottom = strip?.getBoundingClientRect().bottom ?? 0;
+      if (top < 0 || bottom > window.innerHeight - 84) window.scrollBy({ top: top - 8 });
+    }
+  }, [openClueId, interactive, tv, compact]);
 
   const currentClue = publicState?.currentClue;
   const clueName = currentClue

@@ -74,7 +74,7 @@ export function announce(
       for (const id of Object.keys(clue.buzzes)) {
         if (sameClue && was?.buzzes[id] !== undefined) continue;
         lines.push(
-          id === selfId ? "You rang in. Answer now." : `${who(id)} rang in.`,
+          id === selfId ? "You buzzed in. Answer now." : `${who(id)} buzzed in.`,
         );
       }
     }

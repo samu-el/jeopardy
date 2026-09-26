@@ -113,7 +113,7 @@ export function RoomBar({ episode }: RoomBarProps) {
             px: { xs: 1, sm: 1.25 },
             cursor: "pointer",
             // On a touch screen the chip is a 44px target.
-            "@media (pointer: coarse)": { height: 44, minWidth: 88 },
+            "@media (pointer: coarse)": { height: 44 },
             color: "inherit",
             "&:hover": { borderColor: ui.inkMuted },
             "&:focus-visible": { outline: `2px solid ${ui.blue}`, outlineOffset: 1 },
