@@ -93,6 +93,16 @@ test.describe("Landing", () => {
   });
 
   test("changing the game mid-game asks before replacing the board", async ({ page }) => {
+    // Keep the picker's counts off the full archive: loading it alongside the
+    // fixture deal is slow enough to reset the dev server's connection.
+    for (const mode of ["stats", "themes", "decades"]) {
+      await page.route(`**/api/episodes?mode=${mode}*`, (route) =>
+        route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify(mode === "stats" ? { total: 1 } : { counts: { all: 1 } }),
+        }),
+      );
+    }
     await startFixtureGame(page);
     await page.getByTestId("change-game").click();
     const picker = page.getByRole("dialog", { name: "Change game" });
