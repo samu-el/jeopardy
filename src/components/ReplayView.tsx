@@ -25,8 +25,15 @@ export function ReplayView({ open, onClose }: ReplayViewProps) {
   const visible = entries.slice(0, cursor);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Replay last game</DialogTitle>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      aria-labelledby="replay-title"
+      data-testid="replay-dialog"
+    >
+      <DialogTitle id="replay-title">Replay last game</DialogTitle>
       <DialogContent dividers>
         {!log ? (
           <Typography variant="body2" color="text.secondary">
@@ -40,6 +47,7 @@ export function ReplayView({ open, onClose }: ReplayViewProps) {
             </Typography>
             <LinearProgress
               variant="determinate"
+              aria-label="Replay progress"
               value={entries.length === 0 ? 0 : (cursor / entries.length) * 100}
             />
             <Box
@@ -57,7 +65,7 @@ export function ReplayView({ open, onClose }: ReplayViewProps) {
                 <Box key={index} sx={{ mb: 0.5 }}>
                   <Typography
                     component="span"
-                    sx={{ color: ui.inkFaint, mr: 1, fontSize: 11 }}
+                    sx={{ color: ui.inkMuted, mr: 1, fontSize: 11 }}
                   >
                     {new Date(entry.t).toLocaleTimeString()}
                   </Typography>

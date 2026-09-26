@@ -21,7 +21,8 @@ export function valueFontSize(columns: number): string {
 
 /** Never under 11px: a phone's six columns still have to be read. */
 export function categoryFontSize(columns: number): string {
-  return `clamp(11px, ${(9.5 / columns).toFixed(2)}cqw, 18px)`;
+  // A television raises both through CSS variables: 18px is a desk's cap.
+  return `clamp(11px, calc(${(9.5 / columns).toFixed(2)}cqw * var(--board-category-scale, 1)), var(--board-category-max, 18px))`;
 }
 
 /** The blue face every cell on the board shares. */

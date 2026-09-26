@@ -201,6 +201,7 @@ export function Podium({
               lineHeight: 1,
               fontVariantNumeric: "tabular-nums",
               animation: flash && !reducedMotion ? `score-${flash} 620ms ease-out` : "none",
+              "@media (prefers-reduced-motion: reduce)": { animation: "none" },
               "@keyframes score-up": {
                 "0%": { transform: "scale(1)", color: jeopardyPalette.correct },
                 "35%": { transform: "scale(1.22)", color: jeopardyPalette.correct },

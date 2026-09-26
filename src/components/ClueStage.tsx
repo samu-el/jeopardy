@@ -157,7 +157,8 @@ export function ClueStage({ state }: ClueStageProps) {
               textAlign: "center",
               color: jeopardyPalette.goldBright,
               fontWeight: 700,
-              fontSize: "clamp(16px, 2.4vw, 34px)",
+              // Never smaller than the clue it answers, phone included.
+              fontSize: `max(clamp(16px, 2.4vw, 34px), ${scale.panel})`,
               mb: 1.5,
               animation: reducedMotion ? "none" : "clue-in 220ms ease-out both",
             })}
