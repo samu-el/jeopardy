@@ -24,6 +24,9 @@ export function Room() {
   const online = useGameStore((s) => s.online);
   const exitToLobby = useGameStore((s) => s.exitToLobby);
   const chatEnabled = useGameStore((s) => s.preferences.chatEnabled);
+  const shortcutsEnabled = useGameStore(
+    (s) => s.preferences.shortcutsEnabled !== false,
+  );
   const [pickerOpen, setPickerOpen] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -31,9 +34,11 @@ export function Room() {
   const [replayOpen, setReplayOpen] = useState(false);
 
   useEffect(() => {
+    if (!shortcutsEnabled) return;
     function onKey(event: KeyboardEvent) {
       const target = event.target as HTMLElement | null;
       if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA") return;
+      if (target?.isContentEditable) return;
       if (event.key === "?") {
         event.preventDefault();
         setShortcutsOpen((value) => !value);
@@ -41,7 +46,7 @@ export function Room() {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [shortcutsEnabled]);
 
   const showResults = publicState?.round === "complete";
 
