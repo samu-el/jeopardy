@@ -1,11 +1,16 @@
 /**
- * The final standings, worked out once for every screen that shows them.
+ * The final standings as a screen shows them.
  *
- * Only contestants stand: a spectator — a television, someone watching —
- * holds $0 and no seat, and must never be listed, let alone crowned. Ties
- * share a rank (1, 1, 3), and every player on the top score is a winner.
+ * The room already ranks contestants (`standings`, spectators excluded,
+ * ties sharing a rank) and names the winners (`results.winners`: the top
+ * score, and only when it is above zero — on the show a contestant must
+ * finish in the black to win). This joins those ids back to the players so
+ * every results screen — the laptop, the phone, the TV — reads one answer.
+ *
+ * A snapshot from an older room without `standings` still ranks from the
+ * player list, contestants only.
  */
-import type { PublicPlayerState } from "./contracts";
+import type { PublicGameState, PublicPlayerState } from "./contracts";
 
 export interface Standing {
   player: PublicPlayerState;
@@ -18,7 +23,10 @@ export interface Standing {
 
 export interface GameResults {
   standings: Standing[];
+  /** Crowned: the top score, above zero. Several on a tie; none if all ≤ $0. */
   winners: PublicPlayerState[];
+  /** The top score, whatever it is. */
+  leaders: PublicPlayerState[];
   tie: boolean;
 }
 
@@ -26,26 +34,39 @@ export function contestantsOf<T extends { spectator: boolean }>(players: readonl
   return players.filter((player) => !player.spectator);
 }
 
-export function computeResults(players: readonly PublicPlayerState[]): GameResults {
-  const sorted = contestantsOf(players).sort(
-    (a, b) => b.score - a.score || a.displayName.localeCompare(b.displayName),
-  );
-  const top = sorted[0]?.score;
-  const counts = new Map<number, number>();
-  for (const player of sorted) counts.set(player.score, (counts.get(player.score) ?? 0) + 1);
+function rankFromPlayers(players: readonly PublicPlayerState[]) {
+  const sorted = contestantsOf(players).sort((a, b) => b.score - a.score);
+  return sorted.map((player) => ({
+    playerId: player.id,
+    score: player.score,
+    rank: sorted.findIndex((other) => other.score === player.score) + 1,
+  }));
+}
 
-  let rank = 0;
-  const standings = sorted.map<Standing>((player, index) => {
-    if (index === 0 || sorted[index - 1].score !== player.score) rank = index + 1;
-    return {
-      player,
-      rank,
-      winner: player.score === top,
-      tied: (counts.get(player.score) ?? 0) > 1,
-    };
-  });
-  const winners = standings.filter((entry) => entry.winner).map((entry) => entry.player);
-  return { standings, winners, tie: winners.length > 1 };
+export function computeResults(state: PublicGameState): GameResults {
+  const byId = new Map(state.players.map((player) => [player.id, player]));
+  const ranked = (state.standings ?? rankFromPlayers(state.players)).filter(
+    (entry) => byId.has(entry.playerId) && !byId.get(entry.playerId)!.spectator,
+  );
+  const leaderIds =
+    state.results?.leaders ?? ranked.filter((entry) => entry.rank === 1).map((e) => e.playerId);
+  const winnerIds =
+    state.results?.winners ??
+    leaderIds.filter((id) => (byId.get(id)?.score ?? 0) > 0);
+  const winnerSet = new Set(winnerIds);
+  const counts = new Map<number, number>();
+  for (const entry of ranked) counts.set(entry.rank, (counts.get(entry.rank) ?? 0) + 1);
+
+  const standings = ranked.map<Standing>((entry) => ({
+    player: byId.get(entry.playerId)!,
+    rank: entry.rank,
+    winner: winnerSet.has(entry.playerId),
+    tied: (counts.get(entry.rank) ?? 0) > 1,
+  }));
+  const pick = (ids: string[]) =>
+    ids.map((id) => byId.get(id)).filter((player): player is PublicPlayerState => Boolean(player));
+  const winners = pick(winnerIds);
+  return { standings, winners, leaders: pick(leaderIds), tie: winners.length > 1 };
 }
 
 /** "Ada", "Ada & Grace", "Ada, Grace & Linus". */

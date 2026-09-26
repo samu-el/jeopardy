@@ -21,6 +21,7 @@ import { jeopardyFonts, ui } from "@/lib/foundation/jeopardy-style";
 import { AvatarHostController } from "./AvatarHostController";
 import { GameSurface } from "./GameSurface";
 import { TvResults } from "./TvResults";
+import { useReducedMotion } from "./use-reduced-motion";
 
 /** How long a TV waits on a silent connection before saying so. */
 const connectPatienceMs = 12_000;
@@ -86,7 +87,7 @@ export function DisplayView() {
   const setDisplayMode = useGameStore((s) => s.setDisplayMode);
   const joinAsDisplay = useGameStore((s) => s.joinAsDisplay);
   const soundEnabled = useGameStore((s) => s.preferences.soundEnabled);
-  const reducedMotion = useGameStore((s) => s.preferences.reducedMotion);
+  const reducedMotion = useReducedMotion();
   const setPreference = useGameStore((s) => s.setPreference);
   const [fullscreen, setFullscreen] = useState(false);
   const showJoinPreference = useJoinPanelVisible();
@@ -132,7 +133,6 @@ export function DisplayView() {
 
   return (
     <Box
-      component="main"
       data-testid="display-view"
       sx={{
         position: "fixed",

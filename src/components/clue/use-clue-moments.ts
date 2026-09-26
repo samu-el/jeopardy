@@ -39,9 +39,9 @@ export function useFinalTheme(state: PublicGameState, soundEnabled: boolean) {
   const armedFor = useRef<string | null>(null);
   const live =
     clue !== undefined &&
-    clue.round === "final-jeopardy" &&
-    clue.clue !== undefined &&
-    clue.correctResponse === undefined &&
+    clue.kind === "final" &&
+    // The thirty seconds of writing: after the wagers, before the reveal.
+    (clue.phase === "reading" || clue.phase === "buzzing" || clue.phase === "answering") &&
     soundEnabled;
 
   useEffect(() => {

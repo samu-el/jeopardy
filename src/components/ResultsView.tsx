@@ -13,12 +13,12 @@ import EmojiEventsIcon from "@mui/icons-material/EmojiEventsOutlined";
 import ShuffleIcon from "@mui/icons-material/ShuffleOutlined";
 import ReplayIcon from "@mui/icons-material/ReplayOutlined";
 import type { PublicGameState } from "@/lib/game";
+import { getFinalRecord } from "@/lib/game/final-reveal";
 import { computeResults, joinNames, ordinal } from "@/lib/game/results";
 import { useGameStore } from "@/lib/state/game-store";
 import { formatMoney } from "@/lib/foundation/money";
 import { jeopardyFonts, jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
 import { GamePicker } from "./GamePicker";
-import { lastFinalReveal } from "./use-final-reveal";
 
 interface ResultsViewProps {
   state: PublicGameState;
@@ -40,11 +40,8 @@ const winnerInk = "#1A1200";
 export function ResultsView({ state, onPlayAgain }: ResultsViewProps) {
   const selfId = useGameStore((s) => s.selfId)();
   const exitToLobby = useGameStore((s) => s.exitToLobby);
-  const { standings, winners, tie } = useMemo(
-    () => computeResults(state.players),
-    [state.players],
-  );
-  const final = lastFinalReveal(state);
+  const { standings, winners, tie } = useMemo(() => computeResults(state), [state]);
+  const final = getFinalRecord(state);
   const stats = state.stats;
   const isHost = !state.settings.hostId || state.settings.hostId === selfId;
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -58,7 +55,7 @@ export function ResultsView({ state, onPlayAgain }: ResultsViewProps) {
 
   const headline =
     winners.length === 0
-      ? "Game over"
+      ? "No winner"
       : tie
         ? `Tie: ${joinNames(winners.map((winner) => winner.displayName))}`
         : winners[0].displayName;
@@ -98,17 +95,21 @@ export function ResultsView({ state, onPlayAgain }: ResultsViewProps) {
             }}
           >
             <Box component="span" sx={visuallyHidden}>
-              {winners.length === 0 ? "" : tie ? "Winners: " : "Winner: "}
+              {winners.length === 0 ? "Result: " : tie ? "Winners: " : "Winner: "}
             </Box>
             {headline}
           </Typography>
-          {winners.length > 0 ? (
+          {winners.length === 0 ? (
+            <Typography sx={{ mt: 1, color: "rgba(255,255,255,0.85)" }}>
+              Nobody finished in the black, so nobody takes the game.
+            </Typography>
+          ) : (
             <Typography
               data-testid="results-winner-score"
               sx={{
                 mt: 1,
                 fontFamily: jeopardyFonts.display,
-                color: winners[0].score < 0 ? negativeInk : jeopardyPalette.goldBright,
+                color: jeopardyPalette.goldBright,
                 fontWeight: 700,
                 fontSize: { xs: 26, md: 40 },
                 textShadow: "0.04em 0.04em 0 rgba(0,0,0,0.7)",
@@ -116,7 +117,7 @@ export function ResultsView({ state, onPlayAgain }: ResultsViewProps) {
             >
               {formatMoney(winners[0].score)}
             </Typography>
-          ) : null}
+          )}
           {isHost ? (
             <Stack
               direction="row"

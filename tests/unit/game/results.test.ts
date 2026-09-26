@@ -1,53 +1,55 @@
 import { describe, expect, it } from "vitest";
-import type { PublicPlayerState } from "@/lib/game";
+import {
+  createGame,
+  getPublicGameState,
+  type GamePlayer,
+  type PublicGameState,
+} from "@/lib/game";
 import { computeResults, joinNames, ordinal } from "@/lib/game/results";
 import { formatMoney } from "@/lib/foundation/money";
 
-function player(
-  id: string,
-  score: number,
-  extra: Partial<PublicPlayerState> = {},
-): PublicPlayerState {
-  return {
-    id,
-    displayName: id[0].toUpperCase() + id.slice(1),
-    kind: "human",
-    connected: true,
-    spectator: false,
-    score,
-    ...extra,
-  };
+const seat = (id: string, spectator = false): GamePlayer => ({
+  id,
+  displayName: id[0].toUpperCase() + id.slice(1),
+  kind: "human",
+  connected: true,
+  spectator,
+});
+
+/** A finished game with these scores, as the room would project it. */
+function finished(scores: Record<string, number>, spectators: string[] = []): PublicGameState {
+  const state = createGame({
+    roomId: "r",
+    players: [...Object.keys(scores).map((id) => seat(id)), ...spectators.map((id) => seat(id, true))],
+    clues: [],
+    now: 0,
+  });
+  return getPublicGameState({ ...state, round: "complete", scores: { ...state.scores, ...scores } }, 1);
 }
 
 describe("computeResults", () => {
-  it("never lists or crowns a spectator, even when every contestant is below $0", () => {
-    const results = computeResults([
-      player("display", 0, { spectator: true }),
-      player("ada", -400),
-      player("grace", -200),
-    ]);
+  it("never lists or crowns a spectator, and nobody wins below $0", () => {
+    const results = computeResults(finished({ ada: -400, grace: -200 }, ["display"]));
     expect(results.standings.map((entry) => entry.player.id)).toEqual(["grace", "ada"]);
-    expect(results.winners.map((winner) => winner.id)).toEqual(["grace"]);
-    expect(results.tie).toBe(false);
+    expect(results.winners).toEqual([]);
+    expect(results.leaders.map((leader) => leader.id)).toEqual(["grace"]);
+    expect(results.standings.every((entry) => !entry.winner)).toBe(true);
   });
 
   it("gives tied players the same rank and makes them all winners", () => {
-    const results = computeResults([
-      player("ada", 800),
-      player("grace", 800),
-      player("linus", 200),
-    ]);
+    const results = computeResults(finished({ ada: 800, grace: 800, linus: 200 }));
     expect(results.standings.map((entry) => entry.rank)).toEqual([1, 1, 3]);
-    expect(results.winners.map((winner) => winner.id)).toEqual(["ada", "grace"]);
+    expect(results.winners.map((winner) => winner.id).sort()).toEqual(["ada", "grace"]);
     expect(results.tie).toBe(true);
     expect(results.standings[0].tied).toBe(true);
     expect(results.standings[2].tied).toBe(false);
   });
 
-  it("has no winner in a room with no contestants", () => {
-    const results = computeResults([player("display", 0, { spectator: true })]);
-    expect(results.standings).toEqual([]);
-    expect(results.winners).toEqual([]);
+  it("ranks from the players when an older room sends no standings", () => {
+    const view = finished({ ada: 400, grace: 600 }, ["display"]);
+    const results = computeResults({ ...view, standings: undefined, results: undefined });
+    expect(results.standings.map((entry) => entry.player.id)).toEqual(["grace", "ada"]);
+    expect(results.winners.map((winner) => winner.id)).toEqual(["grace"]);
   });
 });
 

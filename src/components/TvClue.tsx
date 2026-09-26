@@ -17,6 +17,7 @@ import {
 } from "@/lib/foundation/jeopardy-style";
 import { DailyDoubleSplash } from "./DailyDoubleSplash";
 import { useCountdown, useDailyDoubleSplash, useFinalTheme } from "./clue/use-clue-moments";
+import { useReducedMotion } from "./use-reduced-motion";
 
 interface TvClueProps {
   state: PublicGameState;
@@ -40,18 +41,19 @@ const headerInk = "rgba(255,255,255,0.82)";
  * and new score, lowest score first.
  */
 export function TvClue({ state, canControl, onCommand }: TvClueProps) {
-  const preferences = useGameStore((s) => s.preferences);
+  const soundEnabled = useGameStore((s) => s.preferences.soundEnabled);
+  const reducedMotion = useReducedMotion();
   // The television is the screen with the speakers: the sting and the think
   // music play here, not only on the laptop's clue panel.
-  const splashVisible = useDailyDoubleSplash(state, preferences.soundEnabled);
-  useFinalTheme(state, preferences.soundEnabled);
+  const splashVisible = useDailyDoubleSplash(state, soundEnabled);
+  useFinalTheme(state, soundEnabled);
 
   const clue = state.currentClue;
   if (!clue) return null;
 
   const final = getFinalReveal(state);
   const splash = (
-    <DailyDoubleSplash visible={splashVisible} reducedMotion={preferences.reducedMotion} />
+    <DailyDoubleSplash visible={splashVisible} reducedMotion={reducedMotion} />
   );
 
   if (final) {
@@ -79,9 +81,12 @@ export function TvClue({ state, canControl, onCommand }: TvClueProps) {
   // No clue text yet means the room is still collecting a Daily Double wager.
   // Nothing to advance to, so the screen waits rather than offering a click
   // the server would only reject.
-  const waiting = clue.clue === undefined;
-  const answered = clue.correctResponse !== undefined;
+  const waiting = clue.phase === "wager" || clue.clue === undefined;
+  // Revealed is the room's phase, not whether the response came along: it
+  // is held back while a rebound is still possible.
+  const answered = clue.phase === "judging" || clue.phase === "resolved";
   const clickable = canControl && !waiting;
+  const wager = clue.dailyDoublePlayerId ? clue.wagers[clue.dailyDoublePlayerId] : undefined;
   const wagerer = clue.dailyDoublePlayerId
     ? state.players.find((player) => player.id === clue.dailyDoublePlayerId)?.displayName
     : undefined;
@@ -102,8 +107,10 @@ export function TvClue({ state, canControl, onCommand }: TvClueProps) {
           data-testid="tv-clue-header"
           sx={displayType({ letterSpacing: "0.12em", color: headerInk, fontSize: headerSize })}
         >
-          {clue.dailyDouble
-            ? `${clue.category} · Daily Double`
+          {clue.kind === "daily-double"
+            ? `${clue.category} · Daily Double${
+                wager !== undefined ? ` · ${formatMoney(wager)}` : ""
+              }`
             : `${clue.category} · ${formatMoney(clue.value)}`}
         </Typography>
 
@@ -137,7 +144,7 @@ export function TvClue({ state, canControl, onCommand }: TvClueProps) {
           </Typography>
         )}
 
-        {answered ? (
+        {answered && clue.correctResponse !== undefined ? (
           <Typography
             component="span"
             data-testid="tv-answer"

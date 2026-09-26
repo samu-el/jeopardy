@@ -6,9 +6,10 @@ interface Snapshot {
   roundIntroEndsAt?: number;
   board: { id: string; revealed: boolean }[];
   currentClue?: {
+    kind: string;
+    phase: string;
     round: string;
     clue?: string;
-    correctResponse?: string;
     waitingForWager: string[];
     currentJudgePlayerId?: string;
   };
@@ -44,9 +45,24 @@ async function selfId(page: Page): Promise<string> {
   );
 }
 
-/** Plays every clue of the opening round with nobody ringing in. */
-async function playOutRound(host: Page) {
-  for (let guard = 0; guard < 12; guard += 1) {
+/** The fixture board's responses, by clue. */
+const fixtureAnswers: Record<string, string> = {
+  "Two plus two.": "four",
+  "Pi to two places.": "3.14",
+  "Mix red and blue.": "purple",
+  "Color of an emerald.": "green",
+};
+
+async function phaseOf(page: Page) {
+  return (await snapshot(page))?.currentClue?.phase ?? "none";
+}
+
+/**
+ * Plays the opening round with everyone right: the host takes three clues
+ * and the guest one, so both finish in the black and both play Final.
+ */
+async function playOutRound(host: Page, guest: Page) {
+  for (let index = 0; index < 12; index += 1) {
     await expect
       .poll(
         async () => {
@@ -58,29 +74,46 @@ async function playOutRound(host: Page) {
       .toBe(true);
     const s = (await snapshot(host))!;
     if (s.round !== "jeopardy") return;
-    if (!s.currentClue) {
-      const next = s.board.find((clue) => !clue.revealed);
-      if (!next) return;
-      await send(host, { type: "pick-clue", clueId: next.id });
-      await expect.poll(async () => Boolean((await snapshot(host))?.currentClue)).toBe(true);
-    }
-    const open = (await snapshot(host))!.currentClue;
-    if (open && open.waitingForWager.length > 0) {
+    const next = s.board.find((clue) => !clue.revealed);
+    if (!next) return;
+    await send(host, { type: "pick-clue", clueId: next.id });
+    await expect.poll(() => phaseOf(host)).not.toBe("none");
+
+    let answerer = index === 1 ? guest : host;
+    if ((await snapshot(host))!.currentClue!.kind === "daily-double") {
+      // The picker owns a Daily Double: stake the minimum and answer it.
+      answerer = host;
       await send(host, { type: "submit-wager", amount: 5 });
-      await expect.poll(async () => (await snapshot(host))?.currentClue?.clue).toBeTruthy();
+      await expect.poll(() => phaseOf(host), { timeout: 20_000 }).toBe("answering");
+    } else {
+      // The phase in a snapshot is as of that snapshot, and the readout ends
+      // without one, so ring in until the room takes it.
+      await expect
+        .poll(
+          async () => {
+            if ((await phaseOf(host)) === "answering") return true;
+            await send(answerer, { type: "buzz" });
+            await host.waitForTimeout(350);
+            return (await phaseOf(host)) === "answering";
+          },
+          { timeout: 20_000, intervals: [100] },
+        )
+        .toBe(true);
     }
-    await send(host, { type: "reveal-answer" });
-    await expect
-      .poll(async () => {
-        const c = (await snapshot(host))?.currentClue;
-        return !c || c.correctResponse !== undefined;
-      })
-      .toBe(true);
+    const text = (await snapshot(host))!.currentClue!.clue ?? "";
+    await send(answerer, { type: "submit-answer", answer: fixtureAnswers[text] ?? "" });
+    await expect.poll(() => phaseOf(host), { timeout: 20_000 }).toMatch(/judging|resolved/);
+    // The judge may already have ruled; if not, rule it right.
+    for (let i = 0; i < 3 && (await phaseOf(host)) === "judging"; i += 1) {
+      const target = (await snapshot(host))?.currentClue?.currentJudgePlayerId;
+      if (target) await send(host, { type: "judge-answer", targetPlayerId: target, correct: true });
+      await host.waitForTimeout(300);
+    }
     await send(host, { type: "skip" });
     await expect
       .poll(async () => {
         const c = (await snapshot(host))?.currentClue;
-        return !c || c.round === "final-jeopardy";
+        return !c || c.kind === "final";
       })
       .toBe(true);
   }
@@ -276,7 +309,7 @@ test.describe("Display mode", () => {
       // A television is not a person in the room.
       await expect(host.getByText(/^2 in room$/i)).toBeVisible();
 
-      await playOutRound(host);
+      await playOutRound(host, guest);
 
       // Final, while the room wagers: Final copy, the category, no "$0",
       // no Daily Double.
@@ -294,8 +327,8 @@ test.describe("Display mode", () => {
       const frame = await tvClue.boundingBox();
       expect(frame!.width).toBeGreaterThan(frame!.height * 1.3);
 
-      await send(host, { type: "submit-wager", amount: 0 });
-      await send(guest, { type: "submit-wager", amount: 0 });
+      await send(host, { type: "submit-wager", amount: 100 });
+      await send(guest, { type: "submit-wager", amount: 100 });
       await expect(display.getByTestId("tv-clue-text")).toContainText(/gopher/i, {
         timeout: 20_000,
       });
@@ -328,6 +361,7 @@ test.describe("Display mode", () => {
       await expect(display.getByTestId("tv-results")).toBeVisible({ timeout: 20_000 });
       await expect(display.getByTestId("board")).toHaveCount(0);
       await expect(display.getByTestId("tv-results-winner")).not.toContainText(/display/i);
+      await expect(display.getByTestId("tv-results-winner")).toContainText(/wins/i);
       await expect(display.getByTestId(/^tv-podium-/)).toHaveCount(2);
       await expect(display.getByTestId("tv-results-final")).toContainText(/python/i);
 

@@ -4,6 +4,7 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEventsOutlined";
 import type { PublicGameState } from "@/lib/game";
+import { getFinalRecord } from "@/lib/game/final-reveal";
 import { computeResults, joinNames, ordinal, type Standing } from "@/lib/game/results";
 import { formatMoney } from "@/lib/foundation/money";
 import {
@@ -12,7 +13,6 @@ import {
   displayType,
   jeopardyPalette,
 } from "@/lib/foundation/jeopardy-style";
-import { lastFinalReveal } from "./use-final-reveal";
 
 interface TvResultsProps {
   state: PublicGameState;
@@ -28,8 +28,8 @@ interface TvResultsProps {
  * a television is never a player.
  */
 export function TvResults({ state, reducedMotion }: TvResultsProps) {
-  const { standings, winners, tie } = computeResults(state.players);
-  const final = lastFinalReveal(state);
+  const { standings, winners, tie } = computeResults(state);
+  const final = getFinalRecord(state);
   const podium = standings.slice(0, 3);
   // Silver, gold, bronze — the winner in the middle, the way a podium stands.
   const podiumOrder = podium.length === 3 ? [podium[1], podium[0], podium[2]] : podium;
@@ -85,13 +85,14 @@ export function TvResults({ state, reducedMotion }: TvResultsProps) {
         })}
       >
         {winners.length === 0
-          ? "Game over"
+          ? "No winner"
           : tie
             ? `Tie: ${joinNames(winners.map((winner) => winner.displayName))}`
             : `${winners[0].displayName} wins`}
       </Typography>
       {winners.length > 0 ? (
         <Typography
+          data-testid="tv-results-score"
           sx={displayType({
             fontWeight: 700,
             fontSize: "clamp(22px, 6vh, 80px)",
