@@ -11,7 +11,13 @@ import { announce } from "@/lib/game/announcer";
 import type { PublicActiveClueState, PublicGameState } from "@/lib/game";
 
 function clue(overrides: Partial<PublicActiveClueState> = {}): PublicActiveClueState {
+  const round = overrides.round ?? "jeopardy";
   return {
+    kind: round === "final-jeopardy" ? "final" : overrides.dailyDouble ? "daily-double" : "standard",
+    phase: overrides.correctResponse !== undefined ? "resolved" : "buzzing",
+    rebound: false,
+    responseFinal: overrides.correctResponse !== undefined,
+    wagerLimits: {},
     clueId: "c1",
     round: "jeopardy",
     dailyDouble: false,
@@ -116,10 +122,10 @@ describe("deriveClueTurn", () => {
   });
 
   it("puts a player with no money in Final Jeopardy in the audience", () => {
-    const final = clue({ round: "final-jeopardy", clue: undefined, waitingForWager: ["me", "sam"] });
+    const final = clue({ round: "final-jeopardy", clue: undefined, waitingForWager: ["sam"] });
     const view = deriveClueTurn(state(final, { round: "final-jeopardy" }), "me", 2_000);
     expect(view.spectatingFinal).toBe(true);
-    expect(view.wagerLimits).toEqual({ min: 0, max: 0 });
+    expect(view.myWagerOpen).toBe(false);
   });
 
   it("reports time's up and the auto-advance countdown", () => {
@@ -139,7 +145,10 @@ describe("deriveClueTurn", () => {
 describe("wagers", () => {
   it("reports an out-of-range wager instead of clamping it", () => {
     const limits = wagerLimitsFor(clue(), 200);
-    expect(limits).toEqual({ min: 5, max: 1_000 });
+    expect(limits).toEqual({ min: 5, max: 1_000, maxIsScore: false });
+    expect(
+      wagerLimitsFor(clue({ wagerLimits: { me: { min: 5, max: 3_000, maxIsScore: true } } }), 0, "me"),
+    ).toEqual({ min: 5, max: 3_000, maxIsScore: true });
     expect(validateWager("99999", limits)).toEqual({ ok: false, message: "Maximum wager is $1000." });
     expect(validateWager("2", limits)).toEqual({ ok: false, message: "Minimum wager is $5." });
     expect(validateWager("", limits).ok).toBe(false);

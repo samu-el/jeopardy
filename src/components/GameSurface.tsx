@@ -14,7 +14,8 @@ import { RoundIntro } from "./RoundIntro";
 import { TvClue } from "./TvClue";
 import { GameAnnouncer } from "./GameAnnouncer";
 import { mayTakeFocus } from "./clue/keyboard";
-import { useCompactPlay, useReducedMotion } from "./use-reduced-motion";
+import { useReducedMotion } from "./use-reduced-motion";
+import { useCompactPlay } from "./use-compact-play";
 
 interface GameSurfaceProps {
   /**

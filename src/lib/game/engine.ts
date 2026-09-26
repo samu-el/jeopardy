@@ -43,10 +43,21 @@ import {
 } from "./room-flow";
 import { createEmptyStats, defaultGameSettings, emptyClueIndex } from "./rules";
 
-export { createEmptyStats, defaultGameSettings, maxPlayersPerRoom, maxReadoutHoldMs } from "./rules";
+export {
+  createEmptyStats,
+  defaultGameSettings,
+  getFinalists,
+  getLeaders,
+  getStandings,
+  getWinners,
+  leadingOpponentScore,
+  maxPlayersPerRoom,
+  maxReadoutHoldMs,
+  wagerLimitsFor,
+} from "./rules";
 export { ensureHost, reassignRoles } from "./room-flow";
 export { tickGame } from "./clue-flow";
-export { getPublicGameState } from "./projection";
+export { cluePhase, getPublicGameState, type ProjectionOptions } from "./projection";
 
 export function createGame(input: CreateGameInput): GameState {
   const cluesById: Record<string, GameClue> = {};

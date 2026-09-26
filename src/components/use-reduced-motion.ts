@@ -1,24 +1,32 @@
 "use client";
 
-import useMediaQuery from "@mui/material/useMediaQuery";
+import { useSyncExternalStore } from "react";
+import { reducedMotionQuery, shouldReduceMotion } from "@/lib/foundation/motion";
 import { useGameStore } from "@/lib/state/game-store";
 
-/**
- * Whether to hold still: the in-app switch, or the operating system's
- * "reduce motion" setting — either one is enough.
- */
-export function useReducedMotion(): boolean {
-  const preference = useGameStore((s) => s.preferences.reducedMotion);
-  const system = useMediaQuery("(prefers-reduced-motion: reduce)", { noSsr: true });
-  return preference || system;
+function subscribe(onChange: () => void) {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return () => undefined;
+  const query = window.matchMedia(reducedMotionQuery);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+function osPrefersReduced() {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
+  return window.matchMedia(reducedMotionQuery).matches;
+}
+
+/** Whether the OS asks for reduced motion, live. `false` during SSR. */
+export function useOsPrefersReducedMotion(): boolean {
+  return useSyncExternalStore(subscribe, osPrefersReduced, () => false);
 }
 
 /**
- * A phone, or any screen too short for the desk layout (a phone on its side):
- * the buzzer moves to a bar pinned to the bottom of the screen.
+ * Whether JS-driven animation should be skipped: the OS asks for reduced
+ * motion, or the in-app switch is on. Use this instead of reading
+ * `preferences.reducedMotion` alone.
  */
-export const compactPlayQuery = "(max-width:599.95px), (max-height:520px)";
-
-export function useCompactPlay(): boolean {
-  return useMediaQuery(compactPlayQuery, { noSsr: true });
+export function useReducedMotion(): boolean {
+  const appSetting = useGameStore((s) => s.preferences.reducedMotion);
+  return shouldReduceMotion(useOsPrefersReducedMotion(), appSetting);
 }

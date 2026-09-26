@@ -27,6 +27,7 @@ const correctInk = "#03220F";
  */
 export function describeSuggestion(answer: string, expected: string) {
   if (!answer.trim()) return { verdict: "No answer", correct: false, nearMiss: false, match: null };
+  if (!expected.trim()) return { verdict: "no suggestion", correct: false, nearMiss: false, match: null };
   const result = fuzzyJudge({ submittedAnswer: answer, expectedAnswer: expected });
   const match = Math.round(result.confidence * 100);
   const nearMiss = result.confidence >= 0.6 && result.confidence < 0.9;
@@ -54,7 +55,10 @@ interface JudgeBenchProps {
 export function JudgeBench({ state, send }: JudgeBenchProps) {
   const clue = state.currentClue;
   if (!clue) return null;
-  const pending = clue.correctResponse !== undefined ? clue.currentJudgePlayerId : undefined;
+  // Judging is a phase of its own: the answers are in, and the response may
+  // still be withheld from the table while a rebound is possible.
+  const judging = clue.phase ? clue.phase === "judging" : clue.correctResponse !== undefined;
+  const pending = judging ? clue.currentJudgePlayerId : undefined;
   const ruling = lastRuling(clue);
 
   if (pending) {
@@ -67,6 +71,7 @@ export function JudgeBench({ state, send }: JudgeBenchProps) {
         <Readout
           name={nameOf(state, pending)}
           answer={answer}
+          expected={clue.correctResponse}
           wager={wager}
           note={
             <Suggestion
@@ -156,11 +161,14 @@ export function JudgeBench({ state, send }: JudgeBenchProps) {
 function Readout({
   name,
   answer,
+  expected,
   wager,
   note,
 }: {
   name: string;
   answer?: string;
+  /** The expected response, shown to the host alone while they rule. */
+  expected?: string;
   wager?: number;
   note?: ReactNode;
 }) {
@@ -189,6 +197,11 @@ function Readout({
       <Box component="span" sx={{ color: jeopardyPalette.goldBright, fontWeight: 700 }}>
         {answer || "—"}
       </Box>
+      {expected ? (
+        <Box component="span" sx={{ fontSize: 12, color: ui.inkMuted }}>
+          (expected: {expected})
+        </Box>
+      ) : null}
       {note}
       {wager !== undefined ? (
         <Box component="span" sx={{ fontSize: 12, color: jeopardyPalette.gold }}>

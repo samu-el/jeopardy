@@ -3,7 +3,7 @@
 import Box from "@mui/material/Box";
 import type { ReactNode, Ref } from "react";
 import { jeopardyPalette } from "@/lib/foundation/jeopardy-style";
-import { compactPlayQuery } from "../use-reduced-motion";
+import { compactPlayQuery } from "../use-compact-play";
 
 const compact = `@media ${compactPlayQuery}`;
 

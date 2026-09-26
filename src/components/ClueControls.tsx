@@ -10,7 +10,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import type { PublicGameState } from "@/lib/game";
-import { validateWager } from "@/lib/game/clue-turn";
+import { nameOf, validateWager } from "@/lib/game/clue-turn";
 import { useGameStore } from "@/lib/state/game-store";
 import { controls, jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
 import { MicAnswerField } from "./MicAnswerField";
@@ -128,16 +128,6 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
     }, delay);
     return () => clearTimeout(id);
   }, [typing, pendingText, answerEndsAt, activeClueId, send]);
-
-  // A player with no money in Final Jeopardy has nothing to wager: place the
-  // only wager they can, so the table isn't kept waiting on them.
-  const autoWagered = useRef<string | null>(null);
-  useEffect(() => {
-    if (!clue || !spectatingFinal || !myWagerOpen || wagerSubmittedByMe) return;
-    if (autoWagered.current === clue.clueId) return;
-    autoWagered.current = clue.clueId;
-    send({ type: "submit-wager", amount: 0 });
-  }, [clue, spectatingFinal, myWagerOpen, wagerSubmittedByMe, send]);
 
   // The stand-in focused by a touch buzz lets go if the buzz went elsewhere.
   useEffect(() => {
@@ -323,9 +313,9 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
             >
               {isFinal
                 ? "Everything"
-                : turn.wagerLimits.max > Math.max(0, myScoreOf(state, currentClientId))
-                  ? `Max $${turn.wagerLimits.max}`
-                  : "True Daily Double"}
+                : turn.wagerLimits.maxIsScore
+                  ? "True Daily Double"
+                  : `Max $${turn.wagerLimits.max}`}
             </Button>
           </Housing>
           {wagerError ? (
@@ -344,6 +334,12 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
       {iSubmitted && !answerRevealed && !spectatingFinal ? (
         <Typography variant="overline" sx={{ color: ui.inkMuted }} role="status">
           Answer locked in
+        </Typography>
+      ) : null}
+
+      {turn.phase === "judging" && !iAmHost && clue.currentJudgePlayerId ? (
+        <Typography variant="overline" sx={{ color: ui.inkMuted }} data-testid="judging">
+          Judging {nameOf(state, clue.currentJudgePlayerId)}
         </Typography>
       ) : null}
 
@@ -373,10 +369,6 @@ function inOverlay(target: EventTarget | null): boolean {
     target instanceof HTMLElement &&
     Boolean(target.closest('[role="dialog"], .MuiPopover-root, .MuiModal-root'))
   );
-}
-
-function myScoreOf(state: PublicGameState, id: string) {
-  return state.players.find((player) => player.id === id)?.score ?? 0;
 }
 
 /**

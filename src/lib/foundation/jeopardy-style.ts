@@ -1,4 +1,17 @@
 /**
+ * The one gold scale. There used to be two tokens both called `gold` with
+ * different values (`jeopardyPalette.gold` was the deep one, `ui.gold` the
+ * bright one), so "gold" meant whichever file you happened to be in. Every
+ * gold in the app is one of these two, named by what it looks like.
+ */
+export const goldScale = {
+  /** Lit gold: accents, the room code, what is live right now. */
+  bright: "#F2C14E",
+  /** Burnished gold: dollar values on the board, the Daily Double prompt. */
+  deep: "#D69F4C",
+} as const;
+
+/**
  * Set design tokens. The show's board is a very specific blue with gold
  * values, black gaps and heavy drop shadows — every surface that should read
  * as "the board" pulls its colours and type from here.
@@ -10,9 +23,14 @@ export const jeopardyPalette = {
   boardShade: "#03066B",
   /** Gaps between cells, and the studio surround. */
   gap: "#000000",
-  /** Dollar values and the Daily Double wager prompt. */
-  gold: "#D69F4C",
-  goldBright: "#F2C14E",
+  /** Dollar values and the Daily Double wager prompt (burnished gold). */
+  goldDeep: goldScale.deep,
+  goldBright: goldScale.bright,
+  /**
+   * @deprecated Ambiguous: this is the *deep* gold, while `ui.gold` is the
+   * bright one. Use `goldDeep` (same value) instead.
+   */
+  gold: goldScale.deep,
   categoryText: "#FFFFFF",
   clueText: "#FFFFFF",
   /** Contestant score displays: white on black, red when negative. */
@@ -22,6 +40,11 @@ export const jeopardyPalette = {
   podiumEdge: "#3D45B8",
   correct: "#2FD07A",
   incorrect: "#FF4E5B",
+  /**
+   * Text on an `incorrect` fill. White on this red is 3.2:1, which fails AA;
+   * near-black is 6.2:1 and keeps the red itself unchanged.
+   */
+  onIncorrect: "#1A0003",
   buzzLight: "#FFFFFF",
 } as const;
 
@@ -32,9 +55,14 @@ export const jeopardyPalette = {
  * happens to have it — then the closest webfont, then a system fallback.
  */
 export const jeopardyFonts = {
+  // `--font-oswald` / `--font-bitter` are set by `next/font` in
+  // `src/app/fonts.ts` (self-hosted, preloaded). The bare names after them
+  // keep the stack working where those variables are absent (tests, tools).
   display:
-    '"Swiss 911", "Oswald", "Archivo Narrow", "Arial Narrow", "Liberation Sans Narrow", "DejaVu Sans Condensed", "Helvetica Neue Condensed", Impact, sans-serif',
-  clue: '"Korinna", "Bookman Old Style", "Bitter", Georgia, "Times New Roman", serif',
+    '"Swiss 911", var(--font-oswald, "Oswald"), "Oswald", "Archivo Narrow", "Arial Narrow", "Liberation Sans Narrow", "DejaVu Sans Condensed", "Helvetica Neue Condensed", Impact, sans-serif',
+  clue: '"Korinna", "Bookman Old Style", var(--font-bitter, "Bitter"), "Bitter", Georgia, "Times New Roman", serif',
+  /** Reading text: the platform's UI face. No webfont is loaded for it. */
+  body: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
 } as const;
 
 /** The chiselled drop shadow the board uses on every piece of text. */
@@ -61,17 +89,38 @@ export const ui = {
   lineStrong: "rgba(255,255,255,0.22)",
   ink: "#FFFFFF",
   inkMuted: "rgba(255,255,255,0.64)",
-  inkFaint: "rgba(255,255,255,0.40)",
+  /**
+   * The quietest text that still carries meaning: captions, "LOCKED",
+   * disabled labels. 0.40 was 3.7:1 on the surfaces; 0.54 clears 4.5:1 on
+   * every surface below (stage, surface, surfaceRaised, readout, keyOff).
+   */
+  inkFaint: "rgba(255,255,255,0.54)",
   /** The one interactive blue: buttons, links, focus, the wordmark. */
   blue: "#4B5BFF",
   blueDeep: "#3444E6",
   blueTint: "rgba(75,91,255,0.16)",
+  /**
+   * The interactive blue when it is *text* on a dark surface (a selected
+   * tab, a link). `blue` itself is 3.4-3.8:1 there; this is 6.2:1 or better.
+   */
+  blueText: "#8A96FF",
   /** The one accent: values, the room code, what is lit right now. */
-  gold: "#F2C14E",
-  goldDeep: "#D69F4C",
+  goldBright: goldScale.bright,
+  goldDeep: goldScale.deep,
+  /**
+   * @deprecated Ambiguous: this is the *bright* gold, while
+   * `jeopardyPalette.gold` is the deep one. Use `goldBright` (same value).
+   */
+  gold: goldScale.bright,
   goldTint: "rgba(242,193,78,0.14)",
   green: "#2FD07A",
   red: "#FF4E5B",
+  /** Text on a `red` fill: near-black, 6.2:1 (white would be 3.2:1). */
+  onRed: "#1A0003",
+  /** Text on a `gold` fill. */
+  onGold: "#1A1200",
+  /** Text on a `green` fill. */
+  onGreen: "#03170C",
   /** Corners. One radius for panels and controls; the board has none. */
   radius: 8,
 } as const;

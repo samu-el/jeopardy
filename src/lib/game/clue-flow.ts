@@ -27,10 +27,11 @@ import {
   isHostOrPicker,
   isRoundComplete,
   maxReadoutHoldMs,
+  reboundPossible,
   refuse,
-  remainingActivePlayers,
   revealActiveClue,
   snapshotState,
+  wagerLimitsFor,
 } from "./rules";
 
 type Command<T extends GameCommand["type"]> = Extract<GameCommand, { type: T }>;
@@ -134,11 +135,20 @@ export function submitWager(
   if (denied) return denied;
 
   return editClue(state, now, (active, draft) => {
-    const amount = clampWager(command.amount, draft.round, draft.scores[command.actorId] ?? 0);
+    const limits = wagerLimitsFor(draft, command.actorId, active.round);
+    const { amount, adjusted } = clampWager(command.amount, limits);
     active.wagers[command.actorId] = amount;
     active.waitingForWager = active.waitingForWager.filter((id) => id !== command.actorId);
     const events: GameEvent[] = [
-      { type: "wager-submitted", clueId: active.clueId, actorId: command.actorId, amount },
+      {
+        type: "wager-submitted",
+        clueId: active.clueId,
+        actorId: command.actorId,
+        amount,
+        ...(adjusted ? { requestedAmount: command.amount, adjusted } : {}),
+        min: limits.min,
+        max: limits.max,
+      },
     ];
 
     // The last wager in puts the clue on the board.
@@ -361,8 +371,11 @@ export function revealAnswer(
     }
     clue.answerRevealed = true;
     // Ring-in order everywhere except Final Jeopardy, which the show reveals
-    // from the lowest score up.
-    clue.judgeQueue = Object.keys(clue.answers).sort((a, b) =>
+    // from the lowest score up. A player already ruled wrong keeps their
+    // answer on the record but is not judged twice.
+    clue.judgeQueue = Object.keys(clue.answers)
+      .filter((id) => clue.judges[id] === undefined)
+      .sort((a, b) =>
       clue.round === "final-jeopardy"
         ? (draft.scores[a] ?? 0) - (draft.scores[b] ?? 0) || a.localeCompare(b)
         : (clue.buzzes[a] ?? 0) - (clue.buzzes[b] ?? 0),
@@ -398,7 +411,11 @@ export function judgeAnswer(
   ]);
   if (denied) return denied;
 
+  // Every ruling can be taken back: a host who (or an AI judge that) got it
+  // wrong sends `undo` and is back to this exact moment.
+  const snapshot = snapshotState(state);
   return editClue(state, now, (clue, draft) => {
+    draft.undoSnapshot = snapshot;
     const target = command.targetPlayerId;
     const stake = clue.wagers[target] ?? draft.cluesById[clue.clueId].value;
     const delta = command.correct === true ? stake : command.correct === false ? -stake : 0;
@@ -417,11 +434,10 @@ export function judgeAnswer(
     if (command.correct === false) {
       bumpStat(draft.stats.incorrectByPlayer, target);
       // Clear the wrong player's ring-in so the rest of the table can try.
-      // They stay locked out of this clue through the `judges` book.
+      // They stay locked out of this clue through the `judges` book, and
+      // their answer stays on the record so the table can see what was said.
       if (draft.round !== "final-jeopardy") {
         delete clue.buzzes[target];
-        delete clue.answers[target];
-        delete clue.submitted[target];
         clue.judgeQueue = clue.judgeQueue.filter((id) => id !== target);
       }
     }
@@ -430,18 +446,20 @@ export function judgeAnswer(
       clue.currentJudgePlayerId = clue.judgeQueue.find(
         (playerId) => clue.judges[playerId] === undefined,
       );
+      // Whether anyone else gets a go depends only on who is left — never on
+      // how long the host took to rule. A Daily Double belongs to its picker
+      // alone, so a miss there simply ends the clue.
       const reopens =
         !clue.currentJudgePlayerId &&
         command.correct === false &&
-        draft.round !== "final-jeopardy" &&
-        clue.answerWindowEndsAt !== undefined &&
-        now <= clue.answerWindowEndsAt &&
-        remainingActivePlayers(draft, clue).length > 0;
+        reboundPossible(draft, clue);
       if (reopens) {
-        // Hide the answer again and re-open the buzzer for everyone left.
+        // The response was never shown (see `isResponsePublic`), so the rest
+        // of the table can ring in fairly.
         clue.answerRevealed = false;
         clue.buzzWindowEndsAt = now + draft.settings.buzzWindowMs;
         clue.answerWindowEndsAt = undefined;
+        clue.reboundOpenedAt = now;
       } else {
         clue.canAdvance = !clue.currentJudgePlayerId;
       }
@@ -492,6 +510,17 @@ export function skip(
 
   return edit(state, now, (draft) => {
     const clueId = active!.clueId;
+    if (active!.round === "final-jeopardy") {
+      draft.finalJeopardy = {
+        clueId,
+        entries: finalOrder(active!).map((playerId) => ({
+          playerId,
+          answer: active!.answers[playerId] ?? "",
+          wager: active!.wagers[playerId] ?? 0,
+          correct: active!.judges[playerId],
+        })),
+      };
+    }
     draft.revealedClueIds = [...new Set([...draft.revealedClueIds, clueId])];
     draft.activeClue = undefined;
     const events: GameEvent[] = [{ type: "clue-completed", clueId }];
@@ -500,6 +529,12 @@ export function skip(
     }
     return events;
   });
+}
+
+/** Final's players in reveal order, falling back to wager order before a reveal. */
+function finalOrder(active: ActiveClueState): string[] {
+  if (active.judgeQueue.length > 0) return [...active.judgeQueue];
+  return Object.keys({ ...active.wagers, ...active.answers });
 }
 
 /**
@@ -526,13 +561,20 @@ export function tickGame(state: GameState, now: number): GameEngineResult {
     const forced = editClue(next, now, (clue, draft) => {
       const pending = [...clue.waitingForWager];
       const staked: GameEvent[] = pending.map((playerId) => {
-        const amount = clampWager(
+        const limits = wagerLimitsFor(draft, playerId, clue.round);
+        const { amount } = clampWager(
           clue.round === "final-jeopardy" ? 0 : draft.cluesById[clue.clueId].value,
-          draft.round,
-          draft.scores[playerId] ?? 0,
+          limits,
         );
         clue.wagers[playerId] = amount;
-        return { type: "wager-submitted", clueId: clue.clueId, actorId: playerId, amount };
+        return {
+          type: "wager-submitted",
+          clueId: clue.clueId,
+          actorId: playerId,
+          amount,
+          min: limits.min,
+          max: limits.max,
+        };
       });
       clue.waitingForWager = [];
       revealActiveClue(clue, answerTimeoutFor(draft, clue.round), now, draft);
@@ -558,13 +600,21 @@ export function tickGame(state: GameState, now: number): GameEngineResult {
       if (nobodyRangIn) {
         events.push({ type: "buzz-window-closed", clueId: live.clueId });
       }
-      for (const playerId of buzzed.filter((id) => !live.submitted[id])) {
+      const expired = buzzed.filter((id) => !live.submitted[id]);
+      for (const playerId of expired) {
         events.push({ type: "answer-timed-out", clueId: live.clueId, playerId });
       }
       const revealed = revealAnswer(next, { type: "reveal-answer" }, now);
       next = revealed.state;
-      if (nobodyRangIn && next.activeClue) {
-        next = { ...next, activeClue: { ...next.activeClue, timedOut: true }, updatedAt: now };
+      if (next.activeClue && (nobodyRangIn || expired.length > 0)) {
+        const timedOutClue = { ...next.activeClue };
+        if (nobodyRangIn) timedOutClue.timedOut = true;
+        if (expired.length > 0) {
+          timedOutClue.answerTimedOut = [
+            ...new Set([...(timedOutClue.answerTimedOut ?? []), ...expired]),
+          ];
+        }
+        next = { ...next, activeClue: timedOutClue, updatedAt: now };
       }
       events.push(...revealed.events);
     }

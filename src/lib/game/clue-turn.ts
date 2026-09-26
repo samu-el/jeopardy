@@ -46,7 +46,7 @@ export interface ClueTurnView {
   canAdvance: boolean;
   myWagerOpen: boolean;
   wagerSubmittedByMe: boolean;
-  wagerLimits: { min: number; max: number };
+  wagerLimits: { min: number; max: number; maxIsScore: boolean };
   someoneBuzzed: boolean;
   inReadout: boolean;
   /** Whoever currently owns the answer (first buzzer / Daily Double player). */
@@ -74,13 +74,21 @@ export interface ClueTurnView {
 
 const houseMaximum = { "double-jeopardy": 2_000, "triple-jeopardy": 3_000 } as Record<string, number>;
 
+/**
+ * The limits for this player's wager: the room's own, when it sent them, and
+ * otherwise the show's rule worked out from the score.
+ */
 export function wagerLimitsFor(
   clue: PublicActiveClueState | undefined,
   score: number,
-): { min: number; max: number } {
-  if (!clue) return { min: 0, max: 0 };
-  if (clue.round === "final-jeopardy") return { min: 0, max: Math.max(0, score) };
-  return { min: 5, max: Math.max(score, houseMaximum[clue.round] ?? 1_000) };
+  selfId?: string,
+): { min: number; max: number; maxIsScore: boolean } {
+  if (!clue) return { min: 0, max: 0, maxIsScore: false };
+  const sent = selfId ? clue.wagerLimits?.[selfId] : undefined;
+  if (sent) return sent;
+  if (clue.round === "final-jeopardy") return { min: 0, max: Math.max(0, score), maxIsScore: true };
+  const house = houseMaximum[clue.round] ?? 1_000;
+  return { min: 5, max: Math.max(score, house), maxIsScore: score >= house };
 }
 
 /** A wager as typed, checked against the limits. Never clamps silently. */
@@ -107,7 +115,7 @@ export function deriveClueTurn(
 ): ClueTurnView {
   const clue = state.currentClue;
   const myScore = state.players.find((player) => player.id === selfId)?.score ?? 0;
-  const wagerLimits = wagerLimitsFor(clue, myScore);
+  const wagerLimits = wagerLimitsFor(clue, myScore, selfId);
   const iAmHost = state.settings.hostId === selfId;
 
   if (!clue) {
@@ -143,9 +151,13 @@ export function deriveClueTurn(
   }
 
   const isFinal = clue.round === "final-jeopardy";
-  const isDailyDouble = Boolean(clue.dailyDouble) && !isFinal;
+  const isDailyDouble = clue.kind ? clue.kind === "daily-double" : Boolean(clue.dailyDouble) && !isFinal;
   const clueRevealed = clue.clue !== undefined;
-  const answerRevealed = clue.correctResponse !== undefined;
+  // Answers are in once the room is judging or has settled the clue — even
+  // while the response itself is withheld from the table for a rebound.
+  const answerRevealed = clue.phase
+    ? clue.phase === "judging" || clue.phase === "resolved"
+    : clue.correctResponse !== undefined;
   const buzzedIds = Object.keys(clue.buzzes).sort(
     (a, b) => (clue.buzzes[a] ?? 0) - (clue.buzzes[b] ?? 0),
   );
@@ -176,8 +188,14 @@ export function deriveClueTurn(
       : undefined;
   const answeringPlayerName = answeringPlayerId ? nameOf(state, answeringPlayerId) : undefined;
 
-  // Final Jeopardy is only for players in the black; the rest watch.
-  const spectatingFinal = isFinal && myScore <= 0;
+  // Final Jeopardy is only for players who went in with money; the rest
+  // watch. A finalist who bet it all and lost is still a finalist.
+  const spectatingFinal =
+    isFinal &&
+    myScore <= 0 &&
+    !myWagerOpen &&
+    clue.buzzes[selfId] === undefined &&
+    clue.judges[selfId] === undefined;
 
   const canIBuzz =
     !buzzedByMe &&
@@ -223,9 +241,15 @@ export function deriveClueTurn(
                 : "ring-in";
 
   const answerTotal = Math.max(observed.answerMs ?? 0, isFinal ? 30_000 : 10_000);
+  // A rebound window runs from when the buzzer re-opened, not from the
+  // first readout; the room says when that was, or the client saw it.
   const buzzTotal = Math.max(
     1,
-    observed.buzzMs ?? (buzzEndsAt !== undefined ? buzzEndsAt - readoutEndsAt : 1),
+    buzzEndsAt === undefined
+      ? 1
+      : clue.reboundOpenedAt !== undefined
+        ? buzzEndsAt - clue.reboundOpenedAt
+        : (observed.buzzMs ?? buzzEndsAt - readoutEndsAt),
   );
 
   let lightsRemaining = 0;
