@@ -79,8 +79,9 @@ export class InMemoryRealtimeRoom {
     return structuredClone(this.state);
   }
 
-  getPublicState() {
-    return getPublicGameState(this.state, this.clock.now());
+  /** `viewerId` lets the host be shown what only the host may see. */
+  getPublicState(viewerId?: string) {
+    return getPublicGameState(this.state, this.clock.now(), { viewerId });
   }
 
   getChatHistory(): ChatMessage[] {
@@ -166,7 +167,7 @@ export class InMemoryRealtimeRoom {
       connectionId: request.connectionId,
       clientId: request.clientId,
       sessionToken: request.sessionToken,
-      state: this.getPublicState(),
+      state: this.getPublicState(request.clientId),
       chat: this.getChatHistory(),
     });
     this.broadcast({
@@ -357,10 +358,11 @@ export class InMemoryRealtimeRoom {
   }
 
   private broadcastPublicState() {
-    this.broadcast({
-      type: "public-state",
-      state: this.getPublicState(),
-    });
+    for (const connection of this.connections.values()) {
+      if (connection.status === "connected") {
+        connection.sink({ type: "public-state", state: this.getPublicState(connection.clientId) });
+      }
+    }
   }
 
   private setPlayerConnected(clientId: string, connected: boolean) {

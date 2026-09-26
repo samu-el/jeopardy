@@ -81,7 +81,9 @@ describe("public game state privacy", () => {
 
     const publicAfterReveal = JSON.stringify(getPublicGameState(state, 150));
     expect(publicAfterReveal).toContain("classified response");
-    expect(publicAfterReveal).toContain("777");
+    // A Daily Double wager is announced once made — clamped to the $200
+    // ceiling this one-clue board allows a player at $0.
+    expect(getPublicGameState(state, 150).currentClue?.wagers).toEqual({ host: 200 });
   });
 
   it("keeps the pure game engine free of UI, state-store, persistence, realtime, and AI imports", () => {
