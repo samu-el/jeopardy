@@ -74,8 +74,12 @@ describe("RoomHost", () => {
     const ada = connect(host, "ada", "Ada");
     const grace = connect(host, "grace", "Grace");
 
-    const seenByAda = ada.latestState().state.players.map((player) => player.displayName);
-    const seenByGrace = grace.latestState().state.players.map((player) => player.displayName);
+    const seenByAda = ada
+      .latestState()
+      .state.players.map((player) => player.displayName);
+    const seenByGrace = grace
+      .latestState()
+      .state.players.map((player) => player.displayName);
 
     expect(seenByAda.sort()).toEqual(["Ada", "Grace"]);
     expect(seenByGrace.sort()).toEqual(["Ada", "Grace"]);
@@ -140,7 +144,9 @@ describe("RoomHost", () => {
     host.room.receive("conn-ada", { type: "chat", text: "  anyone home?  " });
 
     const grace = connect(host, "grace", "Grace");
-    const accepted = grace.messages.find((message) => message.type === "session-accepted");
+    const accepted = grace.messages.find(
+      (message) => message.type === "session-accepted",
+    );
 
     expect(accepted).toBeDefined();
     expect(
@@ -180,5 +186,25 @@ describe("RoomHost", () => {
 
     expect(verdict?.correct).toBe(true);
     expect(host.getState().scores.ada).toBe(200);
+  });
+
+  it("hands a close call to a connected host instead of ruling it", () => {
+    const host = makeHost({ settings: { roundIntroMs: 0 } });
+    connect(host, "ada", "Ada");
+    connect(host, "bob", "Bob");
+    host.room.dispatch("ada", { type: "start-game" });
+    host.room.dispatch("ada", { type: "pick-clue", clueId: "j-200" });
+    const openAt = host.getState().activeClue!.readoutEndsAt!;
+    vi.setSystemTime(openAt + 10);
+    host.room.dispatch("bob", { type: "buzz" });
+    host.room.dispatch("bob", { type: "submit-answer", answer: "mars bar" });
+    host.room.dispatch("ada", { type: "reveal-answer" });
+
+    const verdict = host.room.runAiJudge("bob", { holdAmbiguous: true });
+
+    expect(verdict?.ambiguous).toBe(true);
+    expect(verdict?.held).toBe(true);
+    expect(host.getState().activeClue?.judges.bob).toBeUndefined();
+    expect(host.getState().scores.bob ?? 0).toBe(0);
   });
 });

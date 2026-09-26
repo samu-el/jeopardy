@@ -19,6 +19,11 @@ export interface ClientJoinFrame {
   spectator?: boolean;
   /** Only an explicit create request may bring a room into existence. */
   create?: boolean;
+  /**
+   * The token this client was handed the last time it sat in this room. A
+   * seat already held is only given back to the token that holds it.
+   */
+  sessionToken?: string;
 }
 
 export type ClientFrame =
@@ -82,6 +87,7 @@ export function decodeClientFrame(raw: string): ClientFrame | undefined {
         color: asString(parsed.color),
         spectator: parsed.spectator === true,
         create: parsed.create === true,
+        sessionToken: asString(parsed.sessionToken),
       };
     case "command":
       if (!isRecord(parsed.command) || typeof parsed.command.type !== "string") {

@@ -16,6 +16,8 @@ import { ShortcutsOverlay } from "./ShortcutsOverlay";
 import { Onboarding } from "./Onboarding";
 import { TranscriptPane } from "./TranscriptPane";
 import { ReplayView } from "./ReplayView";
+import { RoomNotices } from "./RoomNotices";
+import { LeaveRoomDialog } from "./LeaveRoomDialog";
 
 export function Room() {
   const publicState = useGameStore((s) => s.publicState);
@@ -62,6 +64,8 @@ export function Room() {
       <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       <TranscriptPane open={transcriptOpen} onClose={() => setTranscriptOpen(false)} />
       <ReplayView open={replayOpen} onClose={() => setReplayOpen(false)} />
+      <RoomNotices />
+      <LeaveRoomDialog />
     </>
   );
 
@@ -71,6 +75,8 @@ export function Room() {
         <ConnectionBanner />
         <Box sx={{ maxWidth: 1400, mx: "auto", px: { xs: 2, md: 3 } }}>
           {toolbar}
+          {/* "Again" re-deals for the whole room, so it is the host's call;
+              the store refuses it for anyone else. */}
           <ResultsView state={publicState} onPlayAgain={exitToLobby} />
         </Box>
         {dialogs}
@@ -100,5 +106,3 @@ export function Room() {
     </Box>
   );
 }
-
-/** Local avatar choices, used for seats the room state doesn't carry yet. */
