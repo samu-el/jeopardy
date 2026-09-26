@@ -24,7 +24,7 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ReplayIconAlt from "@mui/icons-material/PlayCircleOutlineOutlined";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ReplayIcon from "@mui/icons-material/ReplayOutlined";
-import SettingsIcon from "@mui/icons-material/VolumeUpOutlined";
+import SettingsIcon from "@mui/icons-material/TuneOutlined";
 import PeopleIcon from "@mui/icons-material/PeopleOutlineOutlined";
 import ShuffleIcon from "@mui/icons-material/ShuffleOutlined";
 import { useGameStore } from "@/lib/state/game-store";

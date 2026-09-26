@@ -14,6 +14,58 @@ export interface ArchiveEpisodeResponse {
   episode: ArchivedEpisodeInput;
 }
 
+export type ArchiveErrorKind = "not-found" | "unavailable" | "offline";
+
+/**
+ * A failure worth showing a person: what went wrong in words, and whether
+ * trying again could help. A bare "Failed (404)" is neither.
+ */
+export class ArchiveError extends Error {
+  constructor(
+    readonly kind: ArchiveErrorKind,
+    message: string,
+  ) {
+    super(message);
+    this.name = "ArchiveError";
+  }
+  get retryable(): boolean {
+    return this.kind !== "not-found";
+  }
+}
+
+export const archiveUnavailableMessage =
+  "The episode archive isn't answering right now. Try again in a moment.";
+export const archiveOfflineMessage =
+  "Could not reach the episode archive. Check your connection and try again.";
+
+function labelOf(options: { id: string; label: string }[], id: string | undefined) {
+  return options.find((entry) => entry.id === id)?.label;
+}
+
+/** "No Kids episodes from the 80s" — what a filter combination found nothing for. */
+export function describeEmptyFilter(theme?: string, decade?: string): string {
+  const themeLabel = theme && theme !== "all" ? labelOf(themeOptions, theme) : undefined;
+  const decadeLabel = decade && decade !== "all" ? labelOf(decadeOptions, decade) : undefined;
+  if (themeLabel && decadeLabel) {
+    return `No ${themeLabel} episodes from the ${decadeLabel}. Try another era or theme.`;
+  }
+  if (themeLabel) return `No ${themeLabel} episodes in the archive. Try another theme.`;
+  if (decadeLabel) return `No episodes from the ${decadeLabel}. Try another era.`;
+  return "No playable episodes matched.";
+}
+
+async function send(url: string, notFound: string): Promise<Response> {
+  let response: Response;
+  try {
+    response = await fetch(url);
+  } catch {
+    throw new ArchiveError("offline", archiveOfflineMessage);
+  }
+  if (response.ok) return response;
+  if (response.status === 404) throw new ArchiveError("not-found", notFound);
+  throw new ArchiveError("unavailable", archiveUnavailableMessage);
+}
+
 /**
  * Everything the archive answers sits on one route with a mode, so asking it
  * anything is one function. Blank values and "all" are simply left off the
@@ -28,10 +80,16 @@ async function ask<T>(
     if (value === undefined || value === "" || value === "all") continue;
     url.searchParams.set(key, String(value));
   }
-  const response = await fetch(url.toString());
-  if (response.ok) return (await response.json()) as T;
-  if (fallback !== undefined) return fallback;
-  throw new Error(`Failed to load episodes (${response.status})`);
+  try {
+    const response = await send(
+      url.toString(),
+      describeEmptyFilter(params.theme as string | undefined, params.decade as string | undefined),
+    );
+    return (await response.json()) as T;
+  } catch (error) {
+    if (fallback !== undefined) return fallback;
+    throw error;
+  }
 }
 
 export function fetchEpisodeList(params: {
@@ -53,8 +111,10 @@ export function fetchRandomEpisode(
 }
 
 export async function fetchEpisodeById(id: string): Promise<ArchiveEpisodeResponse> {
-  const response = await fetch(`/api/episodes/${encodeURIComponent(id)}`);
-  if (!response.ok) throw new Error(`Failed to load episode ${id} (${response.status})`);
+  const response = await send(
+    `/api/episodes/${encodeURIComponent(id)}`,
+    `There's no episode #${id} in the archive. Check the number, or browse instead.`,
+  );
   return (await response.json()) as ArchiveEpisodeResponse;
 }
 
@@ -63,13 +123,17 @@ export function fetchArchiveStats(): Promise<{ total: number }> {
 }
 
 /** The two count endpoints answer in the same envelope. */
-async function counts(mode: "themes" | "decades"): Promise<Record<string, number>> {
-  const data = await ask<{ counts?: Record<string, number> }>({ mode }, {});
+async function counts(
+  mode: "themes" | "decades",
+  theme?: string,
+): Promise<Record<string, number>> {
+  const data = await ask<{ counts?: Record<string, number> }>({ mode, theme }, {});
   return data.counts ?? {};
 }
 
 export const fetchThemeCounts = () => counts("themes");
-export const fetchDecadeCounts = () => counts("decades");
+/** Decades with episodes, within a theme when one is chosen. */
+export const fetchDecadeCounts = (theme?: string) => counts("decades", theme);
 
 export const decadeOptions: { id: string; label: string }[] = [
   { id: "all", label: "All eras" },
