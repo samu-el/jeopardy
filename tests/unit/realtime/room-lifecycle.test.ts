@@ -103,7 +103,21 @@ describe("room lifecycle", () => {
     const back = client(host, "c-ada-2");
     await back.join("ada", { sessionToken: token });
     expect(host.getState().settings.hostId).toBe("ada");
+    // The board went with the chair, so it comes back with it.
+    expect(host.getState().pickerId).toBe("ada");
     expect(host.room.pendingHostClaim).toBeUndefined();
+  });
+
+  it("keeps a removed player out even when their browser forgot its token", async () => {
+    const { host, ada, bea } = await startedRoom();
+    await ada.session.handle({
+      t: "command",
+      command: { type: "leave-game", targetPlayerId: "bea" },
+    });
+    expect(bea.rejections().at(-1)?.reason).toBe("kicked");
+    const retry = client(host, "c-bea-2");
+    await retry.join("bea");
+    expect(retry.rejections().at(-1)?.reason).toBe("kicked");
   });
 
   it("does not hand the chair back once the grace window has passed", async () => {

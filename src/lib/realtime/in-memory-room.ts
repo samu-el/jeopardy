@@ -70,7 +70,9 @@ export class InMemoryRealtimeRoom {
    * The host who dropped off, and until when the chair is theirs to reclaim.
    * The room keeps playing under whoever it passed to in the meantime.
    */
-  private hostClaim: { playerId: string; until: number } | undefined;
+  private hostClaim:
+    | { playerId: string; until: number; pickerHandedTo?: string }
+    | undefined;
 
   constructor({
     initialState,
@@ -143,6 +145,11 @@ export class InMemoryRealtimeRoom {
     const existing = this.sessions.get(clientId);
     if (!existing) return this.issueSession(clientId);
     return existing.sessionToken === offeredToken ? existing : undefined;
+  }
+
+  /** Whether the host removed this client recently enough that it stays out. */
+  isBanned(clientId: string): boolean {
+    return (this.bans.get(clientId) ?? 0) > this.clock.now();
   }
 
   /** Whether this client id has ever been issued a session in this room. */
@@ -246,6 +253,7 @@ export class InMemoryRealtimeRoom {
     if (this.activeConnectionByClient.get(connection.clientId) === connectionId) {
       this.activeConnectionByClient.delete(connection.clientId);
       const wasHost = this.state.settings.hostId === connection.clientId;
+      const wasPicker = this.state.pickerId === connection.clientId;
       if (this.state.round === "lobby") {
         // Nothing to preserve before the game starts — free the seat so the
         // pre-game roster only lists people who are actually here.
@@ -261,6 +269,9 @@ export class InMemoryRealtimeRoom {
         this.hostClaim = {
           playerId: connection.clientId,
           until: this.clock.now() + hostReclaimGraceMs,
+          // If the board passed with the chair, it comes back with it too —
+          // unless play has moved it on by then.
+          pickerHandedTo: wasPicker ? this.state.pickerId : undefined,
         };
       }
     }
@@ -430,6 +441,9 @@ export class InMemoryRealtimeRoom {
         this.hostClaim = undefined;
       }
       if (event.type === "player-left") {
+        // No seat, nothing for a token to guard: whoever comes back under
+        // this id starts a fresh session (once any ban has run out).
+        this.sessions.delete(event.playerId);
         if (event.playerId !== actorId) this.removeConnection(event.playerId);
         if (this.hostClaim?.playerId === event.playerId && event.playerId !== actorId) {
           this.hostClaim = undefined;
@@ -449,10 +463,15 @@ export class InMemoryRealtimeRoom {
     if (claim.until < this.clock.now()) return;
     const player = this.state.players[playerId];
     if (!player || this.state.settings.hostId === playerId) return;
+    const boardStillWaiting =
+      claim.pickerHandedTo !== undefined &&
+      this.state.pickerId === claim.pickerHandedTo &&
+      !this.state.activeClue;
     this.state = {
       ...this.state,
       updatedAt: this.clock.now(),
       settings: { ...this.state.settings, hostId: playerId },
+      pickerId: boardStillWaiting ? playerId : this.state.pickerId,
     };
     this.postChat({ kind: "system", text: `${player.displayName} is hosting again` });
   }

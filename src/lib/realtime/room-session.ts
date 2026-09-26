@@ -122,6 +122,13 @@ export class RoomSession {
       return;
     }
 
+    // Asked before the token: a removed player whose browser forgot the
+    // token should still hear why they can't come in.
+    if (room.room.isBanned(frame.clientId)) {
+      this.reject(frame.clientId, "kicked", "The host removed you from this room.");
+      return;
+    }
+
     const session = room.room.claimSession(frame.clientId, frame.sessionToken);
     if (!session) {
       this.reject(
