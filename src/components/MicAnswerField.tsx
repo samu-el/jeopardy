@@ -29,6 +29,8 @@ interface MicAnswerFieldProps {
   size?: "small" | "medium";
   fullWidth?: boolean;
   autoFocus?: boolean;
+  /** Extra attributes for the `<input>` itself (keyboard hints and the like). */
+  htmlInputProps?: Record<string, string | number | boolean | undefined>;
 }
 
 export function MicAnswerField({
@@ -41,6 +43,7 @@ export function MicAnswerField({
   size = "small",
   fullWidth = true,
   autoFocus,
+  htmlInputProps,
 }: MicAnswerFieldProps) {
   const [listening, setListening] = useState(false);
   const sessionRef = useRef<SpeechRecognitionSession | null>(null);
@@ -114,6 +117,7 @@ export function MicAnswerField({
       autoFocus={autoFocus}
       disabled={disabled}
       slotProps={{
+        htmlInput: htmlInputProps,
         input: {
           endAdornment: supported ? (
             <InputAdornment position="end">

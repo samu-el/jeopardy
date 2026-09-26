@@ -50,6 +50,8 @@ export interface UiPreferences {
    * runs tight; a longer window helps a mixed table or a slow connection.
    */
   buzzWindowSeconds: number;
+  /** Single-key shortcuts (R, Y, N, S). On unless switched off (WCAG 2.1.4). */
+  shortcutsEnabled?: boolean;
 }
 
 export interface LobbyBotConfig {

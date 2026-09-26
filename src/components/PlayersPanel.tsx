@@ -10,6 +10,7 @@ import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import AddIcon from "@mui/icons-material/AddOutlined";
 import DeleteIcon from "@mui/icons-material/DeleteOutlined";
 import { baselineBotProfiles } from "@/lib/ai/profiles";
@@ -34,6 +35,11 @@ export function PlayersPanel() {
   const setSoloMode = useGameStore((s) => s.setSoloMode);
   const setHostSpectator = useGameStore((s) => s.setHostSpectator);
   const [humanName, setHumanName] = useState("");
+  // In a shared room the roster and the table rules are the host's. A guest
+  // sees them, read-only, as the room has them — not their own old lobby.
+  const isRoomHost = !publicState?.settings.hostId || publicState.settings.hostId === selfId;
+  const guest = Boolean(online) && !isRoomHost;
+  const roomBots = (publicState?.players ?? []).filter((player) => player.kind === "ai-bot");
 
   return (
     <Stack spacing={2}>
@@ -55,7 +61,28 @@ export function PlayersPanel() {
 
       <Box>
         <Stack spacing={1}>
-          {lobby.bots.map((bot) => (
+          {guest
+            ? roomBots.map((bot) => (
+                <Stack key={bot.id} direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                  <Box
+                    aria-hidden
+                    sx={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: "50%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: bot.color ?? ui.surfaceRaised,
+                    }}
+                  >
+                    {bot.emoji ?? ""}
+                  </Box>
+                  <Chip label={`${bot.displayName} · bot`} sx={{ flex: 1, justifyContent: "flex-start" }} />
+                </Stack>
+              ))
+            : null}
+          {(guest ? [] : lobby.bots).map((bot) => (
             <Stack
               key={bot.id}
               direction="row"
@@ -80,7 +107,7 @@ export function PlayersPanel() {
                 color="secondary"
                 variant="outlined"
               />
-              <IconButton aria-label="remove" size="small" onClick={() => removeBot(bot.id)}>
+              <IconButton aria-label={`Remove ${bot.name}`} size="small" onClick={() => removeBot(bot.id)}>
                 <DeleteIcon fontSize="small" />
               </IconButton>
             </Stack>
@@ -144,14 +171,19 @@ export function PlayersPanel() {
                     size={32}
                   />
                   <Chip label={human.name} sx={{ flex: 1, justifyContent: "flex-start" }} />
-                  <IconButton size="small" onClick={() => removeHuman(human.id)}>
+                  <IconButton size="small" aria-label={`Remove ${human.name}`} onClick={() => removeHuman(human.id)}>
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Stack>
               ))}
         </Stack>
 
-        <Stack direction="row" spacing={1} useFlexGap sx={{ mt: 1.5, flexWrap: "wrap" }}>
+        <Stack
+          direction="row"
+          spacing={1}
+          useFlexGap
+          sx={{ mt: 1.5, flexWrap: "wrap", display: guest ? "none" : "flex" }}
+        >
           {baselineBotProfiles.map((profile) => (
             <Button
               key={profile.id}
@@ -173,6 +205,7 @@ export function PlayersPanel() {
           <TextField
             size="small"
             placeholder="Add player"
+            slotProps={{ htmlInput: { "aria-label": "Add player" } }}
             value={humanName}
             onChange={(event) => setHumanName(event.target.value)}
             onKeyDown={(event) => {
@@ -187,6 +220,7 @@ export function PlayersPanel() {
           <IconButton
             size="small"
             color="primary"
+            aria-label="Add player"
             disabled={!humanName.trim()}
             onClick={() => {
               addHuman(humanName);
@@ -201,25 +235,35 @@ export function PlayersPanel() {
       <Divider />
 
       <Stack spacing={0.5}>
+        {guest ? (
+          <Typography variant="caption" sx={{ color: ui.inkMuted }}>
+            The host sets these for the room.
+          </Typography>
+        ) : null}
         <FormControlLabel
+          disabled={guest}
           control={
             <Switch
-              checked={lobby.aiJudgeEnabled}
+              checked={guest ? Boolean(publicState?.settings.aiJudgeEnabled) : lobby.aiJudgeEnabled}
               onChange={(_, value) => setAiJudge(value)}
             />
           }
           label="AI judge"
         />
         <FormControlLabel
+          disabled={guest}
           control={
             <Switch
-              checked={lobby.hostControlsAuto}
+              checked={
+                guest ? (publicState?.settings.autoAdvanceMs ?? 0) > 0 : lobby.hostControlsAuto
+              }
               onChange={(_, value) => setHostControlsAuto(value)}
             />
           }
           label="Auto-advance"
         />
         <FormControlLabel
+          disabled={guest}
           control={
             <Switch
               checked={lobby.soloMode}

@@ -4,9 +4,12 @@ import { useEffect } from "react";
 import Box from "@mui/material/Box";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import Stack from "@mui/material/Stack";
+import Switch from "@mui/material/Switch";
 import Typography from "@mui/material/Typography";
 import { ui } from "@/lib/foundation/jeopardy-style";
+import { useGameStore } from "@/lib/state/game-store";
 
 interface ShortcutsOverlayProps {
   open: boolean;
@@ -18,21 +21,25 @@ interface Shortcut {
   label: string;
   /** Only does anything for the player running the room. */
   hostOnly?: boolean;
+  /** A single character key, switched off with the setting below. */
+  single?: boolean;
 }
 
 const SHORTCUTS: Shortcut[] = [
   { key: "Space", label: "Ring in — early costs you a lockout" },
   { key: "Enter", label: "Send your answer or wager" },
   { key: "Alt + M", label: "Answer by voice" },
-  { key: "R", label: "Reveal the response", hostOnly: true },
-  { key: "Y", label: "Judge correct", hostOnly: true },
-  { key: "N", label: "Judge incorrect", hostOnly: true },
-  { key: "S", label: "Next clue", hostOnly: true },
+  { key: "R", label: "Reveal the response", hostOnly: true, single: true },
+  { key: "Y", label: "Judge correct", hostOnly: true, single: true },
+  { key: "N", label: "Judge incorrect", hostOnly: true, single: true },
+  { key: "S", label: "Next clue", hostOnly: true, single: true },
   { key: "?", label: "Toggle this overlay" },
   { key: "Esc", label: "Close overlays" },
 ];
 
 export function ShortcutsOverlay({ open, onClose }: ShortcutsOverlayProps) {
+  const enabled = useGameStore((s) => s.preferences.shortcutsEnabled !== false);
+  const setPreference = useGameStore((s) => s.setPreference);
   useEffect(() => {
     if (!open) return;
     function onKey(event: KeyboardEvent) {
@@ -43,9 +50,14 @@ export function ShortcutsOverlay({ open, onClose }: ShortcutsOverlayProps) {
   }, [open, onClose]);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth aria-labelledby="shortcuts-title">
       <DialogContent>
-        <Typography variant="overline">Keyboard</Typography>
+        <Typography variant="overline" component="h2" id="shortcuts-title">
+          Keyboard shortcuts
+        </Typography>
+        <Typography variant="body2" sx={{ color: ui.inkMuted, mt: 0.5 }}>
+          Space rings in when focus is on the board or the clue, not on a button or a field.
+        </Typography>
         <Stack spacing={1} sx={{ mt: 1 }}>
           {SHORTCUTS.map((entry) => (
             <Stack
@@ -54,7 +66,10 @@ export function ShortcutsOverlay({ open, onClose }: ShortcutsOverlayProps) {
               spacing={2}
               sx={{ alignItems: "center", justifyContent: "space-between" }}
             >
-              <Typography variant="body2" sx={{ color: ui.ink }}>
+              <Typography
+                variant="body2"
+                sx={{ color: entry.single && !enabled ? ui.inkMuted : ui.ink }}
+              >
                 {entry.label}
                 {entry.hostOnly ? (
                   <Box
@@ -82,6 +97,16 @@ export function ShortcutsOverlay({ open, onClose }: ShortcutsOverlayProps) {
             </Stack>
           ))}
         </Stack>
+        <FormControlLabel
+          sx={{ mt: 2 }}
+          control={
+            <Switch
+              checked={enabled}
+              onChange={(_, value) => setPreference("shortcutsEnabled", value)}
+            />
+          }
+          label="Single-key shortcuts (R, Y, N, S)"
+        />
       </DialogContent>
     </Dialog>
   );

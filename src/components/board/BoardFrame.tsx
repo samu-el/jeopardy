@@ -3,6 +3,9 @@
 import Box from "@mui/material/Box";
 import type { ReactNode, Ref } from "react";
 import { jeopardyPalette } from "@/lib/foundation/jeopardy-style";
+import { compactPlayQuery } from "../use-reduced-motion";
+
+const compact = `@media ${compactPlayQuery}`;
 
 /** Cells on the set are landscape, so the board is wider than its counts suggest. */
 const cellAspect = 1.6;
@@ -16,8 +19,9 @@ export function valueFontSize(columns: number): string {
   return `clamp(11px, ${(25 / columns).toFixed(2)}cqw, 46px)`;
 }
 
+/** Never under 11px: a phone's six columns still have to be read. */
 export function categoryFontSize(columns: number): string {
-  return `clamp(7px, ${(9.5 / columns).toFixed(2)}cqw, 18px)`;
+  return `clamp(11px, ${(9.5 / columns).toFixed(2)}cqw, 18px)`;
 }
 
 /** The blue face every cell on the board shares. */
@@ -47,6 +51,8 @@ interface BoardFrameProps {
   tall?: boolean;
   /** Take the height the screen offers rather than the desk-sized cap. */
   fill?: boolean;
+  /** The board's name, for the focus that lands on it when a clue closes. */
+  label?: string;
 }
 
 /**
@@ -54,13 +60,17 @@ interface BoardFrameProps {
  * has: width is capped by both the column count and the height budget, so it
  * stays fully on screen with the lecterns below it.
  */
-export function BoardFrame({ children, ref, ratio, tall, fill }: BoardFrameProps) {
+export function BoardFrame({ children, ref, ratio, tall, fill, label }: BoardFrameProps) {
   return (
     <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
       <Box
         ref={ref}
         data-testid="board"
+        tabIndex={-1}
+        role="group"
+        aria-label={label ?? "Board"}
         sx={{
+          outline: "none",
           position: "relative",
           // A 660px cap is right on a desk and wrong on a television: it
           // leaves a small board marooned in black. When the screen says how
@@ -86,6 +96,26 @@ export function BoardFrame({ children, ref, ratio, tall, fill }: BoardFrameProps
           background: jeopardyPalette.gap,
           p: { xs: 0.5, sm: 0.75 },
           overflow: "hidden",
+          // A phone, or a phone on its side: size the board and the clue
+          // from the height actually left (dvh, not the URL-bar-less vh),
+          // leaving room for the clock strip and the buzz bar under it.
+          ...(fill
+            ? null
+            : {
+                [compact]: {
+                  "--board-height": "clamp(170px, calc(100dvh - 130px), 420px)",
+                  ...(tall
+                    ? {
+                        aspectRatio: "auto",
+                        height: "clamp(170px, calc(100dvh - 300px), 560px)",
+                        // The keyboard is up: fit what is left above it.
+                        "html[data-keyboard-open] &": {
+                          height: "max(120px, calc(var(--keyboard-viewport-height, 100dvh) - 150px))",
+                        },
+                      }
+                    : null),
+                },
+              }),
         }}
       >
         {children}
@@ -110,6 +140,8 @@ export function BoardGrid({
         gap: { xs: "3px", sm: "6px" },
         gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
         gridTemplateRows: `0.8fr repeat(${rows}, 1fr)`,
+        // A phone's category strip needs three lines of 11px type.
+        [compact]: { gridTemplateRows: `1.35fr repeat(${rows}, 1fr)` },
         height: "100%",
       }}
     >

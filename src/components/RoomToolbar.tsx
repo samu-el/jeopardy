@@ -3,6 +3,11 @@
 import { useState, type ReactNode } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
 import IconButton, { type IconButtonProps } from "@mui/material/IconButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
@@ -57,6 +62,7 @@ export function RoomToolbar({
   const [settingsAnchor, setSettingsAnchor] = useState<HTMLElement | null>(null);
   const [playersAnchor, setPlayersAnchor] = useState<HTMLElement | null>(null);
   const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
+  const [confirmRestart, setConfirmRestart] = useState(false);
   const closeMore = () => setMoreAnchor(null);
 
   const online = useGameStore((s) => s.online);
@@ -64,6 +70,13 @@ export function RoomToolbar({
   const isRoomHost = !publicState?.settings.hostId || publicState.settings.hostId === selfId;
   const canBegin = Boolean(lobby.loadedEpisode || lobby.customGame) && isRoomHost;
   const inGame = Boolean(runtime && publicState && publicState.round !== "lobby");
+
+  // Leaving for real: hand the seat back rather than holding a socket open
+  // behind the landing page. The wordmark and the Leave key do the same.
+  function leave() {
+    if (online) leaveOnlineRoom();
+    setScreen("landing");
+  }
 
   /** Everything the More key offers, in the order it offers it. */
   const moreItems: {
@@ -101,11 +114,11 @@ export function RoomToolbar({
       }}
     >
       <Box sx={{ gridColumn: { xs: "1 / -1", sm: "1" }, justifySelf: { xs: "center", sm: "start" } }}>
-        <Tooltip title="Home">
+        <Tooltip title={online ? "Leave room and go home" : "Home"}>
           <Box
             component="button"
-            onClick={() => setScreen("landing")}
-            aria-label="Home"
+            onClick={leave}
+            aria-label={online ? "Leave room and go home" : "Home"}
             sx={{
               background: "transparent",
               border: "none",
@@ -113,6 +126,7 @@ export function RoomToolbar({
               p: 0,
               display: "inline-flex",
               alignItems: "center",
+              minHeight: 44,
               transition: "opacity 0.15s ease",
               "&:hover": { opacity: 0.8 },
               "&:focus-visible": {
@@ -181,9 +195,11 @@ export function RoomToolbar({
         ) : null}
 
         <Housing>
-          <ToolKey title="Change game" aria-label="Change game" data-testid="change-game" onClick={onOpenPicker}>
-            <ShuffleIcon />
-          </ToolKey>
+          {isRoomHost ? (
+            <ToolKey title="Change game" aria-label="Change game" data-testid="change-game" onClick={onOpenPicker}>
+              <ShuffleIcon />
+            </ToolKey>
+          ) : null}
           <DisplayButton />
           <ToolKey
             title="Settings"
@@ -197,19 +213,14 @@ export function RoomToolbar({
           </ToolKey>
           <HousingDivider />
           {inGame && isRoomHost ? (
-            <ToolKey title="Restart" aria-label="Restart" onClick={() => exitToLobby()}>
+            <ToolKey title="Restart" aria-label="Restart" onClick={() => setConfirmRestart(true)}>
               <ReplayIcon />
             </ToolKey>
           ) : null}
           <ToolKey
             title={online ? "Leave room" : "Home"}
             aria-label={online ? "Leave room" : "Home"}
-            onClick={() => {
-              // Leaving for real: hand the seat back rather than holding a
-              // socket open behind the landing page.
-              if (online) leaveOnlineRoom();
-              setScreen("landing");
-            }}
+            onClick={leave}
             sx={{ color: ui.red, "&:hover": { color: "#FF7A84", background: "rgba(255,78,91,0.12)" } }}
           >
             <LogoutIcon />
@@ -238,6 +249,35 @@ export function RoomToolbar({
           </MenuItem>
         ))}
       </Menu>
+
+      <Dialog
+        open={confirmRestart}
+        onClose={() => setConfirmRestart(false)}
+        aria-labelledby="restart-title"
+        aria-describedby="restart-text"
+      >
+        <DialogTitle id="restart-title">Restart the game?</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="restart-text">
+            Every score goes back to $0 and the board is dealt again, for everyone in the room.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmRestart(false)} autoFocus>
+            Keep playing
+          </Button>
+          <Button
+            color="error"
+            data-testid="confirm-restart"
+            onClick={() => {
+              setConfirmRestart(false);
+              if (isRoomHost) exitToLobby();
+            }}
+          >
+            Restart
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <AnchoredPanel title="Settings" anchor={settingsAnchor} onClose={() => setSettingsAnchor(null)}>
         <SettingsPanel />
@@ -293,8 +333,10 @@ function ToolKey({ title, sx, children, ...props }: IconButtonProps & { title: s
         {...props}
         sx={[
           {
-            width: { xs: 32, sm: 36 },
-            height: { xs: 32, sm: 36 },
+            width: { xs: 36, sm: 36 },
+            height: { xs: 36, sm: 36 },
+            // A finger needs 44px, whatever the screen width.
+            "@media (pointer: coarse)": { width: 44, height: 44 },
             borderRadius: "50%",
             color: ui.inkMuted,
             "&:hover": { color: ui.ink, background: "rgba(255,255,255,0.08)" },
