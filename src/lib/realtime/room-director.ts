@@ -276,14 +276,26 @@ export class RoomDirector {
   }
 
   private maybeAutoJudge(state: GameState) {
-    if (!state.settings.aiJudgeEnabled) return;
+    if (!state.settings.aiJudgeEnabled) {
+      // Switched off mid-clue: a ruling already queued must not land.
+      for (const [key, entry] of [...this.pending.entries()]) {
+        if (key.startsWith("judge:")) {
+          this.unschedule(entry.timer);
+          this.pending.delete(key);
+        }
+      }
+      return;
+    }
     const active = state.activeClue;
     if (!active?.answerRevealed) return;
     const target = active.currentJudgePlayerId;
     if (!target || active.judges[target] !== undefined) return;
 
     this.defer(`judge:${target}`, RoomDirector.scopeOf(state), 900, () => {
-      const clue = this.room.getState().cluesById[active.clueId];
+      const current = this.room.getState();
+      // Read again at the moment of ruling, not when it was queued.
+      if (!current.settings.aiJudgeEnabled) return;
+      const clue = current.cluesById[active.clueId];
       const verdict = this.room.runAiJudge(target);
       if (verdict && clue) {
         this.noteJudgement(target, clue.category, verdict.correct);

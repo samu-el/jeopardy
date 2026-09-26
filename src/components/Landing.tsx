@@ -65,7 +65,9 @@ export function Landing() {
       const joined = await joinOnlineRoom(code);
       if (!joined) {
         setJoinError(
-          "That room is not open. Ask the host for a fresh code or start your own.",
+          // The store says which: no such room, or no answer from the server.
+          useGameStore.getState().online?.error ??
+            "That room is not open. Ask the host for a fresh code or start your own.",
         );
         return;
       }

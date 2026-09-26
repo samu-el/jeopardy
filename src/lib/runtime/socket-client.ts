@@ -23,12 +23,44 @@ export interface SocketClientOptions {
   spectator?: boolean;
   /** Create the room if it doesn't exist yet (host flow). */
   create?: boolean;
+  /** The token this client last held in this room, offered to reclaim the seat. */
+  sessionToken?: string;
   onMessage: (message: ServerRealtimeMessage) => void;
   onStatus?: (status: "connecting" | "connected" | "reconnecting" | "disconnected") => void;
 }
 
-const maxReconnectDelayMs = 4_000;
+const maxReconnectDelayMs = 8_000;
 const pingIntervalMs = 5_000;
+/**
+ * How old a game command may be when the socket comes back and still be
+ * sent. A buzz or a pick made during an outage was aimed at a board that has
+ * moved on since; replaying it late is worse than dropping it.
+ */
+export const staleIntentMs = 1_000;
+
+/** Frames that carry game intent, as opposed to plumbing and chat. */
+function isGameIntent(frame: ClientFrame): boolean {
+  return frame.t === "command" || frame.t === "ai-judge" || frame.t === "add-bot";
+}
+
+/**
+ * Which queued frames still go out when the socket opens. Before the first
+ * connection everything does (the host deals the board before the socket is
+ * up), but after a drop, game intent older than `staleIntentMs` is
+ * discarded. Pings are never replayed; the ping loop restarts on its own.
+ */
+export function framesToReplay(
+  queue: readonly { frame: ClientFrame; at: number }[],
+  options: { everConnected: boolean; now: number },
+): ClientFrame[] {
+  return queue
+    .filter(({ frame, at }) => {
+      if (frame.t === "ping" || frame.t === "join") return false;
+      if (!options.everConnected) return true;
+      return !isGameIntent(frame) || options.now - at <= staleIntentMs;
+    })
+    .map(({ frame }) => frame);
+}
 
 /**
  * A room connection over a plain WebSocket, with the reconnect behaviour the
@@ -44,11 +76,18 @@ export class SocketClient {
   private reconnectTimer: ReturnType<typeof setTimeout> | undefined;
   private reconnectDelayMs = 500;
   private disposed = false;
-  /** Frames written before the socket opened, replayed once it does. */
-  private queue: ClientFrame[] = [];
+  /** Frames written while the socket was down, replayed (if still fresh) once it's up. */
+  private queue: { frame: ClientFrame; at: number }[] = [];
+  /** Set once the room has accepted this client at least once. */
+  private accepted = false;
+  private everOpened = false;
+  private sessionToken: string | undefined;
+  private create: boolean;
 
   constructor(options: SocketClientOptions) {
     this.options = options;
+    this.sessionToken = options.sessionToken;
+    this.create = Boolean(options.create);
     this.open();
   }
 
@@ -85,8 +124,12 @@ export class SocketClient {
       // The room only knows this connection once it has joined, so the join
       // goes first — before anything the caller queued while we were down.
       this.join();
-      const pending = this.queue;
+      const pending = framesToReplay(this.queue, {
+        everConnected: this.everOpened,
+        now: Date.now(),
+      });
       this.queue = [];
+      this.everOpened = true;
       for (const frame of pending) this.write(frame);
       this.beginPing();
     };
@@ -97,6 +140,13 @@ export class SocketClient {
       );
       if (!frame) return;
       if (frame.t === "message") {
+        if (frame.message.type === "session-accepted") {
+          this.accepted = true;
+          this.sessionToken = frame.message.sessionToken;
+          // The room exists now. A re-join after a drop must never ask to
+          // create it again, or it would collide with itself.
+          this.create = false;
+        }
         this.options.onMessage(frame.message);
         return;
       }
@@ -133,9 +183,10 @@ export class SocketClient {
   private write(frame: ClientFrame) {
     const socket = this.socket;
     if (!socket || socket.readyState !== WebSocket.OPEN) {
-      // Hold intent across a blip rather than dropping it. Bounded, so a long
-      // outage can't pile up a burst of stale commands to replay.
-      this.queue = [...this.queue.slice(-31), frame];
+      // Held across a blip, bounded, and stamped so that whatever is stale
+      // by the time the socket is back gets dropped rather than replayed.
+      if (frame.t === "ping") return;
+      this.queue = [...this.queue.slice(-31), { frame, at: Date.now() }];
       return;
     }
     socket.send(encodeFrame(frame));
@@ -154,7 +205,8 @@ export class SocketClient {
         emoji: this.options.emoji,
         color: this.options.color,
         spectator: this.options.spectator,
-        create: this.options.create,
+        create: this.create,
+        sessionToken: this.sessionToken,
       }),
     );
   }
@@ -211,5 +263,15 @@ export class SocketClient {
 
   get connected() {
     return this.socket?.readyState === WebSocket.OPEN;
+  }
+
+  /** True once the room has let this client in at least once. */
+  get everAccepted() {
+    return this.accepted;
+  }
+
+  /** The token the room last issued, to be offered on the next visit. */
+  get currentSessionToken() {
+    return this.sessionToken;
   }
 }

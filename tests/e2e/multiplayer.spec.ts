@@ -175,6 +175,138 @@ test.describe("Shared room", () => {
   });
 });
 
+test.describe("Room lifecycle", () => {
+  test("a host who refreshes comes back to the same room, still hosting", async ({
+    browser,
+  }) => {
+    const room = await openSharedRoom(browser);
+    const { host, guest, code } = room;
+    try {
+      // The address bar names the room, so a refresh has somewhere to go.
+      await expect(host).toHaveURL(new RegExp(`[?&]room=${code}`));
+
+      await host.reload();
+      await dismissOnboarding(host);
+      // Straight back onto the board: no landing page, no join card.
+      await expect(host.getByTestId("board")).toBeVisible({ timeout: 30_000 });
+      await expect(host.getByRole("dialog", { name: "Join room" })).toHaveCount(0);
+      await expect(host.getByTestId(/^podium-/)).toHaveCount(2);
+
+      // And the chair came back with them: the host can open a clue, the
+      // guest still cannot.
+      await expect(host.getByRole("button", { name: /\$200/ }).first()).toBeEnabled({
+        timeout: 20_000,
+      });
+      await expect(guest.getByRole("button", { name: /\$200/ }).first()).toBeDisabled();
+    } finally {
+      await room.close();
+    }
+  });
+
+  test("a guest who refreshes is put straight back in their seat", async ({ browser }) => {
+    const room = await openSharedRoom(browser);
+    const { host, guest } = room;
+    try {
+      await guest.reload();
+      await dismissOnboarding(guest);
+      await expect(guest.getByRole("dialog", { name: "Join room" })).toHaveCount(0);
+      await expect(guest.getByTestId("board")).toBeVisible({ timeout: 30_000 });
+      await expect(guest.getByTestId(/^podium-/)).toHaveCount(2);
+      await expect(host.getByTestId(/^podium-/)).toHaveCount(2);
+    } finally {
+      await room.close();
+    }
+  });
+
+  test("a TV opened in the host's own browser takes no seat and renames nobody", async ({
+    browser,
+  }) => {
+    const room = await openSharedRoom(browser);
+    const { host, guest, code } = room;
+    try {
+      const tv = await host.context().newPage();
+      await tv.goto(`/?room=${code}&display=1`);
+      await expect(tv.getByTestId("display-view")).toBeVisible({ timeout: 30_000 });
+      await expect(tv.getByTestId("board")).toBeVisible({ timeout: 20_000 });
+
+      // The host still has a lectern (and the chair) on every screen.
+      await expect(guest.getByTestId(/^podium-/)).toHaveCount(2);
+      await expect(host.getByTestId(/^podium-/)).toHaveCount(2);
+      await expect(host.getByTestId("connection-banner")).toHaveCount(0);
+      await expect(host.getByRole("button", { name: /\$200/ }).first()).toBeEnabled();
+
+      // Nothing about the display was written into what this browser keeps.
+      const lobby = await host.evaluate(() => window.localStorage.getItem("jeopardy.lobby.v2"));
+      expect(lobby ?? "").not.toContain('"hostName":"Display"');
+      expect(lobby ?? "").not.toContain('"hostSpectator":true');
+    } finally {
+      await room.close();
+    }
+  });
+
+  test("a removed guest is told so and can't walk straight back in", async ({ browser }) => {
+    const room = await openSharedRoom(browser);
+    const { host, guest } = room;
+    try {
+      await host.getByRole("button", { name: "More" }).click();
+      await host.getByRole("menuitem", { name: "Players" }).click();
+      await host.getByRole("button", { name: /^Remove / }).click();
+      await host.keyboard.press("Escape");
+
+      const banner = guest.getByTestId("connection-banner");
+      await expect(banner).toContainText("removed you", { timeout: 20_000 });
+      await expect(host.getByTestId(/^podium-/)).toHaveCount(1);
+
+      // A reload doesn't undo it.
+      await guest.reload();
+      const joinCard = guest.getByRole("dialog", { name: "Join room" });
+      await expect(joinCard).toBeVisible({ timeout: 20_000 });
+      await joinCard.getByRole("button", { name: "Join" }).click();
+      await expect(guest.getByTestId("connection-banner")).toContainText("removed you", {
+        timeout: 20_000,
+      });
+      await expect(host.getByTestId(/^podium-/)).toHaveCount(1);
+    } finally {
+      await room.close();
+    }
+  });
+
+  test("Home really leaves the room, after asking during a live game", async ({ browser }) => {
+    const room = await openSharedRoom(browser);
+    const { host, guest } = room;
+    try {
+      await guest.getByRole("button", { name: "Home" }).click();
+      await expect(guest.getByRole("dialog", { name: "Leave this game?" })).toBeVisible();
+      await guest.getByTestId("confirm-leave").click();
+
+      await expect(guest.getByTestId("new-game")).toBeVisible();
+      await expect(guest).not.toHaveURL(/room=/);
+      // The seat went with them, rather than lingering as a connected ghost.
+      await expect(host.getByTestId(/^podium-/)).toHaveCount(1, { timeout: 20_000 });
+    } finally {
+      await room.close();
+    }
+  });
+
+  test("a TV on a code nobody opened says so", async ({ page }) => {
+    await page.goto("/?room=QQQQ&display=1");
+    await expect
+      .poll(
+        () =>
+          page.evaluate(
+            () =>
+              (
+                window as unknown as {
+                  __game?: { getState: () => { online: { problem?: string } | null } };
+                }
+              ).__game?.getState().online?.problem,
+          ),
+        { timeout: 20_000 },
+      )
+      .toBe("not-found");
+  });
+});
+
 /** Picks a buzz window from the settings panel, as the host would. */
 async function setBuzzWindow(page: Page, option: string) {
   await page.getByRole("button", { name: "Settings" }).click();
