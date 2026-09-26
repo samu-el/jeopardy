@@ -57,7 +57,7 @@ export function RoomBar({ episode }: RoomBarProps) {
   }
 
   const connectedCount =
-    publicState?.players.filter((player) => player.connected && player.kind === "human")
+    publicState?.players.filter((player) => player.connected && player.kind === "human" && !player.spectator)
       .length ?? 0;
   const shareUrl =
     typeof window === "undefined"

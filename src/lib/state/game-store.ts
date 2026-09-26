@@ -25,7 +25,6 @@ import {
   committableName,
   connectToRoom,
   dealBoard,
-  isRetryableProblem,
   lookupMessage,
   lookupRoom,
   openHostedRoom,
@@ -527,10 +526,9 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set({ displayMode: true });
     const normalized = normalizeRoomCode(roomId);
     const found = await lookupOrReport(normalized, "display");
-    if (!found) {
-      scheduleDisplayRetry(normalized);
-      return false;
-    }
+    // A television keeps checking on its own (DisplayView retries while
+    // `online.problem` is "not-found" or "unreachable").
+    if (!found) return false;
     connectToRoom(set, get, normalized, {
       create: false,
       role: "display",
@@ -711,21 +709,6 @@ async function lookupOrReport(code: string, role: OnlineRoomState["role"]): Prom
     },
   });
   return false;
-}
-
-/** A television has no keyboard: it keeps checking until the room opens. */
-const displayRetryMs = 10_000;
-let displayRetryTimer: ReturnType<typeof setTimeout> | undefined;
-
-function scheduleDisplayRetry(code: string) {
-  if (typeof window === "undefined") return;
-  if (displayRetryTimer) clearTimeout(displayRetryTimer);
-  displayRetryTimer = setTimeout(() => {
-    displayRetryTimer = undefined;
-    const { displayMode, online } = useGameStore.getState();
-    if (!displayMode || online?.roomId !== code || !isRetryableProblem(online.problem)) return;
-    void useGameStore.getState().joinAsDisplay(code);
-  }, displayRetryMs);
 }
 
 /** A name is sent this long after the last keystroke, not on every one. */

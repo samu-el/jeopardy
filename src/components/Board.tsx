@@ -69,6 +69,7 @@ export function Board({ state, onPick, canPick = false, overlay, fill }: BoardPr
   const dealt = layout.columns.length > 0;
   const columns = dealt ? layout.columns.length : boardColumns;
   const rows = dealt ? layout.ladder.length : boardRows;
+  const isFinal = state?.round === "final-jeopardy";
 
   // One grid for both states: before a game is dealt the same frame draws a
   // ghost board, so there is no second copy of the board's markup to keep in
@@ -99,8 +100,11 @@ export function Board({ state, onPick, canPick = false, overlay, fill }: BoardPr
   return (
     <BoardFrame
       ref={containerRef}
-      ratio={boardRatio(columns, rows)}
-      tall={Boolean(overlay)}
+      // Final is one cell: framed at its own 1x1 ratio it becomes a narrow
+      // portrait card, so it keeps the standard board's landscape frame, and
+      // on a phone it stays short enough to leave the lecterns in view.
+      ratio={isFinal ? boardRatio(boardColumns, boardRows) : boardRatio(columns, rows)}
+      tall={Boolean(overlay) && !isFinal}
       fill={fill}
     >
       <BoardGrid columns={columns} rows={rows}>
