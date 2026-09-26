@@ -66,7 +66,8 @@ export async function GET(request: Request) {
       return Response.json({ counts: themeCounts(archive) });
     }
     if (mode === "decades") {
-      return Response.json({ counts: decadeCounts(archive) });
+      const theme = url.searchParams.get("theme") ?? undefined;
+      return Response.json({ counts: decadeCounts(archive, theme) });
     }
     if (mode === "categories") {
       const limit = Math.min(200, Number(url.searchParams.get("limit") ?? 80));

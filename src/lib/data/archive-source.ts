@@ -145,10 +145,7 @@ export function listEpisodes(
     if (themeFilter && theme !== themeFilter) continue;
     const decade = classifyDecade(episode.airDate);
     if (decadeFilter && decade !== decadeFilter) continue;
-    if (term) {
-      const haystack = `${episode.epNum} ${episode.info ?? ""} ${episode.airDate ?? ""}`.toLowerCase();
-      if (!haystack.includes(term)) continue;
-    }
+    if (term && !searchText(episode).includes(term)) continue;
     const clueCount =
       (episode.jeopardy?.length ?? 0) +
       (episode.double?.length ?? 0) +
@@ -173,6 +170,33 @@ export function listEpisodes(
   };
 }
 
+/**
+ * What a search looks through: the number, the date, the event tag and every
+ * category name on the board. Built once per episode and kept, because a
+ * search scans the whole archive and the category list is the costly part.
+ */
+const searchTextCache = new WeakMap<RawEpisode, string>();
+
+export function searchText(episode: RawEpisode): string {
+  const cached = searchTextCache.get(episode);
+  if (cached !== undefined) return cached;
+  const categories = new Set<string>();
+  for (const clue of [
+    ...(episode.jeopardy ?? []),
+    ...(episode.double ?? []),
+    ...(episode.triple ?? []),
+    ...(episode.final ?? []),
+  ]) {
+    const name = (clue.cat ?? clue.category)?.trim();
+    if (name) categories.add(name);
+  }
+  const text = [episode.epNum, episode.info ?? "", episode.airDate ?? "", ...categories]
+    .join(" ")
+    .toLowerCase();
+  searchTextCache.set(episode, text);
+  return text;
+}
+
 export function popularCategories(
   archive: RawEpisodeMap,
   limit = 50,
@@ -195,9 +219,12 @@ export function popularCategories(
     .slice(0, limit);
 }
 
-export function decadeCounts(archive: RawEpisodeMap): Record<string, number> {
+/** Episodes per decade, optionally within one theme so the chips never lead nowhere. */
+export function decadeCounts(archive: RawEpisodeMap, theme?: string): Record<string, number> {
   const counts: Record<string, number> = { all: 0 };
+  const themeFilter = theme && theme !== "all" ? theme : undefined;
   for (const episode of Object.values(archive)) {
+    if (themeFilter && classifyTheme(episode.info) !== themeFilter) continue;
     const decade = classifyDecade(episode.airDate);
     if (!decade) continue;
     counts[decade] = (counts[decade] ?? 0) + 1;

@@ -12,7 +12,17 @@ export type GameDataIssueCode =
   | "invalid-value"
   | "duplicate-clue-id"
   | "empty-round"
-  | "unknown-field";
+  | "unknown-field"
+  | "invalid-shape"
+  | "duplicate-category"
+  | "empty-category"
+  | "empty-cell"
+  | "placeholder-name"
+  | "missing-final"
+  | "no-daily-double"
+  | "too-many-daily-doubles"
+  | "too-long"
+  | "dropped-clue";
 
 export interface GameDataIssue {
   severity: GameDataIssueSeverity;
@@ -20,6 +30,10 @@ export interface GameDataIssue {
   message: string;
   row?: number;
   field?: string;
+  /** Builder issues point at the input that needs fixing. */
+  clueId?: string;
+  categoryId?: string;
+  round?: PlayableRound;
 }
 
 export interface NormalizedGameMetadata {
