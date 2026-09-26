@@ -116,19 +116,40 @@ describe("Buzzer reopen on wrong", () => {
     expect(s.activeClue?.canAdvance).toBe(true);
   });
 
-  it("closes the clue if the answer window has expired even with players remaining", () => {
+  it("reopens for the rest of the table however long the host takes to rule", () => {
     let s = setup();
     s = run(s, { type: "buzz", actorId: "p1" }, 200).state;
     s = run(s, { type: "submit-answer", actorId: "p1", answer: "Venus" }, 220).state;
     s = run(s, { type: "reveal-answer", actorId: "p1" }, 240).state;
-    // Judge well after the answer window expired (window = 10s after readout @ 100ms)
+    // Ruled long after the original answer window (10s from the buzz) ran out.
     s = run(
       s,
       { type: "judge-answer", actorId: "p1", targetPlayerId: "p1", correct: false },
       50_000,
     ).state;
 
-    expect(s.activeClue?.canAdvance).toBe(true);
+    expect(s.activeClue?.canAdvance).toBe(false);
+    expect(s.activeClue?.answerRevealed).toBe(false);
+    expect(s.activeClue?.reboundOpenedAt).toBe(50_000);
+    expect(run(s, { type: "buzz", actorId: "p2" }, 50_100).events[0].type).toBe(
+      "buzz-accepted",
+    );
+  });
+
+  it("gives the rest of the table a rebound when the ringer ran out of time", () => {
+    let s = setup();
+    s = run(s, { type: "buzz", actorId: "p1" }, 200).state;
+    // p1 never answers; the clock runs out and they are judged on the silence.
+    s = run(s, { type: "tick" }, 20_000).state;
+    expect(s.activeClue?.answerTimedOut).toEqual(["p1"]);
+    s = run(
+      s,
+      { type: "judge-answer", actorId: "p1", targetPlayerId: "p1", correct: false },
+      21_000,
+    ).state;
+    expect(run(s, { type: "buzz", actorId: "p2" }, 21_100).events[0].type).toBe(
+      "buzz-accepted",
+    );
   });
 
   it("preserves the existing Final Jeopardy flow (no reopen, queue keeps going)", () => {
