@@ -57,7 +57,7 @@ export function RoomBar({ episode }: RoomBarProps) {
   }
 
   const connectedCount =
-    publicState?.players.filter((player) => player.connected && player.kind === "human")
+    publicState?.players.filter((player) => player.connected && player.kind === "human" && !player.spectator)
       .length ?? 0;
   const shareUrl =
     typeof window === "undefined"
@@ -109,9 +109,11 @@ export function RoomBar({ episode }: RoomBarProps) {
             display: "inline-flex",
             alignItems: "center",
             gap: 1,
-            height: { xs: 26, sm: 30 },
+            height: { xs: 30, sm: 30 },
             px: { xs: 1, sm: 1.25 },
             cursor: "pointer",
+            // On a touch screen the chip is a 44px target.
+            "@media (pointer: coarse)": { height: 44 },
             color: "inherit",
             "&:hover": { borderColor: ui.inkMuted },
             "&:focus-visible": { outline: `2px solid ${ui.blue}`, outlineOffset: 1 },
@@ -143,7 +145,12 @@ export function RoomBar({ episode }: RoomBarProps) {
           aria-label={revealed ? "Hide the room code" : "Show the room code"}
           aria-pressed={revealed}
           onClick={() => setRevealed((shown) => !shown)}
-          sx={{ width: { xs: 26, sm: 32 }, height: { xs: 26, sm: 32 }, borderRadius: "50%" }}
+          sx={{
+            width: 32,
+            height: 32,
+            borderRadius: "50%",
+            "@media (pointer: coarse)": { width: 44, height: 44 },
+          }}
         >
           {revealed ? (
             <VisibilityOffIcon sx={{ fontSize: 17 }} />

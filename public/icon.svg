@@ -1,28 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
-  <rect width="192" height="192" rx="32" fill="#000" />
-  <g transform="skewX(-10) translate(28 0)">
-    <text
-      x="40"
-      y="138"
-      font-family="Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
-      font-weight="900"
-      font-style="italic"
-      font-size="150"
-      letter-spacing="-6"
-      fill="#3a78ff"
-      stroke="rgba(0,0,0,0.4)"
-      stroke-width="1"
-    >J</text>
-    <text
-      x="106"
-      y="138"
-      font-family="Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
-      font-weight="900"
-      font-style="italic"
-      font-size="150"
-      fill="#ffd23b"
-      stroke="rgba(0,0,0,0.4)"
-      stroke-width="1"
-    >!</text>
+  <title>Jeopardy!</title>
+  <!-- Glyphs are outlined (Oswald Bold, OFL) so the icon never depends on an installed font. -->
+  <rect width="192" height="192" rx="32" fill="#000000" />
+  <g transform="translate(96 96) skewX(-10) scale(0.165 -0.165) translate(-286.5 -395)">
+    <path fill="#4B5BFF" d="M13 -21V104Q40 104 59 107Q78 110 89 118.5Q100 127 105 143.5Q110 160 110 186V810H289V178Q289 112 272.5 67.5Q256 23 215 1Q174 -21 100 -21Z" />
+    <path fill="#F2C14E" transform="translate(349 0)" d="M96 206 49 808H211L152 206ZM46 0V152H200V0Z" />
   </g>
 </svg>

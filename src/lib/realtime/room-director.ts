@@ -1,12 +1,11 @@
 import {
+  BotClueMemory,
   createSeededRng,
-  decideBotAnswer,
-  decideBotBuzz,
   decideBotWager,
   type BotRng,
 } from "@/lib/ai/bots";
 import type { BotProfile } from "@/lib/ai/profiles";
-import type { GameState } from "@/lib/game";
+import { leadingOpponentScore, type GameState } from "@/lib/game";
 import type { InMemoryRealtimeRoom } from "./in-memory-room";
 
 export interface RoomDirectorOptions {
@@ -31,7 +30,11 @@ export class RoomDirector {
   private readonly profiles = new Map<string, BotProfile>();
   private readonly categoryPreference = new Map<string, Map<string, number>>();
   private readonly pending = new Map<string, { timer: Timer; scope: string }>();
+  /** `clueId:playerId` verdicts left for the host because the judge was unsure. */
+  private readonly heldForHost = new Set<string>();
   private readonly rng: BotRng;
+  /** Each bot's knowledge of the clue on screen, rolled once per clue. */
+  private readonly memory: BotClueMemory;
   private readonly schedule: (action: () => void, delayMs: number) => Timer;
   private readonly unschedule: (timer: Timer) => void;
   private unsubscribe: (() => void) | undefined;
@@ -40,6 +43,7 @@ export class RoomDirector {
   constructor(room: InMemoryRealtimeRoom, options: RoomDirectorOptions = {}) {
     this.room = room;
     this.rng = createSeededRng(options.seed ?? Date.now());
+    this.memory = new BotClueMemory(this.rng);
     // Wrapped, not stored bare: `this.schedule(...)` would call the browser's
     // setTimeout with the director as its receiver, which throws
     // "Illegal invocation" and silently kills every deferred bot action.
@@ -48,7 +52,9 @@ export class RoomDirector {
     this.schedule = scheduleFn
       ? (action, delayMs) => scheduleFn(action, delayMs)
       : (action, delayMs) => setTimeout(action, delayMs);
-    this.unschedule = clearFn ? (timer) => clearFn(timer) : (timer) => clearTimeout(timer);
+    this.unschedule = clearFn
+      ? (timer) => clearFn(timer)
+      : (timer) => clearTimeout(timer);
     for (const [id, profile] of Object.entries(options.botProfiles ?? {})) {
       this.addBot(id, profile);
     }
@@ -139,11 +145,14 @@ export class RoomDirector {
 
   private defer(key: string, scope: string, delayMs: number, action: () => void) {
     if (this.pending.has(key)) return;
-    const timer = this.schedule(() => {
-      this.pending.delete(key);
-      if (this.stopped) return;
-      action();
-    }, Math.max(0, delayMs));
+    const timer = this.schedule(
+      () => {
+        this.pending.delete(key);
+        if (this.stopped) return;
+        action();
+      },
+      Math.max(0, delayMs),
+    );
     this.pending.set(key, { timer, scope });
   }
 
@@ -160,7 +169,8 @@ export class RoomDirector {
     );
     if (available.length === 0) return;
 
-    const preference = this.categoryPreference.get(pickerId) ?? new Map<string, number>();
+    const preference =
+      this.categoryPreference.get(pickerId) ?? new Map<string, number>();
     const preferHighValue = profile.targetAccuracy > 0.65;
     const ranked = available
       .map((clueId) => state.cluesById[clueId])
@@ -171,7 +181,8 @@ export class RoomDirector {
           (preferHighValue ? clue.value / 200 : (2_000 - clue.value) / 200),
       }))
       .sort((a, b) => b.score - a.score);
-    const choice = ranked[Math.floor(this.rng.next() * Math.min(3, ranked.length))].clue;
+    const choice =
+      ranked[Math.floor(this.rng.next() * Math.min(3, ranked.length))].clue;
     const introDelay = Math.max(0, (state.roundIntroEndsAt ?? 0) - Date.now());
 
     this.defer(
@@ -197,6 +208,9 @@ export class RoomDirector {
         clue,
         currentScore: state.scores[playerId] ?? 0,
         leaderScore: Math.max(...Object.values(state.scores), 1),
+        // The best score among the others, not the table's: a leader weighing
+        // itself against its own total always bet everything.
+        bestOpponentScore: leadingOpponentScore(state, playerId),
         round: clue.round,
         rng: this.rng,
       });
@@ -221,13 +235,16 @@ export class RoomDirector {
     if (active.round === "final-jeopardy") {
       for (const [botId, profile] of this.profiles.entries()) {
         if (active.submitted[botId]) continue;
-        const decision = decideBotAnswer(profile, clue, this.rng);
+        const decision = this.memory.answerFor(botId, profile, clue);
         this.defer(
           `${botId}:final`,
           RoomDirector.scopeOf(state),
           2_000 + Math.floor(this.rng.next() * 6_000),
           () => {
-            this.room.dispatch(botId, { type: "submit-answer", answer: decision.answer });
+            this.room.dispatch(botId, {
+              type: "submit-answer",
+              answer: decision.answer,
+            });
           },
         );
       }
@@ -239,7 +256,7 @@ export class RoomDirector {
       if (active.buzzes[botId] !== undefined) {
         // Already at the podium — make sure an answer is on its way.
         if (!active.submitted[botId]) {
-          const decision = decideBotAnswer(profile, clue, this.rng);
+          const decision = this.memory.answerFor(botId, profile, clue);
           this.defer(
             `${botId}:answer`,
             RoomDirector.scopeOf(state),
@@ -258,7 +275,7 @@ export class RoomDirector {
       if (active.judges[botId] !== undefined) continue;
       if (state.players[botId]?.spectator) continue;
 
-      const decision = decideBotBuzz(profile, clue, this.rng);
+      const decision = this.memory.buzzFor(botId, profile, clue);
       if (!decision.shouldBuzz) continue;
       const readoutRemaining = Math.max(0, (active.readoutEndsAt ?? now) - now);
       this.defer(
@@ -273,15 +290,36 @@ export class RoomDirector {
   }
 
   private maybeAutoJudge(state: GameState) {
-    if (!state.settings.aiJudgeEnabled) return;
+    if (!state.settings.aiJudgeEnabled) {
+      // Switched off mid-clue: a ruling already queued must not land.
+      for (const [key, entry] of [...this.pending.entries()]) {
+        if (key.startsWith("judge:")) {
+          this.unschedule(entry.timer);
+          this.pending.delete(key);
+        }
+      }
+      return;
+    }
     const active = state.activeClue;
     if (!active?.answerRevealed) return;
     const target = active.currentJudgePlayerId;
     if (!target || active.judges[target] !== undefined) return;
+    // Already handed to the host as too close to call, or already ruled once
+    // (the host undid it to overrule): the answer is the host's now.
+    const heldKey = `${active.clueId}:${target}`;
+    if (this.heldForHost.has(heldKey)) return;
 
     this.defer(`judge:${target}`, RoomDirector.scopeOf(state), 900, () => {
-      const clue = this.room.getState().cluesById[active.clueId];
-      const verdict = this.room.runAiJudge(target);
+      const current = this.room.getState();
+      // Read again at the moment of ruling, not when it was queued.
+      if (!current.settings.aiJudgeEnabled) return;
+      const clue = current.cluesById[active.clueId];
+      const verdict = this.room.runAiJudge(target, { holdAmbiguous: true });
+      if (verdict?.held) {
+        this.heldForHost.add(heldKey);
+        return;
+      }
+      if (verdict) this.heldForHost.add(heldKey);
       if (verdict && clue) {
         this.noteJudgement(target, clue.category, verdict.correct);
       }

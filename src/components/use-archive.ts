@@ -1,15 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchThemeCounts, themeOptions, type ArchiveEpisodeResponse } from "@/lib/data";
+import {
+  ArchiveError,
+  archiveOfflineMessage,
+  fetchThemeCounts,
+  themeOptions,
+  type ArchiveEpisodeResponse,
+} from "@/lib/data";
 import { useGameStore } from "@/lib/state/game-store";
 
 /**
  * Runs a fetch while a dialog is open, and throws the answer away if the
- * dialog closed first.
- *
- * Both archive dialogs had their own copy of the cancelled-flag dance, four
- * times over between them.
+ * dialog closed first. A failure goes to `fail` instead of becoming an
+ * unhandled rejection behind a screen that says "Nothing matched".
  */
 export function useWhileOpen<T>(
   open: boolean,
@@ -17,14 +21,20 @@ export function useWhileOpen<T>(
   apply: (value: T) => void,
   deps: unknown[] = [],
   debounceMs = 0,
+  fail?: (error: unknown) => void,
 ) {
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
     const run = () => {
-      load().then((value) => {
-        if (!cancelled) apply(value);
-      });
+      load().then(
+        (value) => {
+          if (!cancelled) apply(value);
+        },
+        (error: unknown) => {
+          if (!cancelled) fail?.(error);
+        },
+      );
     };
     const timer = debounceMs > 0 ? setTimeout(run, debounceMs) : (run(), undefined);
     return () => {
@@ -51,6 +61,19 @@ export function useArchiveThemes(open: boolean) {
       };
 }
 
+/** A failure in words a person can act on, and whether Retry makes sense. */
+export interface ArchiveProblem {
+  message: string;
+  retryable: boolean;
+}
+
+export function describeArchiveError(error: unknown): ArchiveProblem {
+  if (error instanceof ArchiveError) {
+    return { message: error.message, retryable: error.retryable };
+  }
+  return { message: archiveOfflineMessage, retryable: true };
+}
+
 /**
  * Puts an episode on the lobby's board, with the busy-and-error bookkeeping
  * every way of choosing one needs: shuffle, pick by number, pick from a list.
@@ -58,11 +81,16 @@ export function useArchiveThemes(open: boolean) {
 export function useEpisodeChooser(onChosen: () => void) {
   const setLoadedEpisode = useGameStore((s) => s.setLoadedEpisode);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ArchiveProblem | null>(null);
+  const [lastAttempt, setLastAttempt] = useState<(() => void) | null>(null);
 
-  async function choose(fetchEpisode: () => Promise<ArchiveEpisodeResponse>) {
+  async function choose(
+    fetchEpisode: () => Promise<ArchiveEpisodeResponse>,
+    after?: () => void,
+  ) {
     setBusy(true);
     setError(null);
+    setLastAttempt(() => () => void choose(fetchEpisode, after));
     try {
       const response = await fetchEpisode();
       setLoadedEpisode({
@@ -72,13 +100,14 @@ export function useEpisodeChooser(onChosen: () => void) {
         info: response.episode.info,
         episode: response.episode,
       });
+      after?.();
       onChosen();
     } catch (err) {
-      setError((err as Error).message);
+      setError(describeArchiveError(err));
     } finally {
       setBusy(false);
     }
   }
 
-  return { busy, setBusy, error, setError, choose };
+  return { busy, error, setError, choose, retry: lastAttempt };
 }

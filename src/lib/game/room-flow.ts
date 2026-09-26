@@ -323,6 +323,7 @@ export function loadGame(
         ? { ...state.scores }
         : Object.fromEntries(Object.keys(state.players).map((id) => [id, 0])),
       stats: createEmptyStats(),
+      finalJeopardy: undefined,
       undoSnapshot: undefined,
     }),
     events: [{ type: "game-loaded", clueCount: command.clues.length }],

@@ -21,6 +21,9 @@ import {
   type GameStateSnapshot,
   type GameStats,
   type PlayableRound,
+  type Standing,
+  type WagerAdjustment,
+  type WagerLimits,
   gameRoundOrder,
 } from "./contracts";
 
@@ -58,7 +61,12 @@ export const playableRounds: PlayableRound[] = [
   "final-jeopardy",
 ];
 
-/** The house minimum a player may always wager, whatever their score. */
+/**
+ * The most a player may always wager on a Daily Double, whatever their score,
+ * when a round has no clues to read the real figure from. The show's rule is
+ * "your score or the highest value on the board this round, whichever is
+ * greater"; see `roundMaxValue`.
+ */
 const wagerCeilingFloor: Record<GameRound, number> = {
   lobby: 0,
   jeopardy: 1_000,
@@ -234,17 +242,89 @@ export function withoutPlayer(active: ActiveClueState, playerId: string): Active
 /**
  * Who opens the board.
  *
- * A host at a lectern keeps the pick; a host who only runs the game hands it
- * to a contestant, lowest score first, the way a round opens on the show.
+ * The first round opens with a host at a lectern, if there is one — they
+ * pressed start — and otherwise with the lowest score. Every later round opens
+ * with the trailing contestant, the way the show does it, so a seated host no
+ * longer gets the first pick of Double Jeopardy for free. Ties go to the
+ * earliest seat.
  */
-export function selectPicker(state: GameState): string | undefined {
+export function selectPicker(
+  state: GameState,
+  opening: "first-round" | "later-round" = "first-round",
+): string | undefined {
   const hostId = state.settings.hostId;
-  if (hostId && state.players[hostId] && !state.players[hostId].spectator) {
+  if (
+    opening === "first-round" &&
+    hostId &&
+    state.players[hostId] &&
+    !state.players[hostId].spectator
+  ) {
     return hostId;
   }
+  const seats = seatOrder(state);
   return getActivePlayers(state)
     .map((player) => ({ id: player.id, score: state.scores[player.id] ?? 0 }))
-    .sort((a, b) => a.score - b.score || a.id.localeCompare(b.id))[0]?.id;
+    .sort((a, b) => a.score - b.score || seats.indexOf(a.id) - seats.indexOf(b.id))[0]?.id;
+}
+
+/**
+ * Everyone in the room, in the order they sat down. Podiums use this so a
+ * lectern never jumps sideways when a score changes; ranking is separate.
+ */
+export function seatOrder(state: GameState): string[] {
+  return Object.values(state.players)
+    .map((player, index) => ({ id: player.id, index, joinedAt: player.joinedAt }))
+    .sort(
+      (a, b) =>
+        (a.joinedAt ?? Number.NEGATIVE_INFINITY) - (b.joinedAt ?? Number.NEGATIVE_INFINITY) ||
+        a.index - b.index,
+    )
+    .map((seat) => seat.id);
+}
+
+/** Contestants only — spectators and displays are never ranked. */
+export function getStandings(state: GameState): Standing[] {
+  const seats = seatOrder(state);
+  const sorted = getActivePlayers(state)
+    .map((player) => ({ playerId: player.id, score: state.scores[player.id] ?? 0 }))
+    .sort((a, b) => b.score - a.score || seats.indexOf(a.playerId) - seats.indexOf(b.playerId));
+  return sorted.map((entry) => ({
+    ...entry,
+    rank: sorted.findIndex((other) => other.score === entry.score) + 1,
+  }));
+}
+
+/** Everyone tied for the top score. Empty when there are no contestants. */
+export function getLeaders(state: GameState): string[] {
+  return getStandings(state)
+    .filter((entry) => entry.rank === 1)
+    .map((entry) => entry.playerId);
+}
+
+/**
+ * Who won. On the show a contestant has to finish in the black to win, so a
+ * table that ends at or below zero has no winner; a tie at the top has
+ * several.
+ */
+export function getWinners(state: GameState): string[] {
+  return getLeaders(state).filter((id) => (state.scores[id] ?? 0) > 0);
+}
+
+/** The best score at the table other than this player's own. */
+export function leadingOpponentScore(state: GameState, playerId: string): number {
+  const others = getActivePlayers(state)
+    .filter((player) => player.id !== playerId)
+    .map((player) => state.scores[player.id] ?? 0);
+  return others.length > 0 ? Math.max(...others) : 0;
+}
+
+/**
+ * Who plays Final Jeopardy: contestants who finished the last round in the
+ * black. Anyone at or below zero sits it out — no wager box, and the room
+ * does not wait on them.
+ */
+export function getFinalists(state: GameState): GamePlayer[] {
+  return getActivePlayers(state).filter((player) => (state.scores[player.id] ?? 0) > 0);
 }
 
 // ---------------------------------------------------------------------------
@@ -295,7 +375,7 @@ export function revealActiveClue(
 
   const owed =
     activeClue.round === "final-jeopardy"
-      ? getActivePlayers(state).map((player) => player.id)
+      ? getFinalists(state).map((player) => player.id)
       : activeClue.dailyDoublePlayerId
         ? [activeClue.dailyDoublePlayerId]
         : [];
@@ -343,12 +423,70 @@ export function canSubmitAnswer(
   );
 }
 
-/** Nobody may bet more than they have, or less than the house minimum. */
-export function clampWager(amount: number, round: GameRound, score: number): number {
-  const min = round === "final-jeopardy" ? 0 : 5;
-  const max = Math.max(score, wagerCeilingFloor[round]);
-  const safe = Number.isFinite(amount) ? Math.trunc(amount) : min;
-  return Math.min(Math.max(safe, min), max);
+/** The biggest clue on this round's board, which sets a Daily Double's ceiling. */
+export function roundMaxValue(state: GameState, round: GameRound): number {
+  if (round === "lobby" || round === "complete" || round === "final-jeopardy") {
+    return wagerCeilingFloor[round];
+  }
+  const values = state.clueIdsByRound[round].map((id) => state.cluesById[id]?.value ?? 0);
+  return values.length > 0 ? Math.max(...values) : wagerCeilingFloor[round];
+}
+
+/**
+ * What this player may wager right now. Daily Double: at least $5, at most
+ * their score or the round's biggest clue, whichever is greater. Final
+ * Jeopardy: anywhere from $0 to their score.
+ */
+export function wagerLimitsFor(
+  state: GameState,
+  playerId: string,
+  round: GameRound,
+): WagerLimits {
+  const score = state.scores[playerId] ?? 0;
+  if (round === "final-jeopardy") {
+    return { min: 0, max: Math.max(score, 0), maxIsScore: true };
+  }
+  const house = roundMaxValue(state, round);
+  return { min: 5, max: Math.max(score, house), maxIsScore: score >= house };
+}
+
+/**
+ * Nobody may bet more than their limit or less than the house minimum. Says
+ * how the amount was changed, so the table can be told instead of finding
+ * out when the score moves.
+ */
+export function clampWager(
+  amount: number,
+  limits: Pick<WagerLimits, "min" | "max">,
+): { amount: number; adjusted?: WagerAdjustment } {
+  const { min, max } = limits;
+  if (!Number.isFinite(amount)) return { amount: min, adjusted: "not-a-number" };
+  const whole = Math.trunc(amount);
+  if (whole > max) return { amount: max, adjusted: "above-max" };
+  if (whole < min) return { amount: min, adjusted: "below-min" };
+  return { amount: whole };
+}
+
+/**
+ * Whether a wrong ruling on this clue could still hand it to someone else:
+ * a contestant who has neither rung in nor been ruled on. Never on a Daily
+ * Double or in Final — those belong to the players who wagered.
+ */
+export function reboundPossible(state: GameState, active: ActiveClueState): boolean {
+  if (active.dailyDoublePlayerId || active.round === "final-jeopardy") return false;
+  return getActivePlayers(state).some(
+    (player) =>
+      active.judges[player.id] === undefined && active.buzzes[player.id] === undefined,
+  );
+}
+
+/**
+ * Whether the correct response may be shown to the table. Only once the clue
+ * is settled — ruled right, or nobody left who could ring in on a rebound —
+ * so nobody gets to buzz on an answer they have just been shown.
+ */
+export function isResponsePublic(state: GameState, active: ActiveClueState): boolean {
+  return active.answerRevealed && (active.canAdvance || !reboundPossible(state, active));
 }
 
 // ---------------------------------------------------------------------------
@@ -401,7 +539,8 @@ export function advanceToNextRound(draft: GameState, now: number): GameEvent[] {
   }
 
   draft.round = nextRound;
-  draft.pickerId = nextRound === "final-jeopardy" ? undefined : selectPicker(draft);
+  draft.pickerId =
+    nextRound === "final-jeopardy" ? undefined : selectPicker(draft, "later-round");
   draft.roundIntroEndsAt = introDeadline(draft, now);
   const events: GameEvent[] = [{ type: "round-advanced", round: nextRound }];
 
@@ -413,11 +552,17 @@ export function advanceToNextRound(draft: GameState, now: number): GameEvent[] {
   if (!finalClueId) return events;
 
   const activeClue = createActiveClue(draft.cluesById[finalClueId]);
-  activeClue.waitingForWager = getActivePlayers(draft).map((player) => player.id);
+  draft.activeClue = activeClue;
+  activeClue.waitingForWager = getFinalists(draft).map((player) => player.id);
+  if (activeClue.waitingForWager.length === 0) {
+    // Nobody finished in the black: there is no one to wager, so the clue
+    // simply goes up once the title card clears and plays out to the answer.
+    revealActiveClue(activeClue, 0, now + draft.settings.roundIntroMs, draft);
+    return events;
+  }
   activeClue.wagerWindowStartsAt = now + draft.settings.roundIntroMs;
   activeClue.wagerWindowEndsAt =
     now + draft.settings.roundIntroMs + draft.settings.finalTimeoutMs;
-  draft.activeClue = activeClue;
   events.push({
     type: "wager-requested",
     clueId: finalClueId,

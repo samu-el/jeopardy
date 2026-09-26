@@ -28,3 +28,15 @@ const connectionStates: Record<string, { color: string; label: string }> = {
 export function connectionState(status: string): { color: string; label: string } {
   return connectionStates[status] ?? { color: ui.red, label: "Disconnected" };
 }
+
+const speakerNames: Record<string, string> = {
+  system: "Game",
+  host: "Host",
+  judge: "Judge",
+  player: "Player",
+};
+
+/** Who said it, in words — for the screen reader the coloured dot can't reach. */
+export function speakerLabel(kind: string): string {
+  return speakerNames[kind] ?? kind;
+}

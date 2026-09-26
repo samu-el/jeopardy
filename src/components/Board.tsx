@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import type { PublicGameState } from "@/lib/game";
@@ -24,6 +24,8 @@ import {
   valueFontSize,
 } from "./board/BoardFrame";
 import { useClueZoom } from "./board/use-clue-zoom";
+import { mayTakeFocus } from "./clue/keyboard";
+import { useReducedMotion } from "./use-reduced-motion";
 
 interface BoardProps {
   state: PublicGameState | null;
@@ -37,6 +39,12 @@ interface BoardProps {
    * screen is what makes a clue readable from a sofa.
    */
   fill?: boolean;
+  /**
+   * When a clue closes, put keyboard focus back on the board — on the next
+   * square in the same column, or the board itself — instead of letting it
+   * fall to the top of the page.
+   */
+  returnFocus?: boolean;
 }
 
 /**
@@ -53,8 +61,8 @@ type Tile =
   | { kind: "blank" }
   | { kind: "ghost"; label: string };
 
-export function Board({ state, onPick, canPick = false, overlay, fill }: BoardProps) {
-  const reducedMotion = useGameStore((s) => s.preferences.reducedMotion);
+export function Board({ state, onPick, canPick = false, overlay, fill, returnFocus }: BoardProps) {
+  const reducedMotion = useReducedMotion();
   const soundEnabled = useGameStore((s) => s.preferences.soundEnabled);
   const board = state?.board;
   const layout = useMemo(() => layoutBoard(board ?? []), [board]);
@@ -64,11 +72,32 @@ export function Board({ state, onPick, canPick = false, overlay, fill }: BoardPr
   const activeClueId = state?.currentClue?.clueId ?? null;
   useClueZoom(containerRef, overlayRef, tileRefs, activeClueId, reducedMotion);
 
+  const lastClueId = useRef<string | null>(null);
+  useEffect(() => {
+    if (activeClueId) {
+      lastClueId.current = activeClueId;
+      return;
+    }
+    const closed = lastClueId.current;
+    lastClueId.current = null;
+    if (!closed || !returnFocus || !mayTakeFocus()) return;
+    // The square just played is spent; the nearest one still open in its
+    // column is where the eye already is.
+    const tiles = [...tileRefs.current.entries()];
+    const index = tiles.findIndex(([id]) => id === closed);
+    const open = (node: HTMLElement) => !node.hasAttribute("disabled") && node.getAttribute("aria-disabled") !== "true";
+    const after = tiles.slice(index + 1).find(([, node]) => open(node));
+    const before = tiles.slice(0, Math.max(0, index)).reverse().find(([, node]) => open(node));
+    const target = after?.[1] ?? before?.[1] ?? containerRef.current;
+    target?.focus({ preventScroll: true });
+  }, [activeClueId, returnFocus]);
+
   // The board only fills in once per round, the way the set lights up.
   const roundKey = state?.round ?? "empty";
   const dealt = layout.columns.length > 0;
   const columns = dealt ? layout.columns.length : boardColumns;
   const rows = dealt ? layout.ladder.length : boardRows;
+  const isFinal = state?.round === "final-jeopardy";
 
   // One grid for both states: before a game is dealt the same frame draws a
   // ghost board, so there is no second copy of the board's markup to keep in
@@ -99,8 +128,12 @@ export function Board({ state, onPick, canPick = false, overlay, fill }: BoardPr
   return (
     <BoardFrame
       ref={containerRef}
-      ratio={boardRatio(columns, rows)}
-      tall={Boolean(overlay)}
+      // Final is one cell: framed at its own 1x1 ratio it becomes a narrow
+      // portrait card, so it keeps the standard board's landscape frame, and
+      // on a phone it stays short enough to leave the lecterns in view.
+      ratio={isFinal ? boardRatio(boardColumns, boardRows) : boardRatio(columns, rows)}
+      tall={Boolean(overlay) && !isFinal}
+      label={dealt ? `Board, ${state?.round.replace(/-/g, " ") ?? ""}` : "Board"}
       fill={fill}
     >
       <BoardGrid columns={columns} rows={rows}>
@@ -197,7 +230,8 @@ function Cell({
           textShadow: jeopardyTextShadow,
           overflow: "hidden",
           // Break inside a word only when a long category can't fit otherwise.
-          overflowWrap: "break-word",
+          overflowWrap: "anywhere",
+          hyphens: "auto",
           animation: reducedMotion ? "none" : `board-drop 420ms ${delayMs}ms both ease-out`,
           "@keyframes board-drop": {
             from: { opacity: 0, transform: "translateY(-18px)" },
@@ -248,9 +282,15 @@ function Cell({
         opacity: tile.hidden ? 0 : 1,
         cursor: tile.pickable ? "pointer" : "default",
         transition: reducedMotion ? "none" : "filter 140ms ease, transform 140ms ease",
-        "&:hover": tile.pickable
-          ? { filter: "brightness(1.35)", transform: reducedMotion ? "none" : "scale(1.02)" }
-          : undefined,
+        touchAction: "manipulation",
+        WebkitTapHighlightColor: "transparent",
+        // Only where there is a real hover: on a touch screen the tapped
+        // square would keep its glow after the board comes back.
+        "@media (hover: hover)": {
+          "&:hover": tile.pickable
+            ? { filter: "brightness(1.35)", transform: reducedMotion ? "none" : "scale(1.02)" }
+            : {},
+        },
         "&.Mui-disabled": { color: jeopardyPalette.gold },
         "&:focus-visible": {
           outline: `3px solid ${jeopardyPalette.goldBright}`,

@@ -1,94 +1,219 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import dynamic from "next/dynamic";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Checkbox from "@mui/material/Checkbox";
 import CircularProgress from "@mui/material/CircularProgress";
 import Container from "@mui/material/Container";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForwardOutlined";
+import EditNoteIcon from "@mui/icons-material/EditNoteOutlined";
 import LoginIcon from "@mui/icons-material/LoginOutlined";
+import { baselineBotProfiles } from "@/lib/ai/profiles";
+import { primeAudio, primeSpeech } from "@/lib/ai";
 import { defaultPlayerName, useGameStore } from "@/lib/state/game-store";
+import { useSharedGameLink } from "@/lib/state/shared-game-link";
+import {
+  hasImpossibleCharacters,
+  isCompleteRoomCode,
+  parseInviteInput,
+  roomCodeLength,
+} from "@/lib/realtime/invite-code";
 import { ui } from "@/lib/foundation/jeopardy-style";
+import { appViewport } from "@/lib/foundation/viewport";
 import { Wordmark } from "./Wordmark";
+
+// The builder is a big form most visitors never open: load it on demand.
+const CustomGameBuilder = dynamic(
+  () => import("./CustomGameBuilder").then((m) => m.CustomGameBuilder),
+  { ssr: false },
+);
+
+const notOpenMessage = "That room isn't open. Check the code with the host, or start your own game.";
+const unreachableMessage =
+  "Couldn't reach the room service. Check your connection and try again.";
+const slowMessage = "The room service is taking too long to answer. Try again in a moment.";
+const joinTimeoutMs = 12_000;
+
+/** The bot a first game gets when asked for one: the middle of the four tiers. */
+const defaultBotProfile =
+  baselineBotProfiles.find((profile) => profile.id === "casual") ?? baselineBotProfiles[0];
+
+
+/**
+ * The name field shows what's typed until it's left, and only then stores
+ * it: the store trims, and trimming per keystroke ate every space.
+ */
+function useNameField() {
+  const hostName = useGameStore((s) => s.lobby.hostName);
+  const setHostName = useGameStore((s) => s.setHostName);
+  const [draft, setDraft] = useState<string | null>(null);
+  const stored = hostName.trim() === "You" ? "" : hostName;
+  const value = draft ?? stored;
+  /**
+   * The join card starts out showing the name the room would give you, so
+   * leaving it alone is no surprise. It is only a starting value: once the
+   * field is cleared it stays cleared (the room still falls back to it).
+   */
+  const joinValue = (fallback: string) => draft ?? (stored || fallback);
+  function commit() {
+    if (draft === null) return;
+    setHostName(draft);
+    // An emptied field stays empty rather than snapping back to a default.
+    setDraft(draft.trim() ? null : "");
+  }
+  return { value, joinValue, onChange: setDraft, commit };
+}
+
+const noSubscription = () => () => undefined;
+
+/**
+ * True while the address carries an invite (`?room=`) the shell hasn't turned
+ * into a join card yet. For that first moment the page shows neither form,
+ * so nothing typed lands in the New Game name field just before the join
+ * card replaces it.
+ */
+function useInviteArriving(pendingRoomId: string | null): boolean {
+  const urlHasRoom = useSyncExternalStore(
+    noSubscription,
+    () => new URLSearchParams(window.location.search).has("room"),
+    () => false,
+  );
+  return urlHasRoom && !pendingRoomId;
+}
 
 export function Landing() {
   const pendingRoomId = useGameStore((s) => s.pendingRoomId);
   const hostId = useGameStore((s) => s.lobby.hostId);
+  const bots = useGameStore((s) => s.lobby.bots);
+  const online = useGameStore((s) => s.online);
   const setPendingRoomId = useGameStore((s) => s.setPendingRoomId);
-  const setHostName = useGameStore((s) => s.setHostName);
-  const hostName = useGameStore((s) => s.lobby.hostName);
+  const setScreen = useGameStore((s) => s.setScreen);
+  const leaveOnlineRoom = useGameStore((s) => s.leaveOnlineRoom);
+  const addBot = useGameStore((s) => s.addBot);
+  const removeBot = useGameStore((s) => s.removeBot);
   const joinOnlineRoom = useGameStore((s) => s.joinOnlineRoom);
   const startRandomGame = useGameStore((s) => s.startRandomGame);
+  const sharedLink = useSharedGameLink();
+  const name = useNameField();
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [codeInput, setCodeInput] = useState("");
   const [dealing, setDealing] = useState(false);
   const [dealError, setDealError] = useState<string | null>(null);
+  const [builderOpen, setBuilderOpen] = useState(false);
+  const [builderRequested, setBuilderRequested] = useState(false);
+  const joinErrorRef = useRef<HTMLDivElement>(null);
+
+  const inviteArriving = useInviteArriving(pendingRoomId);
+  const stillInRoom = online && online.status !== "rejected" ? online : null;
+  const codeReady = isCompleteRoomCode(codeInput);
+  const codeHint = hasImpossibleCharacters(codeInput)
+    ? "Codes never use I, O, 0 or 1"
+    : codeInput.length > 0 && codeInput.length < roomCodeLength
+      ? `${roomCodeLength} characters`
+      : " ";
+
+  /** Hands back a seat still held from an earlier room, staying on this page. */
+  function leaveLingeringRoom() {
+    if (!stillInRoom) return;
+    leaveOnlineRoom();
+    setScreen("landing");
+  }
 
   /** One click straight onto a board — no picker, no settings detour. */
   async function newGame() {
+    primeAudio();
+    primeSpeech();
+    name.commit();
+    // A new game is a new room, not a re-deal over whoever is left in the old one.
+    leaveLingeringRoom();
     setDealing(true);
     setDealError(null);
     const result = await startRandomGame();
     if (!result.ok) {
-      setDealError(result.error ?? "Could not start a game.");
+      setDealError(result.error ?? "Could not start a game. Try again in a moment.");
       setDealing(false);
       return;
     }
     // startRandomGame moves to the play screen itself; this component unmounts.
   }
 
+  function toggleBot(on: boolean) {
+    if (on && bots.length === 0) addBot(defaultBotProfile);
+    if (!on) for (const bot of bots) removeBot(bot.id);
+  }
+
   /**
-   * The code box opens the join card rather than joining outright.
-   *
-   * It used to connect on the spot, which meant the only path that asked for
-   * a name was the invite link — type a code and the room called you
-   * "Player 4B2" with nowhere to say otherwise. One card, one place to be
-   * asked, whichever way you arrived.
+   * The code box opens the join card rather than joining outright, so the
+   * one place that asks for a name is the same whichever way you arrived.
    */
-  function openJoinCard(roomId: string) {
-    const code = roomId.trim().toUpperCase();
-    if (code.length < 3) return;
+  function openJoinCard() {
+    if (!codeReady) return;
     setJoinError(null);
-    setPendingRoomId(code);
+    setPendingRoomId(codeInput);
+  }
+
+  function cancelJoin() {
+    setPendingRoomId(null);
+    setJoinError(null);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("room");
+      window.history.replaceState({}, "", url.toString());
+    }
   }
 
   async function joinRoom(roomId: string) {
     const code = roomId.trim().toUpperCase();
     if (!code) return;
+    primeAudio();
+    primeSpeech();
+    name.commit();
     setJoining(true);
     setJoinError(null);
     try {
-      const joined = await joinOnlineRoom(code);
-      if (!joined) {
+      const outcome = await Promise.race([
+        joinOnlineRoom(code),
+        new Promise<"slow">((resolve) => setTimeout(() => resolve("slow"), joinTimeoutMs)),
+      ]);
+      if (outcome === "slow") {
+        setJoinError(slowMessage);
+        return;
+      }
+      if (!outcome) {
+        // The store says which: no such room, or no answer from the server.
+        const { online: failed } = useGameStore.getState();
         setJoinError(
-          "That room is not open. Ask the host for a fresh code or start your own.",
+          failed?.error ??
+            (failed?.problem === "unreachable" ? unreachableMessage : notOpenMessage),
         );
         return;
       }
       setPendingRoomId(null);
-    } catch (error) {
-      setJoinError((error as Error).message || "Could not reach the room.");
+    } catch {
+      setJoinError(unreachableMessage);
     } finally {
       setJoining(false);
     }
   }
 
-  // What the room will call you if you say nothing. Showing it beats a field
-  // reading "You" over a room that calls you something else entirely.
+  // A failed join moves focus to the reason, so it is heard as well as seen.
   useEffect(() => {
-    if (!pendingRoomId) return;
-    const current = hostName.trim();
-    if (!current || current === "You") setHostName(defaultPlayerName(hostId));
-  }, [pendingRoomId, hostName, hostId, setHostName]);
+    if (joinError) joinErrorRef.current?.focus();
+  }, [joinError]);
 
   return (
     <Box
       sx={{
-        minHeight: "100vh",
+        // The shell owns <main> and the safe-area padding; this fills what's left.
+        minHeight: appViewport.contentHeight,
         background: ui.stage,
         display: "flex",
         flexDirection: "column",
@@ -96,9 +221,10 @@ export function Landing() {
     >
       <Container maxWidth="lg" sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
         {/* Everything on the centre line: the mark, the line under it, the
-            keys, the three notes at the foot. The room is symmetric about
-            its board; the front door is symmetric about its mark. */}
+            keys, the three notes at the foot. */}
         <Box
+          component="section"
+          aria-labelledby="landing-title"
           sx={{
             flex: 1,
             display: "flex",
@@ -110,11 +236,62 @@ export function Landing() {
           }}
         >
           <Stack spacing={{ xs: 3, md: 5 }} sx={{ maxWidth: 760, width: "100%", alignItems: "center" }}>
-            <Wordmark size="xl" />
-            {pendingRoomId ? (
+            <Typography component="h1" id="landing-title" sx={{ m: 0, lineHeight: 0 }}>
+              {/* The mark is an image named "Jeopardy!", which names the heading. */}
+              <Wordmark size="xl" />
+            </Typography>
+
+            {sharedLink.status === "loading" ? (
+              <Alert severity="info" icon={<CircularProgress size={18} />} role="status">
+                Loading shared game…
+              </Alert>
+            ) : null}
+            {sharedLink.status === "error" ? (
+              <Alert
+                severity="error"
+                role="alert"
+                onClose={sharedLink.dismiss}
+                data-testid="shared-game-error"
+                sx={{ textAlign: "left", width: "100%", maxWidth: 560 }}
+              >
+                {sharedLink.error} Ask for a fresh link, or start a new game below.
+              </Alert>
+            ) : null}
+            {stillInRoom && !pendingRoomId ? (
+              <Alert
+                severity="info"
+                sx={{ textAlign: "left", width: "100%", maxWidth: 560 }}
+                action={
+                  <Stack direction="row" spacing={1}>
+                    <Button color="inherit" size="small" onClick={() => setScreen("play")}>
+                      Return
+                    </Button>
+                    <Button color="inherit" size="small" onClick={leaveLingeringRoom}>
+                      Leave
+                    </Button>
+                  </Stack>
+                }
+              >
+                You&rsquo;re still in room {stillInRoom.roomId}.
+              </Alert>
+            ) : null}
+
+            {inviteArriving ? null : pendingRoomId ? (
               <Box
+                component="form"
                 role="dialog"
                 aria-label="Join room"
+                noValidate
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if (!joining) void joinRoom(pendingRoomId);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    cancelJoin();
+                  }
+                }}
                 sx={{
                   background: ui.surface,
                   border: `1px solid ${ui.line}`,
@@ -124,42 +301,60 @@ export function Landing() {
                   maxWidth: 480,
                 }}
               >
-                <Typography variant="overline">Joining room</Typography>
-                <Typography variant="h3" sx={{ mt: 0.5, mb: 2, letterSpacing: "0.12em" }}>
+                <Typography variant="overline" component="h2" id="join-card-title">
+                  Joining room
+                </Typography>
+                <Typography
+                  component="p"
+                  variant="h3"
+                  sx={{ mt: 0.5, mb: 2, letterSpacing: "0.12em" }}
+                >
                   {pendingRoomId}
                 </Typography>
                 <Stack spacing={2}>
                   <TextField
                     label="Your name"
+                    // What the room will call you if you say nothing. Cleared,
+                    // the field stays cleared and this shows as the hint.
+                    placeholder={defaultPlayerName(hostId)}
                     fullWidth
-                    value={hostName}
-                    onChange={(event) => setHostName(event.target.value)}
+                    autoFocus
+                    value={name.joinValue(defaultPlayerName(hostId))}
+                    onChange={(event) => name.onChange(event.target.value)}
+                    onBlur={name.commit}
+                    onFocus={(event) => event.target.select()}
+                    slotProps={{
+                      htmlInput: {
+                        maxLength: 40,
+                        autoComplete: "nickname",
+                        enterKeyHint: "go",
+                        autoCapitalize: "words",
+                      },
+                      inputLabel: { shrink: true },
+                    }}
                   />
                   {joinError ? (
-                    <Typography color="error" variant="caption">
+                    <Typography
+                      color="error"
+                      variant="body2"
+                      role="alert"
+                      tabIndex={-1}
+                      ref={joinErrorRef}
+                      sx={{ outline: "none" }}
+                    >
                       {joinError}
                     </Typography>
                   ) : null}
                   <Stack direction="row" spacing={1} sx={{ justifyContent: "center" }}>
                     <Button
+                      type="submit"
                       variant="contained"
                       startIcon={joining ? <CircularProgress size={16} /> : <LoginIcon />}
-                      onClick={() => joinRoom(pendingRoomId)}
                       disabled={joining}
                     >
-                      Join
+                      {joining ? "Joining…" : "Join"}
                     </Button>
-                    <Button
-                      variant="text"
-                      onClick={() => {
-                        setPendingRoomId(null);
-                        if (typeof window !== "undefined") {
-                          const url = new URL(window.location.href);
-                          url.searchParams.delete("room");
-                          window.history.replaceState({}, "", url.toString());
-                        }
-                      }}
-                    >
+                    <Button variant="text" onClick={cancelJoin}>
                       Cancel
                     </Button>
                   </Stack>
@@ -177,67 +372,136 @@ export function Landing() {
                 >
                   Play Jeopardy from the archive.
                 </Typography>
-                <Stack
-                  direction={{ xs: "column", sm: "row" }}
-                  spacing={2}
-                  sx={{ alignItems: "center", justifyContent: "center" }}
-                >
-                  <Button
-                    variant="contained"
-                    size="large"
-                    data-testid="new-game"
-                    endIcon={
-                      dealing ? (
-                        <CircularProgress size={18} sx={{ color: "inherit" }} />
-                      ) : (
-                        <ArrowForwardIcon />
-                      )
-                    }
-                    disabled={dealing}
-                    onClick={newGame}
-                    sx={{ px: 4 }}
+                <Stack spacing={1.5} sx={{ alignItems: "center", width: "100%", maxWidth: 520 }}>
+                  <Stack
+                    direction={{ xs: "column", sm: "row" }}
+                    spacing={1.5}
+                    sx={{ alignItems: "center", justifyContent: "center", width: "100%" }}
+                    component="form"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      if (!dealing) void newGame();
+                    }}
                   >
-                    {dealing ? "Dealing…" : "New Game"}
-                  </Button>
-                  <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                     <TextField
                       size="small"
-                      label="Room code"
-                      value={codeInput}
+                      label="Player name"
+                      placeholder={defaultPlayerName(hostId)}
+                      value={name.value}
+                      onChange={(event) => name.onChange(event.target.value)}
+                      onBlur={name.commit}
                       slotProps={{
-                        htmlInput: { maxLength: 6, "aria-label": "Room code" },
+                        htmlInput: {
+                          maxLength: 40,
+                          autoComplete: "nickname",
+                          enterKeyHint: "go",
+                          autoCapitalize: "words",
+                        },
+                        inputLabel: { shrink: true },
                       }}
-                      onChange={(event) => setCodeInput(event.target.value.toUpperCase())}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          openJoinCard(codeInput);
-                        }
-                      }}
-                      sx={{ width: 150, "& .MuiInputBase-root": { height: 48 } }}
+                      sx={{ width: { xs: "100%", sm: 200 }, "& .MuiInputBase-root": { height: 48 } }}
                     />
                     <Button
-                      variant="outlined"
+                      type="submit"
+                      variant="contained"
                       size="large"
-                      startIcon={<LoginIcon />}
-                      onClick={() => openJoinCard(codeInput)}
-                      disabled={codeInput.trim().length < 3}
+                      data-testid="new-game"
+                      endIcon={
+                        dealing ? (
+                          <CircularProgress size={18} sx={{ color: "inherit" }} />
+                        ) : (
+                          <ArrowForwardIcon />
+                        )
+                      }
+                      disabled={dealing}
+                      sx={{ px: 4, minHeight: 48, width: { xs: "100%", sm: "auto" } }}
                     >
-                      Join
+                      {dealing ? "Dealing…" : "New Game"}
                     </Button>
                   </Stack>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={bots.length > 0}
+                        onChange={(_, checked) => toggleBot(checked)}
+                      />
+                    }
+                    label={
+                      bots.length > 1
+                        ? `Play against bots (${bots.length})`
+                        : "Play against a bot"
+                    }
+                  />
                 </Stack>
-                {joinError || dealError ? (
-                  <Typography color="error" variant="caption">
-                    {joinError ?? dealError}
+
+                <Box
+                  component="form"
+                  noValidate
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    openJoinCard();
+                  }}
+                  sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}
+                >
+                  <TextField
+                    size="small"
+                    label="Room code"
+                    value={codeInput}
+                    helperText={codeHint}
+                    error={hasImpossibleCharacters(codeInput)}
+                    slotProps={{
+                      htmlInput: {
+                        "aria-label": "Room code",
+                        autoCapitalize: "characters",
+                        autoCorrect: "off",
+                        autoComplete: "off",
+                        spellCheck: false,
+                        enterKeyHint: "go",
+                      },
+                    }}
+                    onChange={(event) => setCodeInput(parseInviteInput(event.target.value))}
+                    sx={{
+                      width: 170,
+                      "& .MuiInputBase-root": { height: 48 },
+                      "& input": { letterSpacing: "0.2em", textTransform: "uppercase" },
+                    }}
+                  />
+                  <Button
+                    type="submit"
+                    variant="outlined"
+                    size="large"
+                    startIcon={<LoginIcon />}
+                    disabled={!codeReady}
+                    sx={{ minHeight: 48 }}
+                  >
+                    Join
+                  </Button>
+                </Box>
+                {dealError ? (
+                  <Typography color="error" variant="body2" role="alert">
+                    {dealError}
                   </Typography>
                 ) : null}
+                <Button
+                  variant="text"
+                  startIcon={<EditNoteIcon />}
+                  onClick={() => {
+                    setBuilderRequested(true);
+                    setBuilderOpen(true);
+                  }}
+                  data-testid="landing-build"
+                >
+                  Build or import a game
+                </Button>
               </>
             )}
           </Stack>
         </Box>
 
-        <Box sx={{ py: { xs: 4, md: 6 }, borderTop: `1px solid ${ui.line}` }}>
+        <Box
+          component="footer"
+          sx={{ py: { xs: 4, md: 6 }, borderTop: `1px solid ${ui.line}` }}
+        >
           <Box
             sx={{
               display: "grid",
@@ -248,11 +512,11 @@ export function Landing() {
           >
             <LandingFeature
               title="Every clue read aloud"
-              body="Turn sound on and the board reads itself."
+              body="Turn Sound on in Settings and the host reads the board."
             />
             <LandingFeature
               title="Bots that play"
-              body="Four difficulty tiers. They buzz, answer and wager."
+              body="Tick “Play against a bot”, or add any of four tiers from Players. They buzz, answer and wager."
             />
             <LandingFeature
               title="Play with friends"
@@ -261,6 +525,13 @@ export function Landing() {
           </Box>
         </Box>
       </Container>
+      {builderRequested ? (
+        <CustomGameBuilder
+          open={builderOpen}
+          onClose={() => setBuilderOpen(false)}
+          onBeforeDeal={leaveLingeringRoom}
+        />
+      ) : null}
     </Box>
   );
 }
@@ -268,7 +539,7 @@ export function Landing() {
 function LandingFeature({ title, body }: { title: string; body: string }) {
   return (
     <Stack spacing={1} sx={{ alignItems: "center" }}>
-      <Typography variant="h6" sx={{ fontSize: 17 }}>
+      <Typography variant="h6" component="h2" sx={{ fontSize: 17 }}>
         {title}
       </Typography>
       <Typography variant="body2">{body}</Typography>

@@ -15,6 +15,7 @@ import {
   jeopardyPalette,
 } from "@/lib/foundation/jeopardy-style";
 import { DailyDoubleSplash } from "./DailyDoubleSplash";
+import { useReducedMotion } from "./use-reduced-motion";
 
 interface ClueStageProps {
   state: PublicGameState;
@@ -30,6 +31,7 @@ interface ClueStageProps {
  */
 export function ClueStage({ state }: ClueStageProps) {
   const preferences = useGameStore((s) => s.preferences);
+  const reducedMotion = useReducedMotion();
   const clue = state.currentClue;
   const isFinal = clue?.round === "final-jeopardy";
   const answerRevealed = clue?.correctResponse !== undefined;
@@ -70,7 +72,8 @@ export function ClueStage({ state }: ClueStageProps) {
         sx={{ justifyContent: "space-between", alignItems: "baseline", gap: 1, flexShrink: 0 }}
       >
         <Typography
-          sx={displayType({ color: "rgba(255,255,255,0.72)", fontSize: { xs: 11, sm: 14 } })}
+          component="h2"
+          sx={displayType({ color: "rgba(255,255,255,0.72)", fontSize: { xs: 12, sm: 14 } })}
         >
           {clue.category}
         </Typography>
@@ -86,7 +89,7 @@ export function ClueStage({ state }: ClueStageProps) {
         </Typography>
       </Stack>
 
-      <DailyDoubleSplash visible={splashVisible} reducedMotion={preferences.reducedMotion} />
+      <DailyDoubleSplash visible={splashVisible} reducedMotion={reducedMotion} />
 
       <Box
         data-testid="clue-body"
@@ -124,7 +127,7 @@ export function ClueStage({ state }: ClueStageProps) {
                 maxWidth: scale.measure,
                 lineHeight: 1.22,
                 letterSpacing: "0.005em",
-                animation: preferences.reducedMotion ? "none" : "clue-in 260ms ease-out both",
+                animation: reducedMotion ? "none" : "clue-in 260ms ease-out both",
                 "@keyframes clue-in": { from: { opacity: 0 }, to: { opacity: 1 } },
               })}
             >
@@ -154,9 +157,10 @@ export function ClueStage({ state }: ClueStageProps) {
               textAlign: "center",
               color: jeopardyPalette.goldBright,
               fontWeight: 700,
-              fontSize: "clamp(16px, 2.4vw, 34px)",
+              // Never smaller than the clue it answers, phone included.
+              fontSize: `max(clamp(16px, 2.4vw, 34px), ${scale.panel})`,
               mb: 1.5,
-              animation: preferences.reducedMotion ? "none" : "clue-in 220ms ease-out both",
+              animation: reducedMotion ? "none" : "clue-in 220ms ease-out both",
             })}
           >
             {clue.correctResponse}

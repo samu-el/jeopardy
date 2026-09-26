@@ -9,6 +9,8 @@ interface BuzzLightsProps {
   remaining: number;
   count?: number;
   label?: string;
+  /** The timer in words for assistive technology: "7 seconds left to answer". */
+  valueText?: string;
   /** What the clock is timing, printed left of the lamps: "Reading…", "Ring in". */
   phase?: string;
   /** Seconds left, on the readout right of the lamps. Null shows a blank readout. */
@@ -38,6 +40,7 @@ export function BuzzLights({
   remaining,
   count = 5,
   label = "Time remaining",
+  valueText,
   phase,
   seconds,
   control,
@@ -105,6 +108,7 @@ export function BuzzLights({
         aria-valuemin={0}
         aria-valuemax={count}
         aria-valuenow={lit}
+        aria-valuetext={valueText}
         sx={{ gridArea: "1 / 2", display: "flex", gap: { xs: 0.5, sm: 0.75 }, alignItems: "center" }}
       >
         {Array.from({ length: count }).map((_, index) => {
@@ -149,7 +153,7 @@ export function BuzzLights({
           says 120 or 9, so the housing never breathes with the count. */}
         <Box
           component="span"
-          aria-live="off"
+          aria-hidden
           sx={{
             ...controls.readout,
             flex: "0 0 auto",

@@ -26,8 +26,7 @@ export function RoundIntro({ round, visible, reducedMotion }: RoundIntroProps) {
 
   return (
     <Box
-      role="status"
-      aria-live="polite"
+      aria-hidden
       data-testid="round-intro"
       sx={{
         position: "absolute",

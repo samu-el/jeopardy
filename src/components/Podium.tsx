@@ -6,6 +6,8 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { PublicGameState, PublicPlayerState } from "@/lib/game";
 import { controls as chrome, jeopardyFonts, jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
+import { formatScore } from "@/lib/game/clue-turn";
+import { useReducedMotion } from "./use-reduced-motion";
 
 interface PodiumProps {
   player: PublicPlayerState;
@@ -30,11 +32,17 @@ interface PodiumProps {
    * inside it are as tight as they are.
    */
   reserveControls?: boolean;
+  /**
+   * Where this player stands in the ring-in order on the clue up now (1 for
+   * the first), when more than one has rung in on it.
+   */
+  buzzPosition?: number;
 }
 
-/** Two stacked buttons and the hairline above them. Kept deliberately mean:
- *  every lectern carries this whether it has buttons or not. */
-export const podiumControlsHeight = 51;
+/** Two stacked buttons and the gap above them. Kept deliberately mean:
+ *  every lectern carries this whether it has buttons or not — but each key
+ *  is still a 28px target, and 44px on a touch screen. */
+export const podiumControlsHeight = { base: 66, coarse: 98 };
 
 /**
  * A contestant lectern: name plate on top, the score display below, and the
@@ -48,7 +56,9 @@ export function Podium({
   color,
   controls,
   reserveControls,
+  buzzPosition,
 }: PodiumProps) {
+  const reducedMotion = useReducedMotion();
   const active = state.currentClue;
   const buzzedAt = active?.buzzes[player.id];
   const isBuzzed = buzzedAt !== undefined;
@@ -59,6 +69,23 @@ export function Podium({
   const isHost = state.settings.hostId === player.id;
   const lockedOut = (active?.lockouts[player.id] ?? 0) > state.serverTime;
   const flash = useScoreFlash(player.score);
+  // A ruling keeps the light on after the room clears a wrong player's
+  // ring-in, so a wrong answer shows red rather than simply going dark.
+  const lit = isBuzzed || (judgeResult !== undefined && judgeResult !== null);
+  const verdictLabel =
+    judgeResult === true ? "CORRECT" : judgeResult === false ? "WRONG" : null;
+  const summary = [
+    isYou ? `${player.displayName} (you)` : player.displayName,
+    formatScore(player.score),
+    isHost ? "host" : null,
+    isPicker ? "picks next" : null,
+    isFirstBuzzer && judgeResult === undefined ? "rang in" : null,
+    judgeResult === true ? "correct" : judgeResult === false ? "incorrect" : null,
+    lockedOut ? "locked out" : null,
+    player.connected ? null : "offline",
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   const lightColor =
     judgeResult === true
@@ -76,6 +103,8 @@ export function Podium({
   return (
     <Box
       data-testid={`podium-${player.id}`}
+      role="group"
+      aria-label={summary}
       sx={{
         position: "relative",
         width: "100%",
@@ -89,7 +118,7 @@ export function Podium({
           : isPicker
             ? `drop-shadow(0 0 10px ${jeopardyPalette.gold}66)`
             : "none",
-        transition: "filter 160ms ease, opacity 200ms ease",
+        transition: reducedMotion ? "none" : "filter 160ms ease, opacity 200ms ease",
       }}
     >
       {(emoji || color) && (
@@ -171,7 +200,8 @@ export function Podium({
                   : jeopardyPalette.scorePositive,
               lineHeight: 1,
               fontVariantNumeric: "tabular-nums",
-              animation: flash ? `score-${flash} 620ms ease-out` : "none",
+              animation: flash && !reducedMotion ? `score-${flash} 620ms ease-out` : "none",
+              "@media (prefers-reduced-motion: reduce)": { animation: "none" },
               "@keyframes score-up": {
                 "0%": { transform: "scale(1)", color: jeopardyPalette.correct },
                 "35%": { transform: "scale(1.22)", color: jeopardyPalette.correct },
@@ -185,14 +215,15 @@ export function Podium({
               },
             }}
           >
-            {player.score < 0 ? `-$${Math.abs(player.score)}` : `$${player.score}`}
+            {formatScore(player.score)}
           </Typography>
         </Box>
 
         {reserveControls ? (
           <Box
             sx={{
-              minHeight: podiumControlsHeight,
+              minHeight: podiumControlsHeight.base,
+              "@media (pointer: coarse)": { minHeight: podiumControlsHeight.coarse },
               display: "flex",
               flexDirection: "column",
               justifyContent: "flex-start",
@@ -221,11 +252,11 @@ export function Podium({
           width: "62%",
           height: 6,
           borderRadius: 99,
-          background: isBuzzed ? lightColor : "rgba(255,255,255,0.05)",
-          boxShadow: isBuzzed ? `0 0 16px 2px ${lightColor}` : "inset 0 0 0 1px rgba(255,255,255,0.04)",
-          transition: "background 120ms ease, box-shadow 120ms ease",
+          background: lit ? lightColor : "rgba(255,255,255,0.05)",
+          boxShadow: lit ? `0 0 16px 2px ${lightColor}` : "inset 0 0 0 1px rgba(255,255,255,0.04)",
+          transition: reducedMotion ? "none" : "background 120ms ease, box-shadow 120ms ease",
           animation:
-            isFirstBuzzer && judgeResult === undefined
+            isFirstBuzzer && judgeResult === undefined && !reducedMotion
               ? "podium-pulse 0.7s ease-in-out infinite"
               : "none",
           "@keyframes podium-pulse": {
@@ -242,6 +273,7 @@ export function Podium({
         direction="row"
         spacing={0.5}
         useFlexGap
+        aria-hidden
         sx={{
           mt: 0.6,
           minHeight: 11,
@@ -249,17 +281,32 @@ export function Podium({
           flexWrap: "wrap",
           fontFamily: jeopardyFonts.display,
           letterSpacing: "0.1em",
-          fontSize: 9,
+          fontSize: 10,
         }}
       >
+        {isYou ? <Box sx={{ color: ui.ink, fontWeight: 700 }}>YOU</Box> : null}
+        {buzzPosition !== undefined ? (
+          <Box sx={{ color: ui.ink }}>{ordinal(buzzPosition)}</Box>
+        ) : null}
+        {verdictLabel ? (
+          <Box
+            sx={{
+              color: judgeResult ? jeopardyPalette.correct : jeopardyPalette.incorrect,
+              fontWeight: 700,
+            }}
+          >
+            {judgeResult ? "\u2713 " : "\u2717 "}
+            {verdictLabel}
+          </Box>
+        ) : null}
         {isHost ? <Box sx={{ color: jeopardyPalette.gold }}>HOST</Box> : null}
         {isPicker ? <Box sx={{ color: jeopardyPalette.goldBright }}>PICKS</Box> : null}
         {lockedOut ? <Box sx={{ color: jeopardyPalette.incorrect }}>LOCKED</Box> : null}
         {player.spectator ? (
-          <Box sx={{ color: "rgba(255,255,255,0.4)" }}>SPECTATOR</Box>
+          <Box sx={{ color: ui.inkMuted }}>SPECTATOR</Box>
         ) : null}
         {!player.connected ? (
-          <Box sx={{ color: "rgba(255,255,255,0.4)" }}>OFFLINE</Box>
+          <Box sx={{ color: ui.inkMuted }}>OFFLINE</Box>
         ) : null}
       </Stack>
     </Box>
@@ -281,4 +328,9 @@ function useScoreFlash(score: number): "up" | "down" | null {
   }, [score]);
 
   return flash;
+}
+
+function ordinal(position: number): string {
+  const suffix = position === 1 ? "st" : position === 2 ? "nd" : position === 3 ? "rd" : "th";
+  return `${position}${suffix}`;
 }

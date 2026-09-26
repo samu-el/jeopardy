@@ -1,5 +1,5 @@
 import { RoomHost } from "@/lib/realtime/room-host";
-import { RoomSession } from "@/lib/realtime/room-session";
+import { RoomSession, type ResolvedRoom } from "@/lib/realtime/room-session";
 import { isUsableSnapshot, type RoomSnapshot } from "@/lib/realtime/room-store";
 import { encodeFrame } from "@/lib/realtime/ws-protocol";
 
@@ -73,15 +73,19 @@ export class RoomDurableObject implements DurableObject {
    * joining by code, so a typo lands on "that room does not exist" instead of
    * quietly opening an empty board.
    */
-  private async ensureRoom(create: boolean): Promise<RoomHost | undefined> {
-    if (this.host && !this.host.isDestroyed) return this.host;
+  private async ensureRoom(create: boolean): Promise<ResolvedRoom | undefined> {
+    if (this.host && !this.host.isDestroyed) return { host: this.host, fresh: false };
 
     const stored = await this.ctx.storage.get<RoomSnapshot>(snapshotKey);
     const restoreFrom = isUsableSnapshot(stored) ? stored : undefined;
+    let fresh = false;
     if (!restoreFrom) {
       const created = await this.ctx.storage.get<boolean>(createdKey);
       if (!created && !create) return undefined;
+      fresh = !created;
     }
+    // Two requests can race through the awaits above; the first one wins.
+    if (this.host && !this.host.isDestroyed) return { host: this.host, fresh: false };
 
     const roomId = this.ctx.id.name ?? restoreFrom?.roomId ?? "ROOM";
     const host = new RoomHost({
@@ -96,7 +100,7 @@ export class RoomDurableObject implements DurableObject {
       await this.ctx.storage.put(createdKey, true);
       this.persist(host);
     }
-    return host;
+    return { host, fresh };
   }
 
   private persist(host: RoomHost) {
