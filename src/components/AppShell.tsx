@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useGameStore } from "@/lib/state/game-store";
 import { usePersistedLobby } from "@/lib/state/use-persisted-lobby";
+import { openSharedGame } from "@/lib/state/shared-game-link";
 import { DisplayView } from "./DisplayView";
 import { Landing } from "./Landing";
 import { Room } from "./Room";
@@ -22,7 +23,7 @@ export function AppShell() {
       const gameId = params.get("game");
       if (gameId) {
         // A shared custom game: fetch it and deal it, the same as New Game.
-        void loadPublishedGame(gameId);
+        void openSharedGame(gameId, loadPublishedGame);
         return;
       }
       const roomId = params.get("room");
