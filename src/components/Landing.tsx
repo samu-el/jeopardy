@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -56,12 +56,36 @@ function useNameField() {
   const [draft, setDraft] = useState<string | null>(null);
   const stored = hostName.trim() === "You" ? "" : hostName;
   const value = draft ?? stored;
+  /**
+   * The join card starts out showing the name the room would give you, so
+   * leaving it alone is no surprise. It is only a starting value: once the
+   * field is cleared it stays cleared (the room still falls back to it).
+   */
+  const joinValue = (fallback: string) => draft ?? (stored || fallback);
   function commit() {
     if (draft === null) return;
     setHostName(draft);
-    setDraft(null);
+    // An emptied field stays empty rather than snapping back to a default.
+    setDraft(draft.trim() ? null : "");
   }
-  return { value, onChange: setDraft, commit };
+  return { value, joinValue, onChange: setDraft, commit };
+}
+
+const noSubscription = () => () => undefined;
+
+/**
+ * True while the address carries an invite (`?room=`) the shell hasn't turned
+ * into a join card yet. For that first moment the page shows neither form,
+ * so nothing typed lands in the New Game name field just before the join
+ * card replaces it.
+ */
+function useInviteArriving(pendingRoomId: string | null): boolean {
+  const urlHasRoom = useSyncExternalStore(
+    noSubscription,
+    () => new URLSearchParams(window.location.search).has("room"),
+    () => false,
+  );
+  return urlHasRoom && !pendingRoomId;
 }
 
 export function Landing() {
@@ -87,6 +111,7 @@ export function Landing() {
   const [builderRequested, setBuilderRequested] = useState(false);
   const joinErrorRef = useRef<HTMLDivElement>(null);
 
+  const inviteArriving = useInviteArriving(pendingRoomId);
   const stillInRoom = online && online.status !== "rejected" ? online : null;
   const codeReady = isCompleteRoomCode(codeInput);
   const codeHint = hasImpossibleCharacters(codeInput)
@@ -251,7 +276,7 @@ export function Landing() {
               </Alert>
             ) : null}
 
-            {pendingRoomId ? (
+            {inviteArriving ? null : pendingRoomId ? (
               <Box
                 component="form"
                 role="dialog"
@@ -289,12 +314,12 @@ export function Landing() {
                 <Stack spacing={2}>
                   <TextField
                     label="Your name"
-                    // What the room will call you if you say nothing — shown,
-                    // not written into the field, so clearing it stays cleared.
+                    // What the room will call you if you say nothing. Cleared,
+                    // the field stays cleared and this shows as the hint.
                     placeholder={defaultPlayerName(hostId)}
                     fullWidth
                     autoFocus
-                    value={name.value}
+                    value={name.joinValue(defaultPlayerName(hostId))}
                     onChange={(event) => name.onChange(event.target.value)}
                     onBlur={name.commit}
                     onFocus={(event) => event.target.select()}
@@ -360,7 +385,7 @@ export function Landing() {
                   >
                     <TextField
                       size="small"
-                      label="Your name"
+                      label="Player name"
                       placeholder={defaultPlayerName(hostId)}
                       value={name.value}
                       onChange={(event) => name.onChange(event.target.value)}

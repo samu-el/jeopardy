@@ -62,7 +62,7 @@ test.describe("Landing", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
     await expect(page.getByRole("main")).toHaveCount(1);
 
-    await page.getByLabel("Your name").fill("Ada Lovelace");
+    await page.getByLabel("Player name").fill("Ada Lovelace");
     await page.getByTestId("new-game").click();
     await dismissOnboarding(page);
     await expect(page.getByTestId("board")).toBeVisible({ timeout: 30_000 });
