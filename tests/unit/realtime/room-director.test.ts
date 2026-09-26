@@ -127,20 +127,44 @@ describe("AI judge switch", () => {
     expect(room.getState().scores.bea).toBe(200);
   });
 
+  it("does not rule again after the host undoes its ruling", async () => {
+    const room = await answeredClue();
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(room.getState().scores.bea).toBe(200);
+
+    room.room.dispatch("ada", { type: "undo" });
+    expect(room.getState().activeClue?.judges.bea).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(room.getState().activeClue?.judges.bea).toBeUndefined();
+
+    room.room.dispatch("ada", {
+      type: "judge-answer",
+      targetPlayerId: "bea",
+      correct: false,
+    });
+    expect(room.getState().scores.bea).toBe(-200);
+  });
+
   it("leaves a too-close-to-call answer for the host present to rule", async () => {
     // "Mars bar" for "Mars" sits in the judge's ambiguous band.
     const room = await answeredClue("Mars bar");
     await vi.advanceTimersByTimeAsync(5_000);
     expect(room.getState().activeClue?.judges.bea).toBeUndefined();
-    expect(room.room.getChatHistory().some((line) => line.text.includes("the host rules"))).toBe(
-      true,
-    );
+    expect(
+      room.room.getChatHistory().some((line) => line.text.includes("the host rules")),
+    ).toBe(true);
     // Held once, not re-asked on every change.
-    const held = room.room.getChatHistory().filter((line) => line.text.includes("the host rules"));
+    const held = room.room
+      .getChatHistory()
+      .filter((line) => line.text.includes("the host rules"));
     expect(held).toHaveLength(1);
 
     // The host's own ruling still lands.
-    room.room.dispatch("ada", { type: "judge-answer", targetPlayerId: "bea", correct: true });
+    room.room.dispatch("ada", {
+      type: "judge-answer",
+      targetPlayerId: "bea",
+      correct: true,
+    });
     expect(room.getState().scores.bea).toBe(200);
   });
 

@@ -52,7 +52,9 @@ export class RoomDirector {
     this.schedule = scheduleFn
       ? (action, delayMs) => scheduleFn(action, delayMs)
       : (action, delayMs) => setTimeout(action, delayMs);
-    this.unschedule = clearFn ? (timer) => clearFn(timer) : (timer) => clearTimeout(timer);
+    this.unschedule = clearFn
+      ? (timer) => clearFn(timer)
+      : (timer) => clearTimeout(timer);
     for (const [id, profile] of Object.entries(options.botProfiles ?? {})) {
       this.addBot(id, profile);
     }
@@ -143,11 +145,14 @@ export class RoomDirector {
 
   private defer(key: string, scope: string, delayMs: number, action: () => void) {
     if (this.pending.has(key)) return;
-    const timer = this.schedule(() => {
-      this.pending.delete(key);
-      if (this.stopped) return;
-      action();
-    }, Math.max(0, delayMs));
+    const timer = this.schedule(
+      () => {
+        this.pending.delete(key);
+        if (this.stopped) return;
+        action();
+      },
+      Math.max(0, delayMs),
+    );
     this.pending.set(key, { timer, scope });
   }
 
@@ -164,7 +169,8 @@ export class RoomDirector {
     );
     if (available.length === 0) return;
 
-    const preference = this.categoryPreference.get(pickerId) ?? new Map<string, number>();
+    const preference =
+      this.categoryPreference.get(pickerId) ?? new Map<string, number>();
     const preferHighValue = profile.targetAccuracy > 0.65;
     const ranked = available
       .map((clueId) => state.cluesById[clueId])
@@ -175,7 +181,8 @@ export class RoomDirector {
           (preferHighValue ? clue.value / 200 : (2_000 - clue.value) / 200),
       }))
       .sort((a, b) => b.score - a.score);
-    const choice = ranked[Math.floor(this.rng.next() * Math.min(3, ranked.length))].clue;
+    const choice =
+      ranked[Math.floor(this.rng.next() * Math.min(3, ranked.length))].clue;
     const introDelay = Math.max(0, (state.roundIntroEndsAt ?? 0) - Date.now());
 
     this.defer(
@@ -234,7 +241,10 @@ export class RoomDirector {
           RoomDirector.scopeOf(state),
           2_000 + Math.floor(this.rng.next() * 6_000),
           () => {
-            this.room.dispatch(botId, { type: "submit-answer", answer: decision.answer });
+            this.room.dispatch(botId, {
+              type: "submit-answer",
+              answer: decision.answer,
+            });
           },
         );
       }
@@ -294,7 +304,8 @@ export class RoomDirector {
     if (!active?.answerRevealed) return;
     const target = active.currentJudgePlayerId;
     if (!target || active.judges[target] !== undefined) return;
-    // Already handed to the host as too close to call: don't ask again.
+    // Already handed to the host as too close to call, or already ruled once
+    // (the host undid it to overrule): the answer is the host's now.
     const heldKey = `${active.clueId}:${target}`;
     if (this.heldForHost.has(heldKey)) return;
 
@@ -308,6 +319,7 @@ export class RoomDirector {
         this.heldForHost.add(heldKey);
         return;
       }
+      if (verdict) this.heldForHost.add(heldKey);
       if (verdict && clue) {
         this.noteJudgement(target, clue.category, verdict.correct);
       }
