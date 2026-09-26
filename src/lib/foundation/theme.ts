@@ -1,5 +1,7 @@
 import { createTheme } from "@mui/material/styles";
 import { controls, jeopardyFonts, ui } from "./jeopardy-style";
+import { reducedMotionStyles } from "./motion";
+import { viewportRootStyles } from "./viewport";
 
 /**
  * The MUI theme is a thin wrapper over the tokens in `jeopardy-style.ts`:
@@ -9,8 +11,7 @@ import { controls, jeopardyFonts, ui } from "./jeopardy-style";
  * Type: the show's condensed face for anything that labels or commands —
  * headings, buttons, eyebrows, numbers — and a plain sans for reading.
  */
-const bodyFont =
-  'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+const bodyFont = jeopardyFonts.body;
 
 export const appTheme = createTheme({
   cssVariables: true,
@@ -23,13 +24,15 @@ export const appTheme = createTheme({
       contrastText: ui.ink,
     },
     secondary: {
-      main: ui.gold,
+      main: ui.goldBright,
       dark: ui.goldDeep,
-      contrastText: "#1A1200",
+      contrastText: ui.onGold,
     },
-    success: { main: ui.green, contrastText: "#03170C" },
-    error: { main: ui.red, contrastText: ui.ink },
-    warning: { main: ui.gold, contrastText: "#1A1200" },
+    success: { main: ui.green, contrastText: ui.onGreen },
+    // Dark text on the red: white on #FF4E5B is 3.2:1 (fails AA), near-black
+    // is 6.2:1, and the red itself still reads 5.1:1+ as text on every surface.
+    error: { main: ui.red, contrastText: ui.onRed },
+    warning: { main: ui.goldBright, contrastText: ui.onGold },
     info: { main: ui.blue, contrastText: ui.ink },
     background: {
       default: ui.stage,
@@ -76,7 +79,7 @@ export const appTheme = createTheme({
       fontSize: 11,
       letterSpacing: "0.22em",
       lineHeight: 1.6,
-      color: ui.gold,
+      color: ui.goldBright,
     },
     button: {
       fontFamily: jeopardyFonts.display,
@@ -91,8 +94,15 @@ export const appTheme = createTheme({
   components: {
     MuiCssBaseline: {
       styleOverrides: {
-        body: { backgroundColor: ui.stage },
+        ":root": viewportRootStyles,
+        html: {
+          colorScheme: "dark",
+          backgroundColor: ui.stage,
+          WebkitTextSizeAdjust: "100%",
+        },
+        body: { backgroundColor: ui.stage, minHeight: "var(--app-svh, 100vh)" },
         "::selection": { background: ui.blueTint },
+        ...reducedMotionStyles,
       },
     },
     MuiButton: {
@@ -179,9 +189,12 @@ export const appTheme = createTheme({
           fontWeight: 600,
           textTransform: "uppercase",
           letterSpacing: "0.06em",
-          backgroundColor: ui.surfaceRaised,
           border: `1px solid ${ui.line}`,
         },
+        // Only the uncoloured chip sits on the housing colour. This used to
+        // be on `root`, which overrode every `color="secondary"` gold fill and
+        // left dark gold-text on navy (1.1:1) in the results chips.
+        colorDefault: { backgroundColor: ui.surfaceRaised },
         outlined: { backgroundColor: "transparent", borderColor: ui.lineStrong, color: ui.inkMuted },
         colorPrimary: { boxShadow: "inset 0 1px 0 rgba(255,255,255,0.24)", borderColor: "transparent" },
         colorSecondary: { boxShadow: "inset 0 1px 0 rgba(255,255,255,0.3)", borderColor: "transparent" },
@@ -217,11 +230,13 @@ export const appTheme = createTheme({
           textTransform: "uppercase",
           letterSpacing: "0.08em",
           minHeight: 44,
+          // `ui.blue` as text on the surface is 3.8:1; the lighter text blue is 7:1.
+          "&.Mui-selected": { color: ui.blueText },
         },
       },
     },
     MuiTabs: {
-      styleOverrides: { indicator: { backgroundColor: ui.gold, height: 3 } },
+      styleOverrides: { indicator: { backgroundColor: ui.goldBright, height: 3 } },
     },
     MuiSwitch: {
       styleOverrides: {

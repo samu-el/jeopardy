@@ -76,7 +76,10 @@ export function useClueTurn(state: PublicGameState, currentClientId: string): Cl
   const iAmHost = state.settings.hostId === currentClientId;
   const isFinal = clue?.round === "final-jeopardy";
   const clueRevealed = clue?.clue !== undefined;
-  const answerRevealed = clue?.correctResponse !== undefined;
+  // Answers are in once the clue is judging or settled, even while the
+  // response itself is still withheld from the table (a rebound may follow).
+  const answerRevealed =
+    clue?.phase === "judging" || clue?.phase === "resolved" || clue?.correctResponse !== undefined;
 
   if (!clue) {
     return {
