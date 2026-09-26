@@ -32,6 +32,8 @@ interface MicAnswerFieldProps {
   size?: "small" | "medium";
   fullWidth?: boolean;
   autoFocus?: boolean;
+  /** Extra attributes for the `<input>` itself (keyboard hints and the like). */
+  htmlInputProps?: Record<string, string | number | boolean | undefined>;
 }
 
 /** Support never changes while the page is open. */
@@ -58,6 +60,7 @@ export function MicAnswerField({
   size = "small",
   fullWidth = true,
   autoFocus,
+  htmlInputProps,
 }: MicAnswerFieldProps) {
   const [listening, setListening] = useState(false);
   const [status, setStatus] = useState<{ text: string; error: boolean } | null>(null);
@@ -238,6 +241,7 @@ export function MicAnswerField({
               lineHeight: 1.25,
             },
           } as Record<string, unknown>,
+          htmlInput: htmlInputProps,
           input: { endAdornment: micButton },
         }}
       />

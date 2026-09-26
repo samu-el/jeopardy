@@ -9,7 +9,8 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import SendIcon from "@mui/icons-material/SendOutlined";
 import { useGameStore } from "@/lib/state/game-store";
-import { speakerColor } from "./chat-style";
+import { speakerColor, speakerLabel } from "./chat-style";
+import { visuallyHiddenSx } from "./visually-hidden";
 
 export function Chat() {
   const chat = useGameStore((s) => s.chat);
@@ -38,6 +39,9 @@ export function Chat() {
     >
       <Box
         ref={scrollRef}
+        role="log"
+        aria-live="polite"
+        aria-label="Chat messages"
         sx={{
           flex: 1,
           overflowY: "auto",
@@ -65,17 +69,23 @@ export function Chat() {
                   {message.authorName}
                 </Typography>
               ) : (
-                <Box
-                  component="span"
-                  sx={{
-                    flexShrink: 0,
-                    mt: "6px",
-                    width: 6,
-                    height: 6,
-                    borderRadius: "50%",
-                    backgroundColor: speakerColor(message.kind),
-                  }}
-                />
+                <>
+                  <Box
+                    component="span"
+                    aria-hidden
+                    sx={{
+                      flexShrink: 0,
+                      mt: "6px",
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      backgroundColor: speakerColor(message.kind),
+                    }}
+                  />
+                  <Box component="span" sx={visuallyHiddenSx}>
+                    {speakerLabel(message.kind)}:
+                  </Box>
+                </>
               )}
               <Typography
                 component="span"
@@ -99,6 +109,7 @@ export function Chat() {
           fullWidth
           size="small"
           placeholder="Message"
+          slotProps={{ htmlInput: { "aria-label": "Chat message", enterKeyHint: "send" } }}
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
@@ -108,7 +119,13 @@ export function Chat() {
             }
           }}
         />
-        <IconButton color="primary" onClick={send} disabled={!draft.trim()}>
+        <IconButton
+          color="primary"
+          onClick={send}
+          disabled={!draft.trim()}
+          aria-label="Send message"
+          sx={{ "@media (pointer: coarse)": { width: 44, height: 44 } }}
+        >
           <SendIcon />
         </IconButton>
       </Stack>
