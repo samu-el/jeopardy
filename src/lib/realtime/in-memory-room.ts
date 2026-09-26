@@ -167,7 +167,10 @@ export class InMemoryRealtimeRoom {
     request: RealtimeConnectionRequest,
     sink: RealtimeMessageSink,
   ): RealtimeConnectResult {
-    const reject = (reason: RealtimeRejectReason, message: string): RealtimeConnectResult => {
+    const reject = (
+      reason: RealtimeRejectReason,
+      message: string,
+    ): RealtimeConnectResult => {
       sink({
         type: "session-rejected",
         connectionId: request.connectionId,
@@ -180,7 +183,10 @@ export class InMemoryRealtimeRoom {
 
     const session = this.sessions.get(request.clientId);
     if (!session || session.sessionToken !== request.sessionToken) {
-      return reject("invalid-session", "Session token does not match the requested client id.");
+      return reject(
+        "invalid-session",
+        "Session token does not match the requested client id.",
+      );
     }
 
     const bannedUntil = this.bans.get(request.clientId);
@@ -306,7 +312,11 @@ export class InMemoryRealtimeRoom {
 
     switch (message.type) {
       case "game-command":
-        return this.applyCommand(connection.clientId, message.command, message.commandId);
+        return this.applyCommand(
+          connection.clientId,
+          message.command,
+          message.commandId,
+        );
       case "chat": {
         const player = this.state.players[connection.clientId];
         this.postChat({
@@ -387,7 +397,7 @@ export class InMemoryRealtimeRoom {
    * Scores one queued answer with the fuzzy judge and reports the verdict to
    * the room. Runs where the state lives so every client sees the same call.
    */
-  runAiJudge(targetPlayerId: string) {
+  runAiJudge(targetPlayerId: string, options: { holdAmbiguous?: boolean } = {}) {
     const active = this.state.activeClue;
     if (!active?.answerRevealed) return undefined;
     if (active.judges[targetPlayerId] !== undefined) return undefined;
@@ -400,6 +410,24 @@ export class InMemoryRealtimeRoom {
       expectedAnswer: clue.correctResponse,
     });
     const hostId = this.state.settings.hostId ?? targetPlayerId;
+    const host = this.state.players[hostId];
+    // A near miss is the host's call when there is a connected host other
+    // than the player being judged; the verdict is posted as advice instead.
+    if (
+      options.holdAmbiguous &&
+      verdict.ambiguous &&
+      hostId !== targetPlayerId &&
+      host?.connected
+    ) {
+      const player = this.state.players[targetPlayerId];
+      this.postChat({
+        kind: "judge",
+        text: `? ${player?.displayName ?? targetPlayerId} · "${
+          answer.trim() || "—"
+        }" · close call, waiting for the host`,
+      });
+      return { ...verdict, held: true as const };
+    }
     this.applyCommand(hostId, {
       type: "judge-answer",
       targetPlayerId,
@@ -412,7 +440,7 @@ export class InMemoryRealtimeRoom {
         player?.displayName ?? targetPlayerId
       } · "${answer.trim() || "—"}" · ${(verdict.confidence * 100).toFixed(0)}%`,
     });
-    return verdict;
+    return { ...verdict, held: false as const };
   }
 
   private applyCommand(
@@ -434,7 +462,11 @@ export class InMemoryRealtimeRoom {
    * The room's own bookkeeping around a command the engine accepted: a
    * removal that should stick, and a host coming back for their chair.
    */
-  private afterCommand(actorId: string, command: ClientGameCommand, events: GameEvent[]) {
+  private afterCommand(
+    actorId: string,
+    command: ClientGameCommand,
+    events: GameEvent[],
+  ) {
     for (const event of events) {
       if (event.type === "host-configured") {
         // Handed over on purpose: there is no claim left to honour.
@@ -517,7 +549,10 @@ export class InMemoryRealtimeRoom {
   private broadcastPublicState() {
     for (const connection of this.connections.values()) {
       if (connection.status === "connected") {
-        connection.sink({ type: "public-state", state: this.getPublicState(connection.clientId) });
+        connection.sink({
+          type: "public-state",
+          state: this.getPublicState(connection.clientId),
+        });
       }
     }
   }
@@ -543,10 +578,7 @@ export class InMemoryRealtimeRoom {
 
   /** Keeps the room playable when the host or picker drops off. */
   private migrateRolesAwayFrom(clientId: string) {
-    if (
-      this.state.settings.hostId !== clientId &&
-      this.state.pickerId !== clientId
-    ) {
+    if (this.state.settings.hostId !== clientId && this.state.pickerId !== clientId) {
       return;
     }
     const next = reassignRoles(this.state, clientId);
