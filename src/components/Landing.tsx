@@ -253,7 +253,7 @@ export function Landing() {
             display: "grid",
             gridTemplateColumns: {
               xs: "minmax(0, 1fr)",
-              md: "minmax(0, 1fr) minmax(0, 440px)",
+              md: "minmax(0, 1fr) minmax(0, 360px)",
             },
             gridTemplateAreas: {
               xs: '"brand" "actions" "features"',
@@ -261,21 +261,9 @@ export function Landing() {
             },
             gridTemplateRows: { md: "1fr 1fr" },
             columnGap: { md: 8, lg: 12 },
-            rowGap: { xs: 4, md: 5 },
+            rowGap: { xs: 3, md: 4 },
             alignItems: "center",
-            py: { xs: 5, md: 8 },
-            // A laptop at 720px tall: tighten so both cards fit unscrolled.
-            [shortWideScreen]: {
-              py: 3,
-              rowGap: 3,
-              "& .landing-panel": { p: 2.5, gap: 1.5 },
-              "& .landing-panel-body": { gap: 1.5 },
-              "& .landing-panel h2": { fontSize: 24 },
-              "& .landing-cta": { height: 48, fontSize: 18 },
-              "& .landing-code": { height: 52, "& input": { fontSize: 26 } },
-              "& .landing-field": { height: 46 },
-              "& .landing-or": { my: -0.5 },
-            },
+            py: { xs: 4, md: 6 },
           }}
         >
           <Box
@@ -373,7 +361,7 @@ export function Landing() {
                 sx={{
                   ...panelSx("surface"),
                   width: "100%",
-                  maxWidth: 480,
+                  maxWidth: 400,
                   textAlign: "left",
                 }}
               >
@@ -385,7 +373,7 @@ export function Landing() {
                     sx={{
                       fontFamily: jeopardyFonts.display,
                       color: ui.goldBright,
-                      fontSize: { xs: 44, sm: 52 },
+                      fontSize: { xs: 36, sm: 40 },
                       fontWeight: 700,
                       lineHeight: 1,
                       letterSpacing: "0.18em",
@@ -470,7 +458,7 @@ export function Landing() {
                     gridTemplateColumns: "minmax(0, 1fr)",
                     gap: 2,
                     width: "100%",
-                    maxWidth: 480,
+                    maxWidth: 400,
                     alignItems: "stretch",
                     textAlign: "left",
                   }}
@@ -750,9 +738,6 @@ function LandingFeature({
   );
 }
 
-/** Laptop-shaped screens: two columns but little height to spare. */
-const shortWideScreen = "@media (min-width: 900px) and (max-height: 820px)";
-
 const focusRing = {
   outline: `3px solid ${ui.goldBright}`,
   outlineOffset: "2px",
@@ -761,10 +746,10 @@ const focusRing = {
 const fieldSx = {
   ...controls.readout,
   width: "100%",
-  height: 52,
-  px: 1.75,
+  height: 44,
+  px: 1.5,
   color: ui.ink,
-  fontSize: 17,
+  fontSize: 16,
   transition: "border-color 120ms, box-shadow 120ms",
   "&.Mui-focused": {
     borderColor: ui.goldBright,
@@ -775,11 +760,11 @@ const fieldSx = {
 
 const codeFieldSx = {
   ...fieldSx,
-  height: 64,
+  height: 52,
   "& input": {
     textAlign: "center",
     fontFamily: jeopardyFonts.display,
-    fontSize: 32,
+    fontSize: 26,
     fontWeight: 700,
     letterSpacing: "0.42em",
     // The trailing letter-space would push the code off centre.
@@ -790,11 +775,11 @@ const codeFieldSx = {
 } as const;
 
 const ctaBase = {
-  height: 56,
+  height: 48,
   width: "100%",
   borderRadius: "10px",
   fontFamily: jeopardyFonts.display,
-  fontSize: 20,
+  fontSize: 18,
   fontWeight: 700,
   letterSpacing: "0.08em",
   textTransform: "uppercase",
@@ -829,11 +814,11 @@ const segmentedSx = {
   "& .MuiToggleButton-root": {
     flex: 1,
     gap: 1,
-    height: 44,
+    height: 38,
     border: 0,
     borderRadius: "6px !important",
     color: ui.inkMuted,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: 600,
     textTransform: "none",
     "&:hover": { background: "rgba(255,255,255,0.06)", color: ui.ink },
@@ -857,9 +842,9 @@ function panelSx(tone: "board" | "surface") {
   return {
     display: "flex",
     flexDirection: "column",
-    gap: 2.25,
-    p: { xs: 2.5, sm: 3.5 },
-    borderRadius: "16px",
+    gap: 1.75,
+    p: { xs: 2, sm: 2.5 },
+    borderRadius: "14px",
     border: `1px solid ${tone === "board" ? "rgba(140,150,255,0.35)" : ui.line}`,
     background:
       tone === "board"
@@ -875,7 +860,7 @@ function panelSx(tone: "board" | "surface") {
 const eyebrowSx = {
   fontFamily: jeopardyFonts.display,
   color: ui.goldBright,
-  fontSize: 13,
+  fontSize: 11,
   fontWeight: 700,
   letterSpacing: "0.2em",
   textTransform: "uppercase",
@@ -919,7 +904,7 @@ function LandingPanel({
           sx={{
             fontFamily: jeopardyFonts.display,
             color: ui.ink,
-            fontSize: { xs: 26, sm: 30 },
+            fontSize: { xs: 22, sm: 24 },
             fontWeight: 700,
             lineHeight: 1.1,
             textTransform: "uppercase",
@@ -934,7 +919,7 @@ function LandingPanel({
         sx={{
           display: "flex",
           flexDirection: "column",
-          gap: 2.25,
+          gap: 1.75,
           flex: 1,
           justifyContent: "flex-end",
         }}
@@ -964,14 +949,14 @@ function LandingField({
   children: ReactNode;
 }) {
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
       <Box
         component={htmlFor ? "label" : "span"}
         htmlFor={htmlFor}
         id={id}
         sx={{
           color: ui.inkMuted,
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: 600,
           letterSpacing: "0.04em",
         }}
