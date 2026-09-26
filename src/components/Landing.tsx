@@ -25,6 +25,7 @@ import {
   roomCodeLength,
 } from "@/lib/realtime/invite-code";
 import { ui } from "@/lib/foundation/jeopardy-style";
+import { appViewport } from "@/lib/foundation/viewport";
 import { CustomGameBuilder } from "./CustomGameBuilder";
 import { Wordmark } from "./Wordmark";
 
@@ -197,21 +198,19 @@ export function Landing() {
   return (
     <Box
       sx={{
-        minHeight: "100dvh",
+        // The shell owns <main> and the safe-area padding; this fills what's left.
+        minHeight: appViewport.contentHeight,
         background: ui.stage,
         display: "flex",
         flexDirection: "column",
-        pt: "env(safe-area-inset-top)",
-        pb: "env(safe-area-inset-bottom)",
-        pl: "env(safe-area-inset-left)",
-        pr: "env(safe-area-inset-right)",
       }}
     >
       <Container maxWidth="lg" sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
         {/* Everything on the centre line: the mark, the line under it, the
             keys, the three notes at the foot. */}
         <Box
-          component="main"
+          component="section"
+          aria-labelledby="landing-title"
           sx={{
             flex: 1,
             display: "flex",
@@ -223,7 +222,7 @@ export function Landing() {
           }}
         >
           <Stack spacing={{ xs: 3, md: 5 }} sx={{ maxWidth: 760, width: "100%", alignItems: "center" }}>
-            <Typography component="h1" sx={{ m: 0, lineHeight: 0 }}>
+            <Typography component="h1" id="landing-title" sx={{ m: 0, lineHeight: 0 }}>
               <Box component="span" sx={visuallyHidden}>
                 Jeopardy!
               </Box>
