@@ -1,7 +1,6 @@
 import {
+  BotClueMemory,
   createSeededRng,
-  decideBotAnswer,
-  decideBotBuzz,
   decideBotWager,
   type BotRng,
 } from "@/lib/ai/bots";
@@ -31,7 +30,11 @@ export class RoomDirector {
   private readonly profiles = new Map<string, BotProfile>();
   private readonly categoryPreference = new Map<string, Map<string, number>>();
   private readonly pending = new Map<string, { timer: Timer; scope: string }>();
+  /** `clueId:playerId` verdicts left for the host because the judge was unsure. */
+  private readonly heldForHost = new Set<string>();
   private readonly rng: BotRng;
+  /** Each bot's knowledge of the clue on screen, rolled once per clue. */
+  private readonly memory: BotClueMemory;
   private readonly schedule: (action: () => void, delayMs: number) => Timer;
   private readonly unschedule: (timer: Timer) => void;
   private unsubscribe: (() => void) | undefined;
@@ -40,6 +43,7 @@ export class RoomDirector {
   constructor(room: InMemoryRealtimeRoom, options: RoomDirectorOptions = {}) {
     this.room = room;
     this.rng = createSeededRng(options.seed ?? Date.now());
+    this.memory = new BotClueMemory(this.rng);
     // Wrapped, not stored bare: `this.schedule(...)` would call the browser's
     // setTimeout with the director as its receiver, which throws
     // "Illegal invocation" and silently kills every deferred bot action.
@@ -196,9 +200,10 @@ export class RoomDirector {
         profile,
         clue,
         currentScore: state.scores[playerId] ?? 0,
+        leaderScore: Math.max(...Object.values(state.scores), 1),
         // The best score among the others, not the table's: a leader weighing
         // itself against its own total always bet everything.
-        leaderScore: leadingOpponentScore(state, playerId),
+        bestOpponentScore: leadingOpponentScore(state, playerId),
         round: clue.round,
         rng: this.rng,
       });
@@ -223,7 +228,7 @@ export class RoomDirector {
     if (active.round === "final-jeopardy") {
       for (const [botId, profile] of this.profiles.entries()) {
         if (active.submitted[botId]) continue;
-        const decision = decideBotAnswer(profile, clue, this.rng);
+        const decision = this.memory.answerFor(botId, profile, clue);
         this.defer(
           `${botId}:final`,
           RoomDirector.scopeOf(state),
@@ -241,7 +246,7 @@ export class RoomDirector {
       if (active.buzzes[botId] !== undefined) {
         // Already at the podium — make sure an answer is on its way.
         if (!active.submitted[botId]) {
-          const decision = decideBotAnswer(profile, clue, this.rng);
+          const decision = this.memory.answerFor(botId, profile, clue);
           this.defer(
             `${botId}:answer`,
             RoomDirector.scopeOf(state),
@@ -260,7 +265,7 @@ export class RoomDirector {
       if (active.judges[botId] !== undefined) continue;
       if (state.players[botId]?.spectator) continue;
 
-      const decision = decideBotBuzz(profile, clue, this.rng);
+      const decision = this.memory.buzzFor(botId, profile, clue);
       if (!decision.shouldBuzz) continue;
       const readoutRemaining = Math.max(0, (active.readoutEndsAt ?? now) - now);
       this.defer(
@@ -289,13 +294,20 @@ export class RoomDirector {
     if (!active?.answerRevealed) return;
     const target = active.currentJudgePlayerId;
     if (!target || active.judges[target] !== undefined) return;
+    // Already handed to the host as too close to call: don't ask again.
+    const heldKey = `${active.clueId}:${target}`;
+    if (this.heldForHost.has(heldKey)) return;
 
     this.defer(`judge:${target}`, RoomDirector.scopeOf(state), 900, () => {
       const current = this.room.getState();
       // Read again at the moment of ruling, not when it was queued.
       if (!current.settings.aiJudgeEnabled) return;
       const clue = current.cluesById[active.clueId];
-      const verdict = this.room.runAiJudge(target);
+      const verdict = this.room.runAiJudge(target, { holdAmbiguous: true });
+      if (verdict?.held) {
+        this.heldForHost.add(heldKey);
+        return;
+      }
       if (verdict && clue) {
         this.noteJudgement(target, clue.category, verdict.correct);
       }

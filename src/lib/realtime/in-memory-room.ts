@@ -387,7 +387,7 @@ export class InMemoryRealtimeRoom {
    * Scores one queued answer with the fuzzy judge and reports the verdict to
    * the room. Runs where the state lives so every client sees the same call.
    */
-  runAiJudge(targetPlayerId: string) {
+  runAiJudge(targetPlayerId: string, options: { holdAmbiguous?: boolean } = {}) {
     const active = this.state.activeClue;
     if (!active?.answerRevealed) return undefined;
     if (active.judges[targetPlayerId] !== undefined) return undefined;
@@ -399,20 +399,41 @@ export class InMemoryRealtimeRoom {
       submittedAnswer: answer,
       expectedAnswer: clue.correctResponse,
     });
+    const player = this.state.players[targetPlayerId];
+
+    // A close call is the host's, when there is a host here to make it. The
+    // automatic judge used to rule on "Henry VIII" for "Henry VII" 900ms
+    // after the reveal, with nobody given the chance to say otherwise.
+    if (verdict.ambiguous && options.holdAmbiguous && this.hasHumanHostPresent()) {
+      this.postChat({
+        kind: "judge",
+        text: `? ${player?.displayName ?? targetPlayerId} · "${
+          answer.trim() || "—"
+        }" · too close to call — the host rules`,
+      });
+      return { ...verdict, held: true as const };
+    }
+
     const hostId = this.state.settings.hostId ?? targetPlayerId;
     this.applyCommand(hostId, {
       type: "judge-answer",
       targetPlayerId,
       correct: verdict.correct,
     });
-    const player = this.state.players[targetPlayerId];
     this.postChat({
       kind: "judge",
       text: `${verdict.correct ? "✓" : "✗"} ${
         player?.displayName ?? targetPlayerId
       } · "${answer.trim() || "—"}" · ${(verdict.confidence * 100).toFixed(0)}%`,
     });
-    return verdict;
+    return { ...verdict, held: false as const };
+  }
+
+  /** A connected human holds the chair, so there is someone to rule. */
+  private hasHumanHostPresent(): boolean {
+    const hostId = this.state.settings.hostId;
+    const host = hostId ? this.state.players[hostId] : undefined;
+    return Boolean(host && host.kind === "human" && host.connected);
   }
 
   private applyCommand(
