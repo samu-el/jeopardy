@@ -16,6 +16,7 @@ import { controls, jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
 import { MicAnswerField } from "./MicAnswerField";
 import { BuzzLights } from "./BuzzLights";
 import { Housing, HousingDivider, HousingLabel } from "./Housing";
+import { FinalReveal } from "./clue/FinalReveal";
 import { JudgeBench } from "./clue/JudgeBench";
 import { benchKeySx, wrapHousingSx } from "./clue/bench-style";
 import { answerFocusProxyId, isTyping, keyBelongsToControl } from "./clue/keyboard";
@@ -358,6 +359,8 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
           Next clue in {turn.autoAdvanceSeconds}s
         </Typography>
       ) : null}
+
+      {isFinal ? <FinalReveal state={state} /> : null}
 
       {iAmHost ? <JudgeBench state={state} send={send} /> : null}
     </Box>

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buzzOrder,
   deriveClueTurn,
+  finalRevealEntries,
   lastRuling,
   seatOrder,
   validateWager,
@@ -220,5 +221,50 @@ describe("announce", () => {
       "Double Jeopardy.",
       "Sam picks.",
     ]);
+  });
+});
+
+describe("finalRevealEntries", () => {
+  it("shows ruled answers in reveal order, then the one being read", () => {
+    const final = clue({
+      round: "final-jeopardy",
+      phase: "judging",
+      answers: { me: "Paris", sam: "Rome" },
+      wagers: { me: 100, sam: 300 },
+      judges: { me: true },
+      currentJudgePlayerId: "sam",
+    });
+    expect(finalRevealEntries(state(final, { round: "final-jeopardy" }))).toEqual([
+      { playerId: "me", name: "Me", answer: "Paris", wager: 100, correct: true, current: false },
+      { playerId: "sam", name: "Sam", answer: "Rome", wager: 300, correct: undefined, current: true },
+    ]);
+  });
+
+  it("reveals nothing while answers are still being written", () => {
+    const final = clue({ round: "final-jeopardy", phase: "answering", buzzes: { me: 1, sam: 1 } });
+    expect(finalRevealEntries(state(final, { round: "final-jeopardy" }))).toEqual([]);
+  });
+});
+
+describe("announce Final", () => {
+  it("reads each answer and wager as the host reaches it", () => {
+    const writing = state(
+      clue({ round: "final-jeopardy", phase: "answering", buzzes: { me: 1, sam: 1 } }),
+      { round: "final-jeopardy" },
+    );
+    const reveal = state(
+      clue({
+        round: "final-jeopardy",
+        phase: "judging",
+        buzzes: { me: 1, sam: 1 },
+        answers: { me: "Paris", sam: "Rome" },
+        wagers: { me: 100, sam: 300 },
+        currentJudgePlayerId: "sam",
+      }),
+      { round: "final-jeopardy" },
+    );
+    expect(
+      announce({ state: writing, phase: "final-answer" }, { state: reveal, phase: "judging" }, "me"),
+    ).toEqual(["Sam wrote: Rome, wagering $300."]);
   });
 });

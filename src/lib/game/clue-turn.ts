@@ -423,3 +423,38 @@ function seconds(remaining: number) {
 export function nameOf(state: PublicGameState, id: string) {
   return state.players.find((player) => player.id === id)?.displayName ?? id;
 }
+
+export interface FinalRevealEntry {
+  playerId: string;
+  name: string;
+  answer: string;
+  wager?: number;
+  /** undefined while this one is being read out and not yet ruled on. */
+  correct?: boolean | null;
+  current: boolean;
+}
+
+/**
+ * Final Jeopardy as it is revealed, for every screen: the answers already
+ * ruled on, in the order they were read, then the one being read now.
+ * Nothing before the reveal: wagers and answers stay sealed until then.
+ */
+export function finalRevealEntries(state: PublicGameState): FinalRevealEntry[] {
+  const clue = state.currentClue;
+  if (!clue || clue.round !== "final-jeopardy") return [];
+  const revealed = clue.phase
+    ? clue.phase === "judging" || clue.phase === "resolved"
+    : clue.correctResponse !== undefined;
+  if (!revealed) return [];
+  const order = Object.keys(clue.judges);
+  const current = clue.currentJudgePlayerId;
+  if (current && !order.includes(current)) order.push(current);
+  return order.map((id) => ({
+    playerId: id,
+    name: nameOf(state, id),
+    answer: clue.answers[id] ?? "",
+    wager: clue.wagers[id],
+    correct: clue.judges[id],
+    current: id === current && clue.judges[id] === undefined,
+  }));
+}

@@ -84,6 +84,23 @@ export function announce(
       lines.push(`The answer: ${clue.correctResponse}.`);
     }
 
+    // Final's reveal: each answer and wager as it is read out.
+    const reading = clue.currentJudgePlayerId;
+    if (
+      isFinal &&
+      reading &&
+      clue.judges[reading] === undefined &&
+      (!sameClue || was?.currentJudgePlayerId !== reading) &&
+      clue.answers[reading] !== undefined
+    ) {
+      const wager = clue.wagers[reading];
+      lines.push(
+        `${who(reading)} wrote: ${clue.answers[reading] || "nothing"}${
+          wager !== undefined ? `, wagering $${wager}` : ""
+        }.`,
+      );
+    }
+
     for (const id of Object.keys(clue.judges)) {
       if (sameClue && was && id in was.judges) continue;
       const verdict = clue.judges[id];
