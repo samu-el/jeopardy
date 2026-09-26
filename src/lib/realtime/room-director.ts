@@ -6,7 +6,7 @@ import {
   type BotRng,
 } from "@/lib/ai/bots";
 import type { BotProfile } from "@/lib/ai/profiles";
-import type { GameState } from "@/lib/game";
+import { leadingOpponentScore, type GameState } from "@/lib/game";
 import type { InMemoryRealtimeRoom } from "./in-memory-room";
 
 export interface RoomDirectorOptions {
@@ -196,7 +196,9 @@ export class RoomDirector {
         profile,
         clue,
         currentScore: state.scores[playerId] ?? 0,
-        leaderScore: Math.max(...Object.values(state.scores), 1),
+        // The best score among the others, not the table's: a leader weighing
+        // itself against its own total always bet everything.
+        leaderScore: leadingOpponentScore(state, playerId),
         round: clue.round,
         rng: this.rng,
       });
