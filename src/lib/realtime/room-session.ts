@@ -1,5 +1,10 @@
+import { maxPlayersPerRoom } from "@/lib/game";
 import type { RoomHost } from "./room-host";
-import type { RealtimeMessageSink, ServerRealtimeMessage } from "./contracts";
+import type {
+  RealtimeMessageSink,
+  RealtimeRejectReason,
+  ServerRealtimeMessage,
+} from "./contracts";
 import { decodeClientFrame, type ClientFrame, type ServerFrame } from "./ws-protocol";
 
 /**
@@ -16,8 +21,14 @@ export interface RoomSessionOptions {
    * client explicitly asked to open a room, so a typo in a code can't
    * conjure an empty one.
    */
-  resolveRoom: (roomId: string, create: boolean) => Promise<RoomHost | undefined>;
+  resolveRoom: (roomId: string, create: boolean) => Promise<ResolvedRoom | undefined>;
   send: (frame: ServerFrame) => void;
+}
+
+export interface ResolvedRoom {
+  host: RoomHost;
+  /** True only when this very request brought the room into existence. */
+  fresh: boolean;
 }
 
 export class RoomSession {
@@ -68,8 +79,16 @@ export class RoomSession {
       case "add-bot": {
         if (!this.room || !this.clientId) return;
         const state = this.room.getState();
-        // Only the host fills seats.
-        if (state.settings.hostId && state.settings.hostId !== this.clientId) return;
+        // Only the host fills seats, and a guest who tries hears so rather
+        // than watching the click vanish.
+        if (state.settings.hostId && state.settings.hostId !== this.clientId) {
+          this.refuseMessage("not-authorized", "Only the host can add bots.");
+          return;
+        }
+        if (Object.keys(state.players).length >= maxPlayersPerRoom) {
+          this.refuseMessage("room-full", `This room is full (${maxPlayersPerRoom} players).`);
+          return;
+        }
         this.room.addBot({
           id: frame.id,
           displayName: frame.displayName ?? "Bot",
@@ -87,13 +106,29 @@ export class RoomSession {
   }
 
   private async join(roomId: string, frame: Extract<ClientFrame, { t: "join" }>) {
-    const room = await this.options.resolveRoom(roomId, frame.create === true);
+    const resolved = await this.options.resolveRoom(roomId, frame.create === true);
     if (this.closed) return;
-    if (!room) {
-      this.options.send({
-        t: "message",
-        message: this.rejection(frame.clientId, "That room does not exist."),
-      });
+    if (!resolved) {
+      this.reject(frame.clientId, "room-not-found", `Room ${roomId} isn't open.`);
+      return;
+    }
+    const room = resolved.host;
+
+    // A create request is a host minting a code. If the code is somebody
+    // else's live room, say so and let the client roll another one, rather
+    // than dropping a stranger's board on top of theirs.
+    if (frame.create && !resolved.fresh && !room.room.hasSession(frame.clientId)) {
+      this.reject(frame.clientId, "room-code-taken", "That room code is already in use.");
+      return;
+    }
+
+    const session = room.room.claimSession(frame.clientId, frame.sessionToken);
+    if (!session) {
+      this.reject(
+        frame.clientId,
+        "invalid-session",
+        "That seat belongs to another device. Join again from the invite link.",
+      );
       return;
     }
 
@@ -102,13 +137,12 @@ export class RoomSession {
       this.room.room.disconnect(this.options.connectionId);
     }
 
-    const issued = room.room.issueSession(frame.clientId);
     const sink: RealtimeMessageSink = (message) =>
       this.options.send({ t: "message", message });
     const result = room.room.connect(
       {
         clientId: frame.clientId,
-        sessionToken: issued.sessionToken,
+        sessionToken: session.sessionToken,
         connectionId: this.options.connectionId,
       },
       sink,
@@ -148,13 +182,26 @@ export class RoomSession {
     return this.room;
   }
 
-  private rejection(clientId: string, message: string): ServerRealtimeMessage {
-    return {
+  private refuseMessage(reason: RealtimeRejectReason, message: string) {
+    this.options.send({
+      t: "message",
+      message: {
+        type: "message-rejected",
+        connectionId: this.options.connectionId,
+        reason,
+        message,
+      },
+    });
+  }
+
+  private reject(clientId: string, reason: RealtimeRejectReason, message: string) {
+    const rejection: ServerRealtimeMessage = {
       type: "session-rejected",
       connectionId: this.options.connectionId,
       clientId,
-      reason: "invalid-session",
+      reason,
       message,
     };
+    this.options.send({ t: "message", message: rejection });
   }
 }

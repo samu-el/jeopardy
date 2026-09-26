@@ -1,6 +1,7 @@
 import {
   dispatchGameCommand,
   getPublicGameState,
+  maxPlayersPerRoom,
   reassignRoles,
   tickGame,
   type GameEvent,
@@ -15,6 +16,8 @@ import {
 } from "./chat";
 import {
   commandFromClient,
+  hostReclaimGraceMs,
+  kickBanMs,
   type ClientGameCommand,
   type ClientRealtimeMessage,
   type RealtimeClock,
@@ -22,6 +25,7 @@ import {
   type RealtimeConnectionRecord,
   type RealtimeConnectionRequest,
   type RealtimeMessageSink,
+  type RealtimeRejectReason,
   type RealtimeSession,
   type RealtimeTokenFactory,
   type ServerRealtimeMessage,
@@ -60,6 +64,13 @@ export class InMemoryRealtimeRoom {
   private readonly changeListeners = new Set<RoomChangeListener>();
   private readonly chatListeners = new Set<RoomChatListener>();
   private chat: ChatMessage[] = [];
+  /** Players the host removed, and until when they are kept out. */
+  private readonly bans = new Map<string, number>();
+  /**
+   * The host who dropped off, and until when the chair is theirs to reclaim.
+   * The room keeps playing under whoever it passed to in the meantime.
+   */
+  private hostClaim: { playerId: string; until: number } | undefined;
 
   constructor({
     initialState,
@@ -121,20 +132,65 @@ export class InMemoryRealtimeRoom {
     return session;
   }
 
+  /**
+   * The session a joining client may use. A client id nobody holds yet gets a
+   * fresh token; one already held is only handed back to whoever offers its
+   * token, so knowing a player's id (it is public) is not enough to sit in
+   * their seat.
+   */
+  claimSession(clientId: string, offeredToken?: string): RealtimeSession | undefined {
+    const existing = this.sessions.get(clientId);
+    if (!existing) return this.issueSession(clientId);
+    return existing.sessionToken === offeredToken ? existing : undefined;
+  }
+
+  /** Whether this client id has ever been issued a session in this room. */
+  hasSession(clientId: string): boolean {
+    return this.sessions.has(clientId);
+  }
+
+  /** Who holds a claim on the chair right now, if anyone. */
+  get pendingHostClaim(): string | undefined {
+    const claim = this.hostClaim;
+    return claim && claim.until >= this.clock.now() ? claim.playerId : undefined;
+  }
+
   connect(
     request: RealtimeConnectionRequest,
     sink: RealtimeMessageSink,
   ): RealtimeConnectResult {
-    const session = this.sessions.get(request.clientId);
-    if (!session || session.sessionToken !== request.sessionToken) {
+    const reject = (reason: RealtimeRejectReason, message: string): RealtimeConnectResult => {
       sink({
         type: "session-rejected",
         connectionId: request.connectionId,
         clientId: request.clientId,
-        reason: "invalid-session",
-        message: "Session token does not match the requested client id.",
+        reason,
+        message,
       });
-      return { ok: false, reason: "invalid-session" };
+      return { ok: false, reason };
+    };
+
+    const session = this.sessions.get(request.clientId);
+    if (!session || session.sessionToken !== request.sessionToken) {
+      return reject("invalid-session", "Session token does not match the requested client id.");
+    }
+
+    const bannedUntil = this.bans.get(request.clientId);
+    if (bannedUntil !== undefined) {
+      if (bannedUntil > this.clock.now()) {
+        return reject("kicked", "The host removed you from this room.");
+      }
+      this.bans.delete(request.clientId);
+    }
+
+    // Refused before the socket is accepted, not after: a joiner let in and
+    // then denied a seat used to sit at a board with no lectern and no word
+    // of why.
+    if (
+      !this.state.players[request.clientId] &&
+      Object.keys(this.state.players).length >= maxPlayersPerRoom
+    ) {
+      return reject("room-full", `This room is full (${maxPlayersPerRoom} players).`);
     }
 
     const previousConnectionId = this.activeConnectionByClient.get(request.clientId);
@@ -188,6 +244,7 @@ export class InMemoryRealtimeRoom {
     this.connections.delete(connectionId);
     if (this.activeConnectionByClient.get(connection.clientId) === connectionId) {
       this.activeConnectionByClient.delete(connection.clientId);
+      const wasHost = this.state.settings.hostId === connection.clientId;
       if (this.state.round === "lobby") {
         // Nothing to preserve before the game starts — free the seat so the
         // pre-game roster only lists people who are actually here.
@@ -196,6 +253,14 @@ export class InMemoryRealtimeRoom {
         // Mid-game the seat and score stay put so a refresh can reclaim them.
         this.setPlayerConnected(connection.clientId, false);
         this.migrateRolesAwayFrom(connection.clientId);
+      }
+      if (wasHost) {
+        // A refresh is not a resignation. Whoever takes the chair now holds
+        // it for the host, who gets it back by returning in time.
+        this.hostClaim = {
+          playerId: connection.clientId,
+          until: this.clock.now() + hostReclaimGraceMs,
+        };
       }
     }
 
@@ -240,9 +305,23 @@ export class InMemoryRealtimeRoom {
         });
         return { ok: true, events: [] };
       }
-      case "ai-judge":
+      case "ai-judge": {
+        // A ruling moves scores, so it is the host's call (or the room's own
+        // director's), never a contestant's on their own answer.
+        if (this.state.settings.hostId !== connection.clientId) {
+          const rejection: ServerRealtimeMessage = {
+            type: "message-rejected",
+            commandId: message.commandId,
+            connectionId,
+            reason: "not-authorized",
+            message: "Only the host can ask for a ruling.",
+          };
+          connection.sink(rejection);
+          return { ok: false, message: rejection };
+        }
         this.runAiJudge(message.targetPlayerId);
         return { ok: true, events: [] };
+      }
       default: {
         const rejection: ServerRealtimeMessage = {
           type: "message-rejected",
@@ -334,8 +413,67 @@ export class InMemoryRealtimeRoom {
       now: this.clock.now(),
     });
     this.state = result.state;
+    this.afterCommand(actorId, command, result.events);
     this.publish(result.events, commandId);
     return { ok: true, events: result.events };
+  }
+
+  /**
+   * The room's own bookkeeping around a command the engine accepted: a
+   * removal that should stick, and a host coming back for their chair.
+   */
+  private afterCommand(actorId: string, command: ClientGameCommand, events: GameEvent[]) {
+    for (const event of events) {
+      if (event.type === "host-configured") {
+        // Handed over on purpose: there is no claim left to honour.
+        this.hostClaim = undefined;
+      }
+      if (event.type === "player-left") {
+        if (event.playerId !== actorId) this.removeConnection(event.playerId);
+        if (this.hostClaim?.playerId === event.playerId && event.playerId !== actorId) {
+          this.hostClaim = undefined;
+        }
+      }
+      if (event.type === "player-joined" && command.type === "join-game") {
+        this.returnChairTo(event.playerId);
+      }
+    }
+  }
+
+  /** Hands the chair back to a host who returned inside the grace window. */
+  private returnChairTo(playerId: string) {
+    const claim = this.hostClaim;
+    if (!claim || claim.playerId !== playerId) return;
+    this.hostClaim = undefined;
+    if (claim.until < this.clock.now()) return;
+    const player = this.state.players[playerId];
+    if (!player || this.state.settings.hostId === playerId) return;
+    this.state = {
+      ...this.state,
+      updatedAt: this.clock.now(),
+      settings: { ...this.state.settings, hostId: playerId },
+    };
+    this.postChat({ kind: "system", text: `${player.displayName} is hosting again` });
+  }
+
+  /**
+   * The host removed someone. Their socket is told why and dropped, and they
+   * are kept out for a while: a removal a reload undoes isn't one.
+   */
+  private removeConnection(playerId: string) {
+    this.bans.set(playerId, this.clock.now() + kickBanMs);
+    const connectionId = this.activeConnectionByClient.get(playerId);
+    if (!connectionId) return;
+    const connection = this.connections.get(connectionId);
+    this.activeConnectionByClient.delete(playerId);
+    this.connections.delete(connectionId);
+    connection?.sink({
+      type: "session-rejected",
+      connectionId,
+      clientId: playerId,
+      reason: "kicked",
+      message: "The host removed you from this room.",
+    });
   }
 
   private publish(events: GameEvent[], commandId?: string) {
@@ -403,6 +541,12 @@ export class InMemoryRealtimeRoom {
   }
 }
 
+/** Unguessable: the token is what proves a returning client owns its seat. */
 function defaultToken(clientId: string) {
-  return `session-${clientId}`;
+  // Typed loosely: the worker build's lib set doesn't declare Web Crypto here.
+  const cryptoRef = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+  const random = cryptoRef?.randomUUID
+    ? cryptoRef.randomUUID()
+    : `${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
+  return `session-${clientId}-${random}`;
 }

@@ -14,7 +14,43 @@ export type RealtimeRejectReason =
   | "invalid-session"
   | "unknown-connection"
   | "unknown-message"
-  | "invalid-command";
+  | "invalid-command"
+  /** The code names no room anyone has opened. */
+  | "room-not-found"
+  /** Every seat is taken (bots and spectators count). */
+  | "room-full"
+  /** A create request landed on a code somebody else already holds. */
+  | "room-code-taken"
+  /** The host removed this player; they may not come straight back. */
+  | "kicked"
+  /** Host-only: the sender does not hold the chair. */
+  | "not-authorized";
+
+/**
+ * Rejections the client cannot recover from by reconnecting on its own. A
+ * socket that hears one of these stops retrying and waits for the person.
+ */
+export const terminalRejectReasons: readonly RealtimeRejectReason[] = [
+  "invalid-session",
+  "room-not-found",
+  "room-full",
+  "room-code-taken",
+  "kicked",
+];
+
+export function isTerminalRejectReason(reason: RealtimeRejectReason): boolean {
+  return terminalRejectReasons.includes(reason);
+}
+
+/** How long a removed player is kept out of the room they were removed from. */
+export const kickBanMs = 5 * 60_000;
+
+/**
+ * How long a host who dropped off keeps their claim on the chair. Someone
+ * else runs the board in the meantime; a host back inside the window gets it
+ * handed straight back.
+ */
+export const hostReclaimGraceMs = 5 * 60_000;
 
 export interface RealtimeSession {
   clientId: string;
