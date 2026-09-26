@@ -16,11 +16,14 @@ import { ShortcutsOverlay } from "./ShortcutsOverlay";
 import { Onboarding } from "./Onboarding";
 import { TranscriptPane } from "./TranscriptPane";
 import { ReplayView } from "./ReplayView";
+import { RoomNotices } from "./RoomNotices";
+import { LeaveRoomDialog } from "./LeaveRoomDialog";
 
 export function Room() {
   const publicState = useGameStore((s) => s.publicState);
   const online = useGameStore((s) => s.online);
   const exitToLobby = useGameStore((s) => s.exitToLobby);
+  const setScreen = useGameStore((s) => s.setScreen);
   const chatEnabled = useGameStore((s) => s.preferences.chatEnabled);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
@@ -53,15 +56,36 @@ export function Room() {
     />
   );
 
+  // Mounted on both screens: the More menu offers them on the results screen
+  // too, which is where "Replay last game" is most wanted.
+  const overlays = (
+    <>
+      <GamePicker open={pickerOpen} onClose={() => setPickerOpen(false)} />
+      <CustomGameBuilder open={builderOpen} onClose={() => setBuilderOpen(false)} />
+      <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <TranscriptPane open={transcriptOpen} onClose={() => setTranscriptOpen(false)} />
+      <ReplayView open={replayOpen} onClose={() => setReplayOpen(false)} />
+      <RoomNotices />
+      <LeaveRoomDialog />
+    </>
+  );
+
   if (showResults && publicState) {
     return (
       <Box sx={{ minHeight: "100vh", background: ui.stage }}>
         <ConnectionBanner />
         <Box sx={{ maxWidth: 1400, mx: "auto", px: { xs: 2, md: 3 } }}>
           {toolbar}
-          <ResultsView state={publicState} onPlayAgain={exitToLobby} onExit={exitToLobby} />
+          {/* "Again" re-deals for the whole room, so it is the host's call
+              (the store refuses it for anyone else); "Lobby" leaves the room
+              for the front door. */}
+          <ResultsView
+            state={publicState}
+            onPlayAgain={exitToLobby}
+            onExit={() => setScreen("landing")}
+          />
         </Box>
-        <GamePicker open={pickerOpen} onClose={() => setPickerOpen(false)} />
+        {overlays}
       </Box>
     );
   }
@@ -83,14 +107,8 @@ export function Room() {
         ) : null}
       </Box>
 
-      <GamePicker open={pickerOpen} onClose={() => setPickerOpen(false)} />
-      <CustomGameBuilder open={builderOpen} onClose={() => setBuilderOpen(false)} />
-      <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
-      <TranscriptPane open={transcriptOpen} onClose={() => setTranscriptOpen(false)} />
-      <ReplayView open={replayOpen} onClose={() => setReplayOpen(false)} />
+      {overlays}
       <Onboarding />
     </Box>
   );
 }
-
-/** Local avatar choices, used for seats the room state doesn't carry yet. */

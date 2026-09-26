@@ -7,6 +7,7 @@ import {
   NetworkRoomRuntime,
   type ChatMessage,
   type RoomConnectionStatus,
+  type RoomProblem,
   type RoomRuntime,
 } from "@/lib/runtime";
 import {
@@ -19,14 +20,22 @@ import {
   type NormalizedGame,
 } from "@/lib/data";
 import { defaultAvatarHostProfile, type AvatarHostCue } from "@/lib/ai";
-import { generateRoomCode, normalizeRoomCode } from "@/lib/realtime/room-code";
+import { normalizeRoomCode } from "@/lib/realtime/room-code";
 import {
+  committableName,
   connectToRoom,
   dealBoard,
+  isRetryableProblem,
+  lookupMessage,
+  lookupRoom,
+  openHostedRoom,
+  pushNotice,
   resolveClues,
-  roomLookupUrl,
-  watchForRoomFallback,
+  startLocalGame,
 } from "./room-session";
+import type { RoomNotice } from "./notices";
+import { displayClientId, forgetRoomSeat, recallRoomSeat, writeRoomToUrl } from "./room-memory";
+import { selectCanHost, selectIsLiveGame } from "./selectors";
 
 export { defaultPlayerName, resolvePlayerName } from "./room-session";
 
@@ -95,7 +104,15 @@ export interface LobbyConfig {
 export interface OnlineRoomState {
   roomId: string;
   status: RoomConnectionStatus;
+  /** This client opened the room (used until the room's own state says who hosts). */
   isHost: boolean;
+  /** A player sits at a lectern; a display only watches, under its own id. */
+  role: "player" | "display";
+  /** The room has let this client in at least once. */
+  everConnected: boolean;
+  /** Why the room isn't live, when it isn't: the thing a screen branches on. */
+  problem?: RoomProblem;
+  /** The sentence to show for it. */
   error?: string;
 }
 
@@ -124,6 +141,27 @@ export interface GameStoreState {
   joinAsDisplay: (roomId: string) => Promise<boolean>;
   lastEvents: GameEvent[];
   lastCue: AvatarHostCue | null;
+  /** Transient room news (arrivals, departures, the chair changing hands). */
+  notices: RoomNotice[];
+  dismissNotice: (id: string) => void;
+  /** Asking "leave this game?" before Home walks out of a live one. */
+  leaveConfirmOpen: boolean;
+  /** Home: leaves the room properly, asking first while a game is live. */
+  goHome: () => void;
+  confirmGoHome: () => void;
+  cancelGoHome: () => void;
+  /** Takes the seat back from another tab that opened this room. */
+  takeOverRoom: () => void;
+  /** Asks again after "not found" or "unreachable". */
+  retryRoom: () => Promise<boolean>;
+  /** Plays the staged board in this tab: only ever by explicit choice. */
+  playOffline: () => void;
+  /** Host-only: hands the chair to another player in the room. */
+  transferHost: (playerId: string) => void;
+  /** Host-only: removes a player from the room. */
+  removePlayer: (playerId: string) => void;
+  /** Sends the name being typed now instead of waiting out the debounce. */
+  commitHostName: () => void;
   /**
    * Set when the app is opened with ?room=<id>. The landing page shows
    * the join flow when this is non-null.
@@ -207,22 +245,90 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   lastEvents: [],
   lastCue: null,
   pendingRoomId: null,
-  setPendingRoomId: (id) => set({ pendingRoomId: id }),
+  notices: [],
+  dismissNotice: (id) =>
+    set((state) => ({ notices: state.notices.filter((notice) => notice.id !== id) })),
+  leaveConfirmOpen: false,
+  goHome: () => {
+    const state = get();
+    // Walking out of a game in progress costs a seat (and maybe the chair),
+    // so it is asked, not assumed.
+    if (state.runtime && selectIsLiveGame(state)) {
+      set({ leaveConfirmOpen: true });
+      return;
+    }
+    leaveAndGoHome();
+  },
+  confirmGoHome: () => leaveAndGoHome(),
+  cancelGoHome: () => set({ leaveConfirmOpen: false }),
+  takeOverRoom: () => {
+    const { online } = get();
+    if (!online) return;
+    connectToRoom(set, get, online.roomId, onlineConnectOptions(online));
+  },
+  retryRoom: async () => {
+    const { online } = get();
+    if (!online) return false;
+    if (online.role === "display") return get().joinAsDisplay(online.roomId);
+    return get().joinOnlineRoom(online.roomId);
+  },
+  playOffline: () => {
+    const { online, runtime } = get();
+    if (online?.status === "connected") return;
+    if (online && runtime) runtime.destroy();
+    set({ runtime: null, online: null });
+    startLocalGame(set, get);
+  },
+  transferHost: (playerId) => {
+    const state = get();
+    if (!state.runtime || !selectCanHost(state)) return;
+    state.runtime.sendCommand(state.selfId(), { type: "configure-host", hostId: playerId });
+  },
+  removePlayer: (playerId) => {
+    const state = get();
+    if (!state.runtime || !selectCanHost(state)) return;
+    state.runtime.sendCommand(state.selfId(), { type: "leave-game", targetPlayerId: playerId });
+  },
+  commitHostName: () => flushName(),
+  setPendingRoomId: (id) => {
+    if (id) {
+      // This browser already holds a seat in that room (a refresh, a host
+      // back at their own code, an invite link opened twice): go straight
+      // back in rather than asking who you are again.
+      const code = normalizeRoomCode(id);
+      const { lobby, online } = get();
+      if (!online && code && recallRoomSeat(code, lobby.hostId)) {
+        set({ pendingRoomId: null });
+        void get()
+          .joinOnlineRoom(code)
+          .then((joined) => {
+            if (joined) return;
+            forgetRoomSeat(code, get().lobby.hostId);
+            set({ pendingRoomId: code, screen: "landing" });
+          });
+        return;
+      }
+    }
+    set({ pendingRoomId: id });
+  },
   selfId: () => {
     const { runtime, lobby } = get();
     return runtime?.selfId ?? lobby.hostId;
   },
-  setScreen: (screen) => set({ screen }),
-  setHostName: (name) => {
-    const trimmed = name.trim() || "You";
-    set((state) => ({ lobby: { ...state.lobby, hostName: trimmed } }));
-    const { runtime, online, lobby } = get();
-    if (runtime && online) {
-      runtime.sendCommand(lobby.hostId, {
-        type: "set-player-profile",
-        displayName: trimmed,
-      });
+  setScreen: (screen) => {
+    // "Home" from anywhere in a room means leaving it, not hiding it: a
+    // landing page over a live socket left a connected ghost holding a seat.
+    if (screen === "landing" && get().runtime) {
+      get().goHome();
+      return;
     }
+    set({ screen });
+  },
+  setHostName: (name) => {
+    // The field keeps exactly what was typed, empty included; only a real
+    // name is ever sent, and only once typing pauses.
+    set((state) => ({ lobby: { ...state.lobby, hostName: name } }));
+    scheduleNameFlush();
   },
   setPlayerAvatar: (id, avatar) =>
     set((state) => {
@@ -310,6 +416,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   },
   addBot: (profile) => {
     const state = get();
+    if (state.online && !selectCanHost(state)) {
+      pushNotice(set, { kind: "refused", text: "Only the host can add bots." });
+      return;
+    }
     const bot = {
       id: makeId("bot"),
       name: `${profile.label} #${state.lobby.bots.length + 1}`,
@@ -327,6 +437,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   },
   removeBot: (id) => {
     const { online, runtime, lobby } = get();
+    if (online && !selectCanHost(get())) return;
     if (online && runtime) {
       runtime.sendCommand(lobby.hostId, { type: "leave-game", targetPlayerId: id });
     }
@@ -363,14 +474,24 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         extraHumans: state.lobby.extraHumans.filter((player) => player.id !== id),
       },
     })),
-  setAiJudge: (enabled) =>
-    set((state) => ({
-      lobby: { ...state.lobby, aiJudgeEnabled: enabled },
-    })),
-  setHostControlsAuto: (auto) =>
-    set((state) => ({
-      lobby: { ...state.lobby, hostControlsAuto: auto },
-    })),
+  setAiJudge: (enabled) => {
+    const state = get();
+    if (state.online && !selectCanHost(state)) return;
+    set({ lobby: { ...state.lobby, aiJudgeEnabled: enabled } });
+    // The room judges, so the room has to hear it: switching the judge off
+    // mid-game used to change a local flag while the room kept ruling.
+    if (state.runtime && selectCanHost(state)) {
+      state.runtime.sendCommand(state.selfId(), {
+        type: "update-settings",
+        settings: { aiJudgeEnabled: enabled },
+      });
+    }
+  },
+  setHostControlsAuto: (auto) => {
+    const state = get();
+    if (state.online && !selectCanHost(state)) return;
+    set({ lobby: { ...state.lobby, hostControlsAuto: auto } });
+  },
   saveBuilderDraft: (draft) =>
     set((state) => ({
       lobby: { ...state.lobby, builderDraft: draft },
@@ -389,9 +510,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   setPreference: (key, value) => {
     set((state) => ({ preferences: { ...state.preferences, [key]: value } }));
     if (key === "buzzWindowSeconds") {
-      const { runtime, lobby, publicState } = get();
-      const isHost = !publicState?.settings.hostId || publicState.settings.hostId === lobby.hostId;
-      if (runtime && isHost) {
+      const { runtime, lobby } = get();
+      if (runtime && selectCanHost(get())) {
         runtime.sendCommand(lobby.hostId, {
           type: "update-settings",
           settings: { buzzWindowMs: Number(value) * 1_000 },
@@ -401,53 +521,45 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   },
   setDisplayMode: (on) => set({ displayMode: on }),
   joinAsDisplay: async (roomId) => {
-    // A display takes no seat, so it joins as a spectator under a name the
-    // roster can show without anyone typing one on a television.
-    set((state) => ({
-      displayMode: true,
-      lobby: { ...state.lobby, hostSpectator: true, hostName: "Display" },
-    }));
-    return get().joinOnlineRoom(roomId);
+    // A display takes no seat and has its own id, so it can sit in the same
+    // browser as the host without taking the host's chair, and its name and
+    // spectator flag never touch the lobby this browser keeps.
+    set({ displayMode: true });
+    const normalized = normalizeRoomCode(roomId);
+    const found = await lookupOrReport(normalized, "display");
+    if (!found) {
+      scheduleDisplayRetry(normalized);
+      return false;
+    }
+    connectToRoom(set, get, normalized, {
+      create: false,
+      role: "display",
+      clientId: displayClientId(),
+      displayName: "Display",
+      spectator: true,
+    });
+    return true;
   },
   joinOnlineRoom: async (roomId) => {
     const { runtime } = get();
     if (runtime) runtime.destroy();
     set({ runtime: null, publicState: null, chat: [], lastEvents: [], lastCue: null });
     const normalized = normalizeRoomCode(roomId);
-    try {
-      const response = await fetch(roomLookupUrl(normalized));
-      const exists = response.ok && ((await response.json()) as { exists?: boolean }).exists;
-      if (!exists) {
-        set({
-          online: {
-            roomId: normalized,
-            status: "rejected",
-            isHost: false,
-            error: "That room is not open. Ask the host for a fresh code.",
-          },
-        });
-        return false;
-      }
-    } catch (error) {
-      set({
-        online: {
-          roomId: normalized,
-          status: "rejected",
-          isHost: false,
-          error: (error as Error).message,
-        },
-      });
-      return false;
-    }
-    connectToRoom(set, get, normalized, false);
+    const found = await lookupOrReport(normalized, "player");
+    if (!found) return false;
+    connectToRoom(set, get, normalized, { create: false, role: "player" });
     return true;
   },
   leaveOnlineRoom: () => {
     const { runtime, online, lobby } = get();
-    if (runtime && online) {
+    if (runtime && online && online.role === "player") {
       // Give the seat back explicitly — a dropped socket mid-game is held
       // open for a reconnect, which isn't what "leave" means.
       runtime.sendCommand(lobby.hostId, { type: "leave-game" });
+    }
+    if (online) {
+      forgetRoomSeat(online.roomId, runtime?.selfId ?? lobby.hostId);
+      writeRoomToUrl(null);
     }
     if (runtime) runtime.destroy();
     set({
@@ -455,15 +567,17 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       online: null,
       publicState: null,
       chat: [],
+      notices: [],
       lastEvents: [],
       lastCue: null,
+      leaveConfirmOpen: false,
       screen: "play",
     });
   },
   pushLoadedGameToRoom: () => {
     const { runtime, lobby } = get();
     const clues = resolveClues(lobby);
-    if (!runtime || clues.length === 0) return;
+    if (!runtime || clues.length === 0 || !selectCanHost(get())) return;
     runtime.sendCommand(lobby.hostId, { type: "load-game", clues });
   },
   startRandomGame: async () => {
@@ -502,6 +616,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     if (clues.length === 0) {
       return;
     }
+    // A guest's Begin would be refused by the room; don't send it.
+    if (online && !selectCanHost(get())) return;
 
     if (online && runtime) {
       // The room already exists on the server: load the board, then start.
@@ -512,19 +628,16 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     // No room yet. Open a shared one so every board carries a code from the
     // first clue — nobody has to decide up front whether friends are joining.
-    // If the rooms service can't be reached we fall back to a local room, so
-    // an outage costs sharing rather than the game.
-    const roomId = generateRoomCode();
-    connectToRoom(set, get, roomId, true);
-    // Frames written before the socket opens are queued and replayed, so the
-    // board can be dealt without waiting for the connection.
-    const opened = get().runtime;
-    if (opened) dealBoard(opened, get);
-    watchForRoomFallback(set, get, roomId);
+    // If the rooms service can't be reached the player is offered the board
+    // offline; the room keeps trying either way. Frames written before the
+    // socket opens are queued and replayed, so the board is dealt at once.
+    openHostedRoom(set, get);
     set({ screen: "play" });
   },
   exitToLobby: () => {
     const { runtime, online, lobby } = get();
+    // Restart, Again and Lobby reset everyone's board: the host's call only.
+    if (online && !selectCanHost(get())) return;
     if (online && runtime) {
       // Shared rooms stay open — reloading the board resets everyone at once.
       const clues = resolveClues(lobby);
@@ -548,6 +661,93 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set((state) => ({ chat: [...state.chat, message].slice(-200) })),
 }));
 
+
+/** Leaves whatever room this tab is in and shows the landing page. */
+function leaveAndGoHome() {
+  const { online, runtime } = useGameStore.getState();
+  if (online) {
+    useGameStore.getState().leaveOnlineRoom();
+  } else if (runtime) {
+    runtime.destroy();
+    useGameStore.setState({ runtime: null, publicState: null, lastEvents: [], lastCue: null });
+  }
+  useGameStore.setState({
+    screen: "landing",
+    displayMode: false,
+    leaveConfirmOpen: false,
+    shareUnavailable: false,
+  });
+}
+
+function onlineConnectOptions(online: OnlineRoomState) {
+  return online.role === "display"
+    ? {
+        create: false,
+        role: "display" as const,
+        clientId: displayClientId(),
+        displayName: "Display",
+        spectator: true,
+      }
+    : { create: false, role: "player" as const };
+}
+
+/**
+ * Asks whether the room is open; if not, records why on `online` so the
+ * screen can say "no such room" or "can't reach the server" (and stop
+ * spinning) instead of one message for both.
+ */
+async function lookupOrReport(code: string, role: OnlineRoomState["role"]): Promise<boolean> {
+  const result = await lookupRoom(code);
+  if (result === "open") return true;
+  useGameStore.setState({
+    online: {
+      roomId: code,
+      status: "rejected",
+      isHost: false,
+      role,
+      everConnected: false,
+      problem: result,
+      error: lookupMessage(code, result),
+    },
+  });
+  return false;
+}
+
+/** A television has no keyboard: it keeps checking until the room opens. */
+const displayRetryMs = 10_000;
+let displayRetryTimer: ReturnType<typeof setTimeout> | undefined;
+
+function scheduleDisplayRetry(code: string) {
+  if (typeof window === "undefined") return;
+  if (displayRetryTimer) clearTimeout(displayRetryTimer);
+  displayRetryTimer = setTimeout(() => {
+    displayRetryTimer = undefined;
+    const { displayMode, online } = useGameStore.getState();
+    if (!displayMode || online?.roomId !== code || !isRetryableProblem(online.problem)) return;
+    void useGameStore.getState().joinAsDisplay(code);
+  }, displayRetryMs);
+}
+
+/** A name is sent this long after the last keystroke, not on every one. */
+export const nameCommitDelayMs = 600;
+let nameTimer: ReturnType<typeof setTimeout> | undefined;
+let lastSentName: string | undefined;
+
+function scheduleNameFlush() {
+  if (nameTimer) clearTimeout(nameTimer);
+  nameTimer = setTimeout(flushName, nameCommitDelayMs);
+}
+
+function flushName() {
+  if (nameTimer) clearTimeout(nameTimer);
+  nameTimer = undefined;
+  const { runtime, online, lobby } = useGameStore.getState();
+  if (!runtime || !online || online.role !== "player") return;
+  const name = committableName(lobby.hostName);
+  if (!name || name === lastSentName) return;
+  lastSentName = name;
+  runtime.sendCommand(lobby.hostId, { type: "set-player-profile", displayName: name });
+}
 
 if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
   (window as unknown as { __game: typeof useGameStore }).__game = useGameStore;
