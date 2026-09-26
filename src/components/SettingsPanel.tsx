@@ -15,8 +15,14 @@ import Switch from "@mui/material/Switch";
 import Tooltip from "@mui/material/Tooltip";
 import VolumeUpIcon from "@mui/icons-material/VolumeUpOutlined";
 import { baselineAvatarHostProfiles } from "@/lib/ai/profiles";
-import { createVoiceAdapter, voicePersonas, type DiscoveredVoice } from "@/lib/ai";
+import {
+  buildVoiceOptions,
+  createVoiceAdapter,
+  previewVoice,
+  type DiscoveredVoice,
+} from "@/lib/ai";
 import { useGameStore, type UiPreferences } from "@/lib/state/game-store";
+import { AudioMixControls } from "./AudioMixControls";
 
 const voiceAdapter = typeof window === "undefined" ? null : createVoiceAdapter();
 
@@ -36,7 +42,7 @@ const buzzWindows = [
 ];
 
 const hostModes = [
-  { value: "off", label: "Off" },
+  { value: "off", label: "Off (clues still read)" },
   { value: "voice-only", label: "Voice" },
   { value: "avatar-and-voice", label: "Avatar" },
 ];
@@ -47,27 +53,12 @@ export function SettingsPanel() {
   const voices = useDiscoveredVoices();
 
   // The browser hands out its voices late and in its own order, so the
-  // personas claim the ones they recognise first and the rest follow.
-  const voiceOptions = useMemo(() => {
-    const claimed = new Set<string>();
-    const personas = voicePersonas.flatMap((persona) => {
-      const match = voices.find(persona.predicate);
-      if (!match || claimed.has(match.id)) return [];
-      claimed.add(match.id);
-      return [{ id: persona.id, label: persona.label, sub: match.label, quality: match.quality }];
-    });
-    return [
-      ...personas,
-      ...voices
-        .filter((voice) => !claimed.has(voice.id))
-        .map((voice) => ({
-          id: voice.id,
-          label: voice.label,
-          sub: voice.locale,
-          quality: voice.quality,
-        })),
-    ];
-  }, [voices]);
+  // personas claim the ones they recognise first and the rest follow. The
+  // stored choice is always listed, with the voice it really uses.
+  const voiceOptions = useMemo(
+    () => buildVoiceOptions(voices, preferences.voiceProfileId),
+    [voices, preferences.voiceProfileId],
+  );
 
   return (
     <Stack spacing={2}>
@@ -79,7 +70,7 @@ export function SettingsPanel() {
             value={preferences.voiceProfileId}
             onChange={(value) => setPreference("voiceProfileId", value)}
             renderValue={(value) =>
-              voiceOptions.find((option) => option.id === value)?.label ?? "Default"
+              voiceOptions.find((option) => option.id === value)?.label ?? "Browser default"
             }
           >
             {voiceOptions.map((option) => (
@@ -94,10 +85,7 @@ export function SettingsPanel() {
           <Tooltip title="Preview">
             <IconButton
               onClick={() =>
-                voiceAdapter?.speak({
-                  text: "This is your Jeopardy host. Welcome to the game.",
-                  voiceProfileId: preferences.voiceProfileId,
-                })
+                previewVoice(voiceAdapter, preferences.voiceProfileId, preferences.speechRate)
               }
             >
               <VolumeUpIcon />
@@ -119,6 +107,8 @@ export function SettingsPanel() {
             />
           ))}
         </Stack>
+
+        <AudioMixControls />
 
         <Choice
           id="buzz-window"

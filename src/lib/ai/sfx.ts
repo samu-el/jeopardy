@@ -1,3 +1,5 @@
+import { getAudioMix, onAudioMixChange, setAudioMix, type AudioMix } from "./audio-mix";
+
 export type SfxKind =
   | "select"
   | "buzz"
@@ -11,6 +13,23 @@ export type SfxKind =
 
 let context: AudioContext | undefined;
 let master: GainNode | undefined;
+/** Stings go through here; the countdown has a bus of its own. */
+let effectsBus: GainNode | undefined;
+let musicBus: GainNode | undefined;
+
+function applyMix(current: AudioMix) {
+  if (!context || !master || !effectsBus || !musicBus) return;
+  const now = context.currentTime;
+  // A short ramp, not a jump: a level change mid-sting would click.
+  master.gain.setTargetAtTime(current.muted ? 0 : 1, now, 0.015);
+  effectsBus.gain.setTargetAtTime(current.effects, now, 0.015);
+  musicBus.gain.setTargetAtTime(current.music, now, 0.015);
+}
+
+onAudioMixChange((current, previous) => {
+  applyMix(current);
+  if (current.muted && !previous.muted) stopFinalTheme();
+});
 
 function ctx(): AudioContext | undefined {
   if (typeof window === "undefined") return undefined;
@@ -21,7 +40,14 @@ function ctx(): AudioContext | undefined {
     if (!ctor) return undefined;
     context = new ctor();
     master = context.createGain();
-    master.gain.value = 0.9;
+    effectsBus = context.createGain();
+    musicBus = context.createGain();
+    const current = getAudioMix();
+    master.gain.value = current.muted ? 0 : 1;
+    effectsBus.gain.value = current.effects;
+    musicBus.gain.value = current.music;
+    effectsBus.connect(master);
+    musicBus.connect(master);
     master.connect(context.destination);
   }
   if (context.state === "suspended") {
@@ -33,7 +59,7 @@ function ctx(): AudioContext | undefined {
 function out(): AudioNode | undefined {
   const audio = ctx();
   if (!audio) return undefined;
-  return master ?? audio.destination;
+  return effectsBus ?? master ?? audio.destination;
 }
 
 interface ToneOptions {
@@ -130,6 +156,8 @@ function noise({
  * original tones written to sit in the same register and pacing.
  */
 export function playSfx(kind: SfxKind) {
+  const current = getAudioMix();
+  if (current.muted || current.effects <= 0) return;
   switch (kind) {
     case "select":
       // Soft confirm when a square is chosen.
@@ -183,13 +211,24 @@ export function playSfx(kind: SfxKind) {
 
 export function primeAudio() {
   // Browsers gate WebAudio behind a user gesture. Calling this from a click
-  // handler unlocks the context for subsequent automatic plays.
-  void ctx();
+  // handler unlocks the context for subsequent automatic plays. iOS also
+  // wants something actually started inside the gesture: one silent frame.
+  const audio = ctx();
+  if (!audio) return;
+  try {
+    const buffer = audio.createBuffer(1, 1, audio.sampleRate);
+    const source = audio.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audio.destination);
+    source.start(0);
+  } catch {
+    // Some engines refuse before the context is running; resume() above covers them.
+  }
 }
 
+/** @deprecated Use `setAudioMix({ effects })`. */
 export function setSfxVolume(volume: number) {
-  ctx();
-  if (master) master.gain.value = Math.max(0, Math.min(1, volume));
+  setAudioMix({ effects: volume });
 }
 
 // The Final Jeopardy countdown. Original composition — the show's "Think!"
@@ -199,8 +238,10 @@ let finalBus: GainNode | undefined;
 let finalTimer: ReturnType<typeof setTimeout> | undefined;
 
 export function startFinalTheme(durationSec = 30): void {
+  const current = getAudioMix();
+  if (current.muted || current.music <= 0) return;
   const audio = ctx();
-  const destination = out();
+  const destination = musicBus ?? out();
   if (!audio || !destination || finalBus) return;
 
   // Its own bus, so the countdown can be cut without touching other cues.
