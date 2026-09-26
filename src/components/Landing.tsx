@@ -15,7 +15,6 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Container from "@mui/material/Container";
 import InputBase from "@mui/material/InputBase";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
@@ -23,7 +22,9 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForwardOutlined";
 import EditNoteIcon from "@mui/icons-material/EditNoteOutlined";
 import LoginIcon from "@mui/icons-material/LoginOutlined";
 import PersonIcon from "@mui/icons-material/PersonOutlined";
+import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOverOutlined";
 import SmartToyIcon from "@mui/icons-material/SmartToyOutlined";
+import TvIcon from "@mui/icons-material/TvOutlined";
 import { baselineBotProfiles } from "@/lib/ai/profiles";
 import { primeAudio, primeSpeech } from "@/lib/ai";
 import { defaultPlayerName, useGameStore } from "@/lib/state/game-store";
@@ -241,30 +242,74 @@ export function Landing() {
         maxWidth="lg"
         sx={{ flex: 1, display: "flex", flexDirection: "column" }}
       >
-        {/* Everything on the centre line: the mark, the line under it, the
-            keys, the three notes at the foot. */}
+        {/* Wide screens: the mark and what the game offers on the left, the two
+            ways in on the right, both centred on the same line. Phones: one
+            column, mark first, then the keys, then the notes. */}
         <Box
           component="section"
           aria-labelledby="landing-title"
           sx={{
             flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "minmax(0, 1fr)",
+              md: "minmax(0, 1fr) minmax(0, 440px)",
+            },
+            gridTemplateAreas: {
+              xs: '"brand" "actions" "features"',
+              md: '"brand actions" "features actions"',
+            },
+            gridTemplateRows: { md: "1fr 1fr" },
+            columnGap: { md: 8, lg: 12 },
+            rowGap: { xs: 4, md: 5 },
             alignItems: "center",
-            textAlign: "center",
-            py: { xs: 6, md: 8 },
+            py: { xs: 5, md: 8 },
+            // A laptop at 720px tall: tighten so both cards fit unscrolled.
+            [shortWideScreen]: {
+              py: 3,
+              rowGap: 3,
+              "& .landing-panel": { p: 2.5, gap: 1.5 },
+              "& .landing-panel-body": { gap: 1.5 },
+              "& .landing-panel h2": { fontSize: 24 },
+              "& .landing-cta": { height: 48, fontSize: 18 },
+              "& .landing-code": { height: 52, "& input": { fontSize: 26 } },
+              "& .landing-field": { height: 46 },
+              "& .landing-or": { my: -0.5 },
+            },
           }}
         >
-          <Stack
-            spacing={{ xs: 3, md: 5 }}
-            sx={{ maxWidth: 760, width: "100%", alignItems: "center" }}
+          <Box
+            sx={{
+              gridArea: "brand",
+              alignSelf: { md: "end" },
+              display: "flex",
+              flexDirection: "column",
+              alignItems: { xs: "center", md: "flex-start" },
+              textAlign: { xs: "center", md: "left" },
+              gap: { xs: 2, md: 3 },
+            }}
           >
             <Typography component="h1" id="landing-title" sx={{ m: 0, lineHeight: 0 }}>
               {/* The mark is an image named "Jeopardy!", which names the heading. */}
               <Wordmark size="xl" />
             </Typography>
+            <Typography
+              sx={{
+                color: ui.inkMuted,
+                fontSize: { xs: 17, md: 21 },
+                maxWidth: 520,
+                lineHeight: 1.45,
+              }}
+            >
+              Thousands of real games from the archive. Play solo, against bots, or with
+              a room full of friends.
+            </Typography>
+          </Box>
 
+          <Stack
+            spacing={2}
+            sx={{ gridArea: "actions", width: "100%", alignItems: "center" }}
+          >
             {sharedLink.status === "loading" ? (
               <Alert
                 severity="info"
@@ -324,97 +369,108 @@ export function Landing() {
                     cancelJoin();
                   }
                 }}
+                className="landing-panel"
                 sx={{
-                  background: ui.surface,
-                  border: `1px solid ${ui.line}`,
-                  borderRadius: 1,
-                  p: 3,
+                  ...panelSx("surface"),
                   width: "100%",
                   maxWidth: 480,
+                  textAlign: "left",
                 }}
               >
-                <Typography variant="overline" component="h2" id="join-card-title">
-                  Joining room
-                </Typography>
-                <Typography
-                  component="p"
-                  variant="h3"
-                  sx={{ mt: 0.5, mb: 2, letterSpacing: "0.12em" }}
-                >
-                  {pendingRoomId}
-                </Typography>
-                <Stack spacing={2}>
-                  <TextField
-                    label="Your name"
+                <Box>
+                  <Typography sx={eyebrowSx}>Joining room</Typography>
+                  <Typography
+                    component="h2"
+                    id="join-card-title"
+                    sx={{
+                      fontFamily: jeopardyFonts.display,
+                      color: ui.goldBright,
+                      fontSize: { xs: 44, sm: 52 },
+                      fontWeight: 700,
+                      lineHeight: 1,
+                      letterSpacing: "0.18em",
+                    }}
+                  >
+                    {pendingRoomId}
+                  </Typography>
+                </Box>
+                <LandingField label="Your name" htmlFor="join-card-name">
+                  <InputBase
+                    id="join-card-name"
+                    className="landing-field"
                     // What the room will call you if you say nothing. Cleared,
                     // the field stays cleared and this shows as the hint.
                     placeholder={defaultPlayerName(hostId)}
-                    fullWidth
                     autoFocus
                     value={name.joinValue(defaultPlayerName(hostId))}
                     onChange={(event) => name.onChange(event.target.value)}
                     onBlur={name.commit}
                     onFocus={(event) => event.target.select()}
-                    slotProps={{
-                      htmlInput: {
-                        maxLength: 40,
-                        autoComplete: "nickname",
-                        enterKeyHint: "go",
-                        autoCapitalize: "words",
-                      },
-                      inputLabel: { shrink: true },
+                    inputProps={{
+                      maxLength: 40,
+                      autoComplete: "nickname",
+                      enterKeyHint: "go",
+                      autoCapitalize: "words",
                     }}
+                    sx={fieldSx}
                   />
-                  {joinError ? (
-                    <Typography
-                      color="error"
-                      variant="body2"
-                      role="alert"
-                      tabIndex={-1}
-                      ref={joinErrorRef}
-                      sx={{ outline: "none" }}
-                    >
-                      {joinError}
-                    </Typography>
-                  ) : null}
-                  <Stack direction="row" spacing={1} sx={{ justifyContent: "center" }}>
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      startIcon={
-                        joining ? <CircularProgress size={16} /> : <LoginIcon />
-                      }
-                      disabled={joining}
-                    >
-                      {joining ? "Joining…" : "Join"}
-                    </Button>
-                    <Button variant="text" onClick={cancelJoin}>
-                      Cancel
-                    </Button>
-                  </Stack>
+                </LandingField>
+                {joinError ? (
+                  <Typography
+                    variant="body2"
+                    role="alert"
+                    tabIndex={-1}
+                    ref={joinErrorRef}
+                    sx={{
+                      outline: "none",
+                      color: ui.onRed,
+                      background: ui.red,
+                      px: 1.5,
+                      py: 1,
+                      borderRadius: "6px",
+                    }}
+                  >
+                    {joinError}
+                  </Typography>
+                ) : null}
+                <Stack spacing={1}>
+                  <Button
+                    type="submit"
+                    disableElevation
+                    className="landing-cta"
+                    startIcon={
+                      joining ? (
+                        <CircularProgress size={18} sx={{ color: "inherit" }} />
+                      ) : (
+                        <LoginIcon />
+                      )
+                    }
+                    disabled={joining}
+                    sx={joinCtaSx}
+                  >
+                    {joining ? "Joining…" : "Join"}
+                  </Button>
+                  <Button
+                    variant="text"
+                    onClick={cancelJoin}
+                    sx={{
+                      color: ui.inkMuted,
+                      "&:hover": { color: ui.ink, background: ui.blueTint },
+                    }}
+                  >
+                    Cancel
+                  </Button>
                 </Stack>
               </Box>
             ) : (
               <>
-                <Typography
-                  sx={{
-                    color: ui.inkMuted,
-                    fontSize: { xs: 17, md: 20 },
-                    maxWidth: 560,
-                    lineHeight: 1.45,
-                  }}
-                >
-                  Thousands of real games from the archive. Play solo, against bots, or
-                  with a room full of friends.
-                </Typography>
-
                 <Box
                   sx={{
                     display: "grid",
-                    gridTemplateColumns: { xs: "1fr", md: "1fr auto 1fr" },
-                    gap: { xs: 2, md: 3 },
+                    gridTemplateColumns: "minmax(0, 1fr)",
+                    gap: 2,
                     width: "100%",
-                    maxWidth: 880,
+                    maxWidth: 480,
                     alignItems: "stretch",
                     textAlign: "left",
                   }}
@@ -431,6 +487,7 @@ export function Landing() {
                     <LandingField label="Player name" htmlFor="landing-player-name">
                       <InputBase
                         id="landing-player-name"
+                        className="landing-field"
                         placeholder={defaultPlayerName(hostId)}
                         value={name.value}
                         onChange={(event) => name.onChange(event.target.value)}
@@ -479,6 +536,7 @@ export function Landing() {
                           <ArrowForwardIcon />
                         )
                       }
+                      className="landing-cta"
                       sx={goldCtaSx}
                     >
                       {dealing ? "Dealing…" : "New Game"}
@@ -502,9 +560,9 @@ export function Landing() {
 
                   <Box
                     aria-hidden
+                    className="landing-or"
                     sx={{
                       display: "flex",
-                      flexDirection: { xs: "row", md: "column" },
                       alignItems: "center",
                       gap: 1.5,
                       color: ui.inkFaint,
@@ -539,6 +597,7 @@ export function Landing() {
                     >
                       <InputBase
                         id="landing-room-code"
+                        className="landing-code"
                         placeholder="ABCD"
                         value={codeInput}
                         onChange={(event) =>
@@ -563,57 +622,67 @@ export function Landing() {
                       disableElevation
                       startIcon={<LoginIcon />}
                       disabled={!codeReady}
+                      className="landing-cta"
                       sx={joinCtaSx}
                     >
                       Join
                     </Button>
                   </LandingPanel>
                 </Box>
-
-                <Button
-                  variant="text"
-                  startIcon={<EditNoteIcon />}
-                  onClick={() => {
-                    setBuilderRequested(true);
-                    setBuilderOpen(true);
-                  }}
-                  data-testid="landing-build"
-                  sx={{
-                    color: ui.inkMuted,
-                    "&:hover": { color: ui.ink, background: ui.blueTint },
-                  }}
-                >
-                  Build or import a game
-                </Button>
               </>
             )}
           </Stack>
-        </Box>
 
-        <Box
-          component="footer"
-          sx={{ py: { xs: 4, md: 6 }, borderTop: `1px solid ${ui.line}` }}
-        >
           <Box
             sx={{
-              display: "grid",
-              gap: 4,
-              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" },
-              textAlign: "center",
+              gridArea: "features",
+              alignSelf: { md: "start" },
+              display: "flex",
+              flexDirection: "column",
+              alignItems: { xs: "stretch", md: "flex-start" },
+              gap: 3,
+              width: "100%",
+              maxWidth: { xs: 480, md: 520 },
+              justifySelf: { xs: "center", md: "start" },
             }}
           >
-            <LandingFeature
-              title="Every clue read aloud"
-              body="Turn Sound on in Settings and the host reads the board."
-            />
-            <LandingFeature
-              title="Bots that play"
-              body="Pick “Add a bot”, or add any of four tiers from Players. They buzz, answer and wager."
-            />
-            <LandingFeature
-              title="Play with friends"
-              body="Share the room code. Put the board on a TV."
-            />
+            <Box
+              component="ul"
+              sx={{ m: 0, p: 0, listStyle: "none", display: "grid", gap: 2.25 }}
+            >
+              <LandingFeature
+                icon={<RecordVoiceOverIcon />}
+                title="Every clue read aloud"
+                body="Turn Sound on in Settings and the host reads the board."
+              />
+              <LandingFeature
+                icon={<SmartToyIcon />}
+                title="Bots that play"
+                body="Pick “Add a bot”, or add any of four tiers from Players. They buzz, answer and wager."
+              />
+              <LandingFeature
+                icon={<TvIcon />}
+                title="Play with friends"
+                body="Share the room code. Put the board on a TV."
+              />
+            </Box>
+            <Button
+              variant="text"
+              startIcon={<EditNoteIcon />}
+              onClick={() => {
+                setBuilderRequested(true);
+                setBuilderOpen(true);
+              }}
+              data-testid="landing-build"
+              sx={{
+                alignSelf: { xs: "center", md: "flex-start" },
+                ml: { md: -1 },
+                color: ui.inkMuted,
+                "&:hover": { color: ui.ink, background: ui.blueTint },
+              }}
+            >
+              Build or import a game
+            </Button>
           </Box>
         </Box>
       </Container>
@@ -628,16 +697,61 @@ export function Landing() {
   );
 }
 
-function LandingFeature({ title, body }: { title: string; body: string }) {
+function LandingFeature({
+  icon,
+  title,
+  body,
+}: {
+  icon: ReactNode;
+  title: string;
+  body: string;
+}) {
   return (
-    <Stack spacing={1} sx={{ alignItems: "center" }}>
-      <Typography variant="h6" component="h2" sx={{ fontSize: 17 }}>
-        {title}
-      </Typography>
-      <Typography variant="body2">{body}</Typography>
-    </Stack>
+    <Box
+      component="li"
+      sx={{ display: "flex", gap: 2, alignItems: "flex-start", textAlign: "left" }}
+    >
+      <Box
+        aria-hidden
+        sx={{
+          flex: "none",
+          display: "grid",
+          placeItems: "center",
+          width: 40,
+          height: 40,
+          borderRadius: "10px",
+          color: ui.goldBright,
+          background: ui.goldTint,
+          border: "1px solid rgba(242,193,78,0.28)",
+          "& svg": { fontSize: 22 },
+        }}
+      >
+        {icon}
+      </Box>
+      <Box>
+        <Typography
+          component="h2"
+          sx={{
+            fontFamily: jeopardyFonts.display,
+            fontSize: 17,
+            fontWeight: 700,
+            letterSpacing: "0.04em",
+            textTransform: "uppercase",
+            color: ui.ink,
+          }}
+        >
+          {title}
+        </Typography>
+        <Typography variant="body2" sx={{ color: ui.inkMuted, mt: 0.25 }}>
+          {body}
+        </Typography>
+      </Box>
+    </Box>
   );
 }
+
+/** Laptop-shaped screens: two columns but little height to spare. */
+const shortWideScreen = "@media (min-width: 900px) and (max-height: 820px)";
 
 const focusRing = {
   outline: `3px solid ${ui.goldBright}`,
@@ -739,6 +853,34 @@ const dividerLineSx = {
   background: ui.line,
 } as const;
 
+function panelSx(tone: "board" | "surface") {
+  return {
+    display: "flex",
+    flexDirection: "column",
+    gap: 2.25,
+    p: { xs: 2.5, sm: 3.5 },
+    borderRadius: "16px",
+    border: `1px solid ${tone === "board" ? "rgba(140,150,255,0.35)" : ui.line}`,
+    background:
+      tone === "board"
+        ? `radial-gradient(120% 90% at 0% 0%, ${jeopardyPalette.board} 0%, ${jeopardyPalette.boardDeep} 45%, ${jeopardyPalette.boardShade} 100%)`
+        : `linear-gradient(180deg, ${ui.surfaceRaised} 0%, ${ui.surface} 100%)`,
+    boxShadow:
+      tone === "board"
+        ? "inset 0 1px 0 rgba(255,255,255,0.14), 0 20px 50px rgba(6,12,233,0.25)"
+        : "inset 0 1px 0 rgba(255,255,255,0.08)",
+  } as const;
+}
+
+const eyebrowSx = {
+  fontFamily: jeopardyFonts.display,
+  color: ui.goldBright,
+  fontSize: 13,
+  fontWeight: 700,
+  letterSpacing: "0.2em",
+  textTransform: "uppercase",
+} as const;
+
 /** One of the two ways in: a card with its own form. */
 function LandingPanel({
   tone,
@@ -760,42 +902,17 @@ function LandingPanel({
   return (
     <Box
       component="form"
+      className="landing-panel"
       aria-labelledby={titleId}
       noValidate={noValidate}
       onSubmit={(event) => {
         event.preventDefault();
         onSubmit();
       }}
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 2.25,
-        p: { xs: 2.5, sm: 3.5 },
-        borderRadius: "16px",
-        border: `1px solid ${tone === "board" ? "rgba(140,150,255,0.35)" : ui.line}`,
-        background:
-          tone === "board"
-            ? `radial-gradient(120% 90% at 0% 0%, ${jeopardyPalette.board} 0%, ${jeopardyPalette.boardDeep} 45%, ${jeopardyPalette.boardShade} 100%)`
-            : `linear-gradient(180deg, ${ui.surfaceRaised} 0%, ${ui.surface} 100%)`,
-        boxShadow:
-          tone === "board"
-            ? "inset 0 1px 0 rgba(255,255,255,0.14), 0 20px 50px rgba(6,12,233,0.25)"
-            : "inset 0 1px 0 rgba(255,255,255,0.08)",
-      }}
+      sx={panelSx(tone)}
     >
       <Box>
-        <Typography
-          sx={{
-            fontFamily: jeopardyFonts.display,
-            color: ui.goldBright,
-            fontSize: 13,
-            fontWeight: 700,
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
-          }}
-        >
-          {eyebrow}
-        </Typography>
+        <Typography sx={eyebrowSx}>{eyebrow}</Typography>
         <Typography
           component="h2"
           id={titleId}
@@ -813,6 +930,7 @@ function LandingPanel({
         </Typography>
       </Box>
       <Box
+        className="landing-panel-body"
         sx={{
           display: "flex",
           flexDirection: "column",

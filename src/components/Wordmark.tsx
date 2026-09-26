@@ -13,7 +13,12 @@ const sizeMap = {
   sm: { font: 24, height: 30 },
   md: { font: 36, height: 44 },
   lg: { font: 64, height: 76 },
-  xl: { font: { xs: 60, sm: 88, md: 112 }, height: { xs: 70, sm: 102, md: 130 } },
+  // A two-column landing leaves the mark about 460px at 1024: 96 fits it,
+  // 112 needs a desktop-wide column.
+  xl: {
+    font: { xs: 60, sm: 88, md: 96, lg: 112 },
+    height: { xs: 70, sm: 102, md: 112, lg: 130 },
+  },
 } as const;
 
 /**
