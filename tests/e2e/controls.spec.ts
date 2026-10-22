@@ -295,13 +295,13 @@ test.describe("Clue controls", () => {
 
     // The AI rules it wrong; the bench stays up with the ruling, in words.
     const override = page.getByTestId("judge-override");
-    await expect(override).toContainText("RULED INCORRECT", { timeout: 15_000 });
+    await expect(override).toContainText("Ruled incorrect", { timeout: 15_000 });
     await expect(page.getByTestId(`score-${selfId}`)).toHaveText("-$200");
 
     // Reverse it: the score swings to the right answer's value.
     await override.getByRole("button", { name: "Mark correct" }).click();
     await expect(page.getByTestId(`score-${selfId}`)).toHaveText("$200", { timeout: 10_000 });
-    await expect(page.getByTestId("judge-override")).toContainText("RULED CORRECT");
+    await expect(page.getByTestId("judge-override")).toContainText("Ruled correct");
   });
 
   test("a Daily Double wager out of range is refused with a message", async ({ page }) => {
@@ -330,7 +330,7 @@ test.describe("Clue controls", () => {
     // A wager in range goes through, and only the Daily Double player answers.
     await wager.fill("150");
     await wager.press("Enter");
-    await expect(page.getByTestId("clue-stage")).toContainText("DAILY DOUBLE · $150", { timeout: 10_000 });
+    await expect(page.getByTestId("clue-headline")).toHaveText("DAILY DOUBLE $150", { timeout: 10_000 });
   });
 
   test("Restart asks first", async ({ page }) => {

@@ -111,7 +111,7 @@ test.describe("Shared room", () => {
 
       await enableChat(guest);
       await enableChat(host);
-      await expect(host.getByText("Zelda joined")).toBeVisible();
+      await expect(host.getByLabel("Chat messages").getByText("Zelda joined")).toBeVisible();
 
       await guest.getByPlaceholder("Message").fill("hello");
       await guest.getByPlaceholder("Message").press("Enter");

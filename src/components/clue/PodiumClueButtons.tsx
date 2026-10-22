@@ -11,7 +11,6 @@ import { controls, ui } from "@/lib/foundation/jeopardy-style";
 import { useClueTurn } from "../use-clue-turn";
 import { answerFocusProxyId, mayTakeFocus } from "./keyboard";
 import { barButtonSx, buzzerFaceSx, stackedButtonSx } from "./bench-style";
-import { visuallyHiddenSx } from "../visually-hidden";
 
 interface PodiumClueButtonsProps {
   state: PublicGameState;
@@ -110,12 +109,13 @@ export function PodiumClueButtons({
         ...(canIBuzz ? controls.buzzer : controls.keyOff),
         ...buzzerFaceSx,
         ...(bar ? { flex: "1 1 auto", fontSize: 24 } : { fontSize: 17 }),
-        "&.Mui-disabled": {
-          ...controls.keyOff,
-          // The disabled label carries information (IN!, LOCKED), so it
-          // keeps readable contrast.
-          color: ui.inkMuted,
-        },
+        // Disabled either way, but never the same dead key: IN! is lit (you
+        // have the clue), LOCKED is red ink on a red hairline.
+        "&.Mui-disabled": turn.buzzedByMe
+          ? { ...controls.keyPrimary, color: ui.onGold }
+          : turn.isLockedOut
+            ? { ...controls.keyOff, color: ui.negativeInk, borderColor: ui.red }
+            : { ...controls.keyOff, color: ui.inkMuted },
       }}
     >
       {turn.buzzedByMe ? "IN!" : turn.isLockedOut ? "LOCKED" : "BUZZ"}
@@ -139,15 +139,12 @@ export function PodiumClueButtons({
       onClick={() => send({ type: "skip" })}
       sx={{ ...keySx, ...controls.keyPrimary, ...(bar ? { flex: "1 1 auto", px: 2 } : null) }}
     >
-      Next clue
+      Next clue{" "}
       {turn.autoAdvanceSeconds !== null ? (
         <Box
           component="span"
           sx={{ ml: 1, pl: 1, borderLeft: `1px solid currentColor`, fontVariantNumeric: "tabular-nums" }}
         >
-          <Box component="span" sx={visuallyHiddenSx}>
-            , in{" "}
-          </Box>
           {turn.autoAdvanceSeconds}s
         </Box>
       ) : null}

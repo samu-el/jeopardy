@@ -6,7 +6,6 @@
 /* Hallmark · dismissed 26a · AnalyticsGate renders only the Vercel beacon script, nothing that takes focus */
 /* Hallmark · dismissed 26b · AnalyticsGate has no control to press or disable; the beacon is a script tag */
 /* Hallmark · kept 30a in AvatarPicker · the emoji there are the avatars a player picks and stores (data shown back as their face), not icons; the host avatar's faces became Material icons */
-/* Hallmark · kept 63 as hidden text · "DAILY DOUBLE · $150" and the clock's "Daily Double · Sam" read as one phrase to a screen reader and in tests; on screen MetaParts sets the parts apart with a gap */
 /*
  * The system lives in TypeScript (src/lib/foundation/jeopardy-style.ts) and reaches the page through the MUI
  * theme (src/lib/foundation/theme.ts), which writes the design.md roles (--color-*, --font-*) on :root.

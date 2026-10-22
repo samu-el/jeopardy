@@ -3,7 +3,6 @@
 import type { ReactNode } from "react";
 import Box from "@mui/material/Box";
 import { controls, jeopardyFonts, ui } from "@/lib/foundation/jeopardy-style";
-import { MetaParts, splitMeta } from "./MetaParts";
 
 interface BuzzLightsProps {
   /** 0 = every light out, 1 = every light lit. */
@@ -70,7 +69,7 @@ export function BuzzLights({
         color: ui.inkMuted,
       }}
     >
-      {phase?.includes(" · ") ? <MetaParts parts={splitMeta(phase)} /> : phase}
+      {phase}
     </Box>
   );
 
@@ -121,7 +120,7 @@ export function BuzzLights({
                 border: `1px solid ${on ? ui.goldBright : ui.line}`,
                 transition: reducedMotion
                   ? "none"
-                  : "background-color 180ms ease-out, border-color 180ms ease-out",
+                  : "background-color 120ms ease-out, border-color 120ms ease-out",
               }}
             />
           );

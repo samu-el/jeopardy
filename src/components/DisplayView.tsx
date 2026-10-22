@@ -325,7 +325,7 @@ function RoomUnavailable({
     <Stack
       role="alert"
       data-testid="display-room-unavailable"
-      spacing={2}
+      spacing={4}
       sx={{
         position: "fixed",
         inset: 0,
@@ -352,10 +352,10 @@ function RoomUnavailable({
         {closed ? `Room ${roomId ?? ""} isn't open` : `Can't reach room ${roomId ?? ""}`}
       </Typography>
       <Stack direction="row" spacing={2}>
-        <Button variant="contained" onClick={onRetry} data-testid="display-retry">
+        <Button variant="contained" size="large" onClick={onRetry} data-testid="display-retry">
           Try again
         </Button>
-        <Button variant="outlined" onClick={onLeave} data-testid="display-leave">
+        <Button variant="outlined" size="large" onClick={onLeave} data-testid="display-leave">
           Leave
         </Button>
       </Stack>

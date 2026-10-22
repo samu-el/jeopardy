@@ -11,7 +11,7 @@ import type { PublicGameState } from "@/lib/game";
 import { lastRuling, nameOf } from "@/lib/game/clue-turn";
 import type { ClientGameCommand } from "@/lib/realtime";
 import { describeVerdict, judgeAnswer as fuzzyJudge } from "@/lib/ai";
-import { controls, jeopardyFonts, jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
+import { controls, jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
 import { Housing, HousingDivider } from "../Housing";
 import { MetaParts } from "../MetaParts";
 import { benchKeySx, wrapHousingSx } from "./bench-style";
@@ -115,14 +115,13 @@ export function JudgeBench({ state, send }: JudgeBenchProps) {
               display: "inline-flex",
               alignItems: "center",
               gap: 0.5,
-              fontFamily: jeopardyFonts.display,
-              fontSize: 16,
-              letterSpacing: "0.02em",
+              fontSize: 14,
+              fontWeight: 600,
               color: ruling.correct ? jeopardyPalette.correct : ui.negativeInk,
             }}
           >
-            {ruling.correct ? <CheckIcon sx={{ fontSize: 14 }} /> : <CloseIcon sx={{ fontSize: 14 }} />}
-            RULED {ruling.correct ? "CORRECT" : "INCORRECT"}
+            {ruling.correct ? <CheckIcon sx={{ fontSize: 16 }} /> : <CloseIcon sx={{ fontSize: 16 }} />}
+            Ruled {ruling.correct ? "correct" : "incorrect"}
           </Box>
         }
       />

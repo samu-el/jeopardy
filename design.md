@@ -44,6 +44,7 @@ Type is fixed at a 1.2 ratio from a 16px body (h6 16, h5 19, h4 23, h3 28, h2 33
 - Meta never joins with a middle dot: separate elements with a gap, a list, or a table.
 - No eyebrow over a heading; a panel names itself with its own heading.
 - No card inside a card: a panel holds rows separated by hairlines.
+- Room notices (joins, host changes) sit bottom-left, above the phone's buzz bar, never over the room toolbar.
 
 ## Exports
 `jeopardy-style.ts` (TS objects) and the `:root` roles from `theme.ts`. Tailwind, DTCG or shadcn blocks are added here on request.

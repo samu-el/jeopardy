@@ -5,6 +5,7 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { PublicGameState } from "@/lib/game";
+import { joinNames } from "@/lib/game/results";
 import { useGameStore } from "@/lib/state/game-store";
 import { playSfx, startFinalTheme, stopFinalTheme } from "@/lib/ai";
 import {
@@ -88,9 +89,7 @@ export function ClueStage({ state }: ClueStageProps) {
             textShadow: jeopardyTextShadow,
           })}
         >
-          {/* The hidden separator keeps "DAILY DOUBLE · $150" as one phrase for
-              a screen reader; on screen the two parts stand apart. */}
-          <MetaParts parts={headline} separator=" · " />
+          <MetaParts parts={headline} data-testid="clue-headline" />
         </Typography>
       </Stack>
 
@@ -145,14 +144,11 @@ export function ClueStage({ state }: ClueStageProps) {
                 fontSize: { xs: 18, md: 26 },
               })}
             >
-              {clue.waitingForWager.length > 0 ? (
-                <MetaParts
-                  parts={["Wager", clue.waitingForWager.map((id) => playerName(state, id)).join(", ")]}
-                  separator=": "
-                />
-              ) : (
-                ""
-              )}
+              {clue.waitingForWager.length > 0
+                ? `${joinNames(clue.waitingForWager.map((id) => playerName(state, id)))} ${
+                    clue.waitingForWager.length > 1 ? "are" : "is"
+                  } wagering`
+                : ""}
             </Typography>
           )}
         </Box>

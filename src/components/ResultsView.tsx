@@ -266,6 +266,7 @@ export function ResultsView({ state, onPlayAgain }: ResultsViewProps) {
           <ResultsTable
             head={["Player", "Response", "Ruling", "Wager", "Before", "After"]}
             align={["left", "left", "left", "right", "right", "right"]}
+            phoneHidden={[3, 4]}
           >
             {final.rows.map((row) => (
               <Box component="tr" key={row.playerId}>
@@ -477,14 +478,24 @@ function ResultsSection({
 function ResultsTable({
   head,
   align,
+  phoneHidden = [],
   children,
 }: {
   head: string[];
   align: ("left" | "right")[];
+  /** Columns (by index) a phone leaves out, so the ones that matter stay in view. */
+  phoneHidden?: number[];
   children: ReactNode;
 }) {
+  // Each hidden column is dropped from the head and every row with one rule.
+  const hideRules = Object.fromEntries(
+    phoneHidden.map((index) => [
+      `& tr > :nth-of-type(${index + 1})`,
+      { display: { xs: "none", sm: "table-cell" } },
+    ]),
+  );
   return (
-    <Box sx={{ mt: 2, overflowX: "auto", maxWidth: "100%" }}>
+    <Box sx={{ mt: 2, overflowX: "auto", maxWidth: "100%", ...hideRules }}>
       <Box component="table" sx={{ width: "100%", borderCollapse: "collapse" }}>
         <Box component="thead">
           <Box component="tr">

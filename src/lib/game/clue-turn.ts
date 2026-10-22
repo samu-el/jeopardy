@@ -347,8 +347,10 @@ function labelFor(
       return "Final answer";
     case "daily-double-answer":
       return who.answeringIsMe
-        ? "Daily Double · your answer"
-        : `Daily Double · ${who.answeringPlayerName ?? "answering"}`;
+        ? "Your Daily Double"
+        : who.answeringPlayerName
+          ? `${who.answeringPlayerName}'s Daily Double`
+          : "Daily Double";
     case "answering":
       return who.answeringIsMe ? "You rang in" : `${who.answeringPlayerName} rang in`;
     case "timed-out":

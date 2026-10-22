@@ -96,7 +96,28 @@ export function Podium({
           ? jeopardyPalette.buzzLight
           : isBuzzed
             ? ui.inkFaint
-            : "transparent";
+            : ui.line;
+
+  /**
+   * The lamp face: the lectern's light, lit edge to edge. It fills the
+   * controls well (the buttons sit on it) or, on a lectern with no well,
+   * stands as its own strip. Unlit it is a hairline colour; locked out it
+   * takes a red edge.
+   */
+  const lampSx = {
+    background: lit ? lightColor : ui.line,
+    border: `1px solid ${lockedOut ? ui.red : "transparent"}`,
+    borderRadius: "6px",
+    transition: reducedMotion ? "none" : "background-color 120ms ease-out, border-color 120ms ease-out",
+  } as const;
+  const lamp = (fill: boolean) => (
+    <Box
+      aria-hidden
+      data-testid={`buzz-light-${player.id}`}
+      data-lit={lit ? "true" : "false"}
+      sx={fill ? { ...lampSx, position: "absolute", inset: 0 } : { ...lampSx, height: 22, mt: 0.75 }}
+    />
+  );
 
   const accent = color ?? (isYou ? ui.blueText : ui.lineStrong);
 
@@ -112,14 +133,11 @@ export function Podium({
         mx: "auto",
         display: "flex",
         flexDirection: "column",
-        opacity: player.connected ? 1 : 0.55,
-        // The first to ring in gets a white edge, the picker a gold one:
-        // drawn as an outline, never a glow.
-        outline: isFirstBuzzer
-          ? `2px solid ${jeopardyPalette.buzzLight}`
-          : isPicker
-            ? `2px solid ${ui.goldBright}`
-            : "2px solid transparent",
+        // Offline is the dimmest; locked out a step brighter, still in the game.
+        opacity: !player.connected ? 0.55 : lockedOut ? 0.7 : 1,
+        // The picker keeps a gold edge, buzzer or not: who rang in shows on
+        // the lamp face below, never as a second outline.
+        outline: isPicker ? `2px solid ${ui.goldBright}` : "2px solid transparent",
         outlineOffset: "3px",
         borderRadius: "8px",
         transition: reducedMotion ? "none" : "outline-color 120ms ease-out, opacity 200ms ease-out",
@@ -224,6 +242,8 @@ export function Podium({
         {reserveControls ? (
           <Box
             sx={{
+              position: "relative",
+              mt: 0.75,
               minHeight: podiumControlsHeight.base,
               "@media (pointer: coarse)": { minHeight: podiumControlsHeight.coarse },
               display: "flex",
@@ -231,24 +251,13 @@ export function Podium({
               justifyContent: "flex-start",
             }}
           >
-            {controls}
+            {lamp(true)}
+            <Box sx={{ position: "relative", px: 0.5, pb: 0.5 }}>{controls}</Box>
           </Box>
-        ) : null}
+        ) : (
+          lamp(false)
+        )}
       </Box>
-
-      <Box
-        aria-hidden
-        data-testid={`buzz-light-${player.id}`}
-        sx={{
-          mt: 0.75,
-          mx: "auto",
-          width: "62%",
-          height: 6,
-          borderRadius: 99,
-          background: lit ? lightColor : ui.line,
-          transition: reducedMotion ? "none" : "background-color 120ms ease-out",
-        }}
-      />
 
       {/* Always occupies its line, whether or not this lectern has a badge
           to show. HOST or PICKS on one podium and nothing on the next made

@@ -103,12 +103,12 @@ describe("deriveClueTurn", () => {
     });
     const mine = deriveClueTurn(state(dd), "me", 2_000);
     expect(mine.mayAnswer).toBe(false);
-    expect(mine.clockLabel).toBe("Daily Double · Sam");
+    expect(mine.clockLabel).toBe("Sam's Daily Double");
     expect(mine.canIBuzz).toBe(false);
 
     const theirs = deriveClueTurn(state(dd), "sam", 2_000);
     expect(theirs.mayAnswer).toBe(true);
-    expect(theirs.clockLabel).toBe("Daily Double · your answer");
+    expect(theirs.clockLabel).toBe("Your Daily Double");
   });
 
   it("does not say anyone rang in during Final Jeopardy", () => {

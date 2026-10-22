@@ -37,14 +37,16 @@ export function RoomNotices() {
       aria-live="polite"
       data-testid="room-notices"
       sx={{
+        // Bottom-left, clear of the room toolbar on top; on a phone it rides
+        // above the buzz bar.
         position: "fixed",
-        top: { xs: 8, md: 16 },
-        right: { xs: 8, md: 16 },
-        left: { xs: 8, sm: "auto" },
+        bottom: { xs: "calc(96px + env(safe-area-inset-bottom, 0px))", md: 24 },
+        left: { xs: 8, md: 24 },
+        right: { xs: 8, sm: "auto" },
         zIndex: 30,
         pointerEvents: "none",
         display: "flex",
-        justifyContent: { xs: "center", sm: "flex-end" },
+        justifyContent: { xs: "center", sm: "flex-start" },
       }}
     >
       <Stack spacing={1} sx={{ width: { xs: "100%", sm: 320 } }}>
