@@ -13,7 +13,7 @@ test.describe("Shared room", () => {
       await expect(room.host.getByTestId(/^podium-/)).toHaveCount(2);
       await expect(room.guest.getByTestId(/^podium-/)).toHaveCount(2);
 
-      // The board is live for both the moment the room opens — no Begin step.
+      // The board is live for both the moment the room opens, no Begin step.
       await expect(room.host.getByTestId("board")).toBeVisible();
       await expect(room.guest.getByTestId("board")).toBeVisible();
       // Picking still belongs to whoever holds the board, not to any guest.
@@ -51,7 +51,7 @@ test.describe("Shared room", () => {
       await expect(host.getByText("Guest", { exact: true })).toBeVisible();
 
       // And playing the host's board, not one of their own.
-      await setBuzzWindow(host, "20 seconds — relaxed");
+      await setBuzzWindow(host, "20 seconds");
       await host.getByRole("button", { name: /\$200/ }).first().click();
 
       const buzzer = guest.getByTestId("buzzer");
@@ -92,7 +92,7 @@ test.describe("Shared room", () => {
       const code = await revealRoomCode(host);
 
       // Typing a code used to join on the spot, with nowhere to say who you
-      // were — the room called you "Player 4B2" and the chat agreed.
+      // were: the room called you "Player 4B2" and the chat agreed.
       await guest.goto("/");
       await guest.getByLabel("Room code").fill(code);
       await guest.getByRole("button", { name: "Join" }).click();
@@ -133,7 +133,7 @@ test.describe("Shared room", () => {
       ).toBeDisabled();
 
       // The host walks away. Nobody is left to hand the chair over, so the
-      // room has to do it — otherwise the guest is sitting at a board they
+      // room has to do it, otherwise the guest is sitting at a board they
       // cannot touch.
       await room.closeHost();
 
@@ -152,9 +152,9 @@ test.describe("Shared room", () => {
     try {
       // A cold dev server can eat most of the show's six-second window, so
       // play this one at the relaxed pace the settings panel offers.
-      await setBuzzWindow(host, "20 seconds — relaxed");
+      await setBuzzWindow(host, "20 seconds");
 
-      // The guest's board comes from the server — it has no game state of its own.
+      // The guest's board comes from the server; it has no game state of its own.
       await expect(guest.getByTestId("board").getByText("Math")).toBeVisible();
 
       await host.getByRole("button", { name: /\$200/ }).first().click();
@@ -333,7 +333,7 @@ interface SharedRoom {
 async function revealRoomCode(page: Page): Promise<string> {
   const chip = page.getByTestId("room-code");
   await expect(chip).toBeVisible({ timeout: 20_000 });
-  // Masked to start with — that is the point of the reveal control.
+  // Masked to start with: that is the point of the reveal control.
   expect(((await chip.textContent()) ?? "").trim()).toMatch(/^•+$/);
   await page.getByTestId("reveal-room-code").click();
   const code = ((await chip.textContent()) ?? "").trim();

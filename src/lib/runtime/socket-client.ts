@@ -122,7 +122,7 @@ export class SocketClient {
       this.reconnectDelayMs = 500;
       this.options.onStatus?.("connected");
       // The room only knows this connection once it has joined, so the join
-      // goes first — before anything the caller queued while we were down.
+      // goes first, before anything the caller queued while we were down.
       this.join();
       const pending = framesToReplay(this.queue, {
         everConnected: this.everOpened,
@@ -192,7 +192,7 @@ export class SocketClient {
     socket.send(encodeFrame(frame));
   }
 
-  /** Re-announces this client to the room — also used after a reconnect. */
+  /** Re-announces this client to the room, also used after a reconnect. */
   join() {
     const socket = this.socket;
     if (!socket || socket.readyState !== WebSocket.OPEN) return;

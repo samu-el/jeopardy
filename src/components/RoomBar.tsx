@@ -22,7 +22,7 @@ interface RoomBarProps {
  * The room housing: the code to read out, who is in, and the connection
  * state, mounted together with the episode label.
  *
- * Every board is a shared room, so the code is always here — there is no
+ * Every board is a shared room, so the code is always here. There is no
  * "make this shareable" step to find. It is masked until asked for, because
  * a code on screen is a code anyone watching can join with, and boards get
  * screen-shared.
@@ -47,11 +47,10 @@ export function RoomBar({ episode }: RoomBarProps) {
       <Housing>
         {episodeLabel}
         {episodeLabel ? <HousingDivider sx={{ display: { xs: "none", md: "block" } }} /> : null}
-        <Tooltip title="The rooms service could not be reached, so this board is running in this browser only.">
-          <HousingLabel data-testid="share-unavailable" sx={{ color: ui.inkFaint }}>
-            Solo · not shareable
-          </HousingLabel>
-        </Tooltip>
+        {/* The rooms service could not be reached: this board runs in this browser only. */}
+        <HousingLabel data-testid="share-unavailable" sx={{ color: ui.inkFaint }}>
+          Solo · not shareable
+        </HousingLabel>
       </Housing>
     );
   }

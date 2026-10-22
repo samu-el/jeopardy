@@ -84,7 +84,7 @@ describe("the host chair", () => {
   it("gives the chair to whoever joins a room that came back empty", () => {
     // A room restored from storage records its old host and nobody
     // connected. Without this, the first person in finds a board they
-    // cannot touch — and alone, no one is coming to hand it over.
+    // cannot touch, and alone, no one is coming to hand it over.
     const restored = room([player("p1", { connected: false })], "p1");
     const joined = run(
       restored,

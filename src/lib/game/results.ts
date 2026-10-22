@@ -3,9 +3,9 @@
  *
  * The room already ranks contestants (`standings`, spectators excluded,
  * ties sharing a rank) and names the winners (`results.winners`: the top
- * score, and only when it is above zero — on the show a contestant must
+ * score, and only when it is above zero; on the show a contestant must
  * finish in the black to win). This joins those ids back to the players so
- * every results screen — the laptop, the phone, the TV — reads one answer.
+ * every results screen (the laptop, the phone, the TV) reads one answer.
  *
  * A snapshot from an older room without `standings` still ranks from the
  * player list, contestants only.

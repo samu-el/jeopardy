@@ -102,9 +102,8 @@ export function Onboarding() {
       }}
     >
       <DialogContent sx={{ pb: 1 }}>
-        <Typography variant="overline">Welcome</Typography>
-        <Typography id={titleId} variant="h4" component="h2" sx={{ mt: 0.5, mb: 2, fontSize: 26 }}>
-          Three steps and you&rsquo;re playing
+        <Typography id={titleId} variant="h4" component="h2" sx={{ mb: 2, fontSize: 26 }}>
+          How to play
         </Typography>
         <Stack spacing={1.25} component="ol" sx={{ m: 0, p: 0, listStyle: "none" }}>
           {steps.map((step, index) => (

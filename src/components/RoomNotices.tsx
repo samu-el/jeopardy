@@ -25,7 +25,7 @@ const accent: Record<RoomNotice["kind"], string> = {
 };
 
 /**
- * Small toasts for room news — arrivals, departures, the chair changing
+ * Small toasts for room news: arrivals, departures, the chair changing
  * hands, a refusal. Independent of chat, which is off by default.
  */
 export function RoomNotices() {

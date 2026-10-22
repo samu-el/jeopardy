@@ -33,7 +33,7 @@ const winnerInk = "#1A1200";
 /**
  * The end of the game: who won, the standings, and how everyone played.
  *
- * Contestants only — a television or a watcher is never listed or crowned.
+ * Contestants only: a television or a watcher is never listed or crowned.
  * Only the host can start the next game; everyone else is told they are
  * waiting for them, rather than shown buttons that do nothing.
  */
@@ -99,11 +99,7 @@ export function ResultsView({ state, onPlayAgain }: ResultsViewProps) {
             </Box>
             {headline}
           </Typography>
-          {winners.length === 0 ? (
-            <Typography sx={{ mt: 1, color: "rgba(255,255,255,0.85)" }}>
-              Nobody finished in the black, so nobody takes the game.
-            </Typography>
-          ) : (
+          {winners.length > 0 ? (
             <Typography
               data-testid="results-winner-score"
               sx={{
@@ -117,7 +113,7 @@ export function ResultsView({ state, onPlayAgain }: ResultsViewProps) {
             >
               {formatMoney(winners[0].score)}
             </Typography>
-          )}
+          ) : null}
           {isHost ? (
             <Stack
               direction="row"
@@ -341,7 +337,7 @@ export function ResultsView({ state, onPlayAgain }: ResultsViewProps) {
                   <StatLine label="Daily Doubles" value={`${dailyDoubles}`} />
                   <StatLine
                     label="Avg reaction"
-                    value={avgReaction !== null ? `${avgReaction} ms` : "—"}
+                    value={avgReaction !== null ? `${avgReaction} ms` : "None"}
                   />
                 </Paper>
               );

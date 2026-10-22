@@ -70,14 +70,14 @@ function useJoinPanelVisible(): boolean {
 /**
  * The room on a television.
  *
- * It shows the same board the browser shows — the identical `GameSurface`,
- * not a second drawing of it — with the toolbar, chat and panels left off,
+ * It shows the same board the browser shows (the identical `GameSurface`,
+ * not a second drawing of it) with the toolbar, chat and panels left off,
  * and sized to the screen it is standing on rather than to a desk.
  *
  * It is also a control surface, not a poster. Someone is at the screen with
  * a mouse or a fingertip: they click a tile, the clue fills the frame, a
  * click reveals the answer and a click puts the board back. Whether those
- * clicks are obeyed is the server's call — a screen that only came to watch
+ * clicks are obeyed is the server's call. A screen that only came to watch
  * simply never gets offered them.
  */
 export function DisplayView() {
@@ -101,7 +101,7 @@ export function DisplayView() {
   const showJoin = showJoinPreference && !unreachable && Boolean(online?.roomId);
   const complete = publicState?.round === "complete";
 
-  // A closed room might just not be open yet — the host may still be on
+  // A closed room might just not be open yet. The host may still be on
   // their way. Keep checking rather than leaving a TV with no keyboard stuck.
   // Each refusal is a fresh `online` object, so this re-arms after every try.
   const closedAttempt = roomClosed ? online : null;
@@ -144,7 +144,7 @@ export function DisplayView() {
         justifyContent: showJoin ? "flex-start" : "center",
         px: { xs: 1, md: 2 },
         py: { xs: 1, md: 1.5 },
-        // The whole screen, less the gutter — and less the strip the join
+        // The whole screen, less the gutter, and less the strip the join
         // panel stands in, so it never sits across a tile. There are no
         // lecterns to leave room for; the board reads this and grows into
         // it, which is the whole of "fits the television".
@@ -289,7 +289,7 @@ export function DisplayView() {
 }
 
 /**
- * True once `waiting` has held for `connectPatienceMs` — a connection that
+ * True once `waiting` has held for `connectPatienceMs`: a connection that
  * never produced a first snapshot. Clears as soon as `waiting` goes false.
  */
 function useStalledConnection(waiting: boolean): boolean {
@@ -307,7 +307,7 @@ function useStalledConnection(waiting: boolean): boolean {
 
 /**
  * What a television says when the room behind its link is not there: the
- * code it was given, that it keeps checking, and a way out.
+ * code it was given and a way out. It keeps checking on its own.
  */
 function RoomUnavailable({
   roomId,
@@ -347,11 +347,6 @@ function RoomUnavailable({
         }}
       >
         {closed ? `Room ${roomId ?? ""} isn't open` : `Can't reach room ${roomId ?? ""}`}
-      </Typography>
-      <Typography sx={{ color: ui.inkMuted, fontSize: "clamp(16px, 2.6vh, 28px)", maxWidth: 820 }}>
-        {closed
-          ? "The game may have ended, or the host hasn't opened it yet. This screen keeps checking and shows the board as soon as the room opens."
-          : "The connection isn't answering. This screen keeps trying."}
       </Typography>
       <Stack direction="row" spacing={2}>
         <Button variant="contained" onClick={onRetry} data-testid="display-retry">
@@ -424,17 +419,6 @@ function JoinPanel({ roomId, onHide }: { roomId: string | null; onHide: () => vo
       ) : null}
       <Box>
         <Typography
-          sx={{
-            fontFamily: jeopardyFonts.display,
-            fontSize: 13,
-            letterSpacing: "0.22em",
-            textTransform: "uppercase",
-            color: ui.gold,
-          }}
-        >
-          Play along
-        </Typography>
-        <Typography
           data-testid="display-room-code"
           sx={{
             fontFamily: jeopardyFonts.display,
@@ -444,7 +428,7 @@ function JoinPanel({ roomId, onHide }: { roomId: string | null; onHide: () => vo
             lineHeight: 1.15,
           }}
         >
-          {roomId ?? "—"}
+          {roomId ?? ""}
         </Typography>
         <Typography sx={{ fontSize: 13, color: ui.inkMuted }}>
           {joinUrl.replace(/^https?:\/\//, "")}

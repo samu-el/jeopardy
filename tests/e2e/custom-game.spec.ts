@@ -30,7 +30,7 @@ test.describe("Custom games", () => {
 
       await builder.getByLabel("Game title").fill("Kitchen table quiz");
 
-      // Fill the first clue of the first category — enough to be a real game.
+      // Fill the first clue of the first category, enough to be a real game.
       await builder.getByLabel("Category 1 name").first().fill("Sea creatures");
       await builder.getByLabel("Sea creatures $200 clue").fill("It has eight arms.");
       await builder.getByLabel("Sea creatures $200 answer").fill("What is an octopus?");
@@ -39,7 +39,7 @@ test.describe("Custom games", () => {
       // A board this bare gets a question before it's shared.
       await author.getByTestId("confirm-action").click();
 
-      // A share link comes back, and it is a link — not a "saved" toast.
+      // A share link comes back, and it is a link, not a "saved" toast.
       await expect(author.getByTestId("publish-result")).toBeVisible({ timeout: 30_000 });
       const shown = await author.getByTestId("game-link").inputValue();
       const gameId = shown.split("game=")[1];
@@ -68,7 +68,7 @@ test.describe("Custom games", () => {
 
   test("a link to a game that was never published says so", async ({ page }) => {
     await page.goto("/?game=zzzzzzzzzz");
-    // No board, no crash — the landing page says the link is dead.
+    // No board, no crash: the landing page says the link is dead.
     await expect(page.getByTestId("shared-game-error")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId("new-game")).toBeVisible();
     expect(new URL(page.url()).searchParams.has("game")).toBe(false);

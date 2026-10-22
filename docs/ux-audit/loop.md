@@ -1,4 +1,4 @@
-# UX audit — solo core game loop
+# UX audit: solo core game loop
 
 Method: I played live rooms against Casual + Champion bots at 1440x900 and 390x844, using Playwright scripts in `scratchpad/ux/loop/` (logs `desk.log`, `phone.log`, `phone2.log`; screenshots `*.png`). I checked the engine directly with `scratchpad/ux/loop/engine.test.ts`. The desktop run was stopped at clue ~25 of the Jeopardy round, so Double Jeopardy, Final and Results were checked from code only.
 
@@ -83,7 +83,7 @@ Method: I played live rooms against Casual + Champion bots at 1440x900 and 390x8
 **[P2] JudgeBench confidence % reads backwards**
 
 - Where: `clue/JudgeBench.tsx:57-66`.
-- What: "77%" in red means "77% similar, ruled wrong". "— 100%" in red for an empty answer means 100% sure it's wrong. The number and colour contradict each other (`phone-judge-bench.png`).
+- What: "77%" in red means "77% similar, ruled wrong". "(blank) 100%" in red for an empty answer means 100% sure it's wrong. The number and colour contradict each other (`phone-judge-bench.png`).
 - Fix: Show a verdict word ("Looks right" / "Looks wrong") with confidence, or show the similarity without the verdict colour.
 
 **[P2] The host can pick when a bot has the board, and nothing shows that this is an override**

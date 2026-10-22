@@ -83,7 +83,7 @@ export function AppShell() {
       }
       setPendingRoomId(roomId);
     } catch {
-      // Ignore — URL parsing should never fail in normal usage
+      // Ignore: URL parsing should never fail in normal usage
     }
   }, [joinAsDisplay, loadPublishedGame, setPendingRoomId]);
 

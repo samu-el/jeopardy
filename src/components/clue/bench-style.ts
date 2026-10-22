@@ -34,8 +34,8 @@ export const pressableSx = {
 /**
  * One width, one height: a stack of these reads as a set.
  *
- * Compact on a desk — every lectern in the row carries the space for two of
- * them all game — but never under the 24px target minimum, and a full 44px
+ * Compact on a desk (every lectern in the row carries the space for two of
+ * them all game), but never under the 24px target minimum, and a full 44px
  * wherever the pointer is a finger.
  */
 export const stackedButtonSx = {

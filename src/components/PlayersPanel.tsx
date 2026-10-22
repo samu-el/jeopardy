@@ -10,9 +10,9 @@ import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
-import Typography from "@mui/material/Typography";
 import AddIcon from "@mui/icons-material/AddOutlined";
 import DeleteIcon from "@mui/icons-material/DeleteOutlined";
+import SmartToyIcon from "@mui/icons-material/SmartToyOutlined";
 import { baselineBotProfiles } from "@/lib/ai/profiles";
 import { useGameStore } from "@/lib/state/game-store";
 import { selectCanHost } from "@/lib/state/selectors";
@@ -37,7 +37,7 @@ export function PlayersPanel() {
   const setHostSpectator = useGameStore((s) => s.setHostSpectator);
   const [humanName, setHumanName] = useState("");
   // In a shared room the roster and the table rules are the host's. A guest
-  // sees them, read-only, as the room has them — not their own old lobby.
+  // sees them, read-only, as the room has them, not their own old lobby.
   const isRoomHost = useGameStore(selectCanHost);
   const guest = Boolean(online) && !isRoomHost;
   const roomBots = (publicState?.players ?? []).filter((player) => player.kind === "ai-bot");
@@ -79,7 +79,12 @@ export function PlayersPanel() {
                   >
                     {bot.emoji ?? ""}
                   </Box>
-                  <Chip label={`${bot.displayName} · bot`} sx={{ flex: 1, justifyContent: "flex-start" }} />
+                  <Chip
+                    icon={<SmartToyIcon aria-hidden />}
+                    label={bot.displayName}
+                    aria-label={`${bot.displayName}, bot`}
+                    sx={{ flex: 1, justifyContent: "flex-start" }}
+                  />
                 </Stack>
               ))
             : null}
@@ -236,11 +241,6 @@ export function PlayersPanel() {
       <Divider />
 
       <Stack spacing={0.5}>
-        {guest ? (
-          <Typography variant="caption" sx={{ color: ui.inkMuted }}>
-            The host sets these for the room.
-          </Typography>
-        ) : null}
         <FormControlLabel
           disabled={guest}
           control={

@@ -146,11 +146,11 @@ describe("Final Jeopardy flow", () => {
     expect(state.scores.p2).toBe(150);
   });
 
-  it("opens the clue for buzz-less answering — both players can submit", () => {
+  it("opens the clue for buzz-less answering: both players can submit", () => {
     let state = playRegularRound(make());
     state = run(state, { type: "submit-wager", actorId: "p1", amount: 100 }, 500).state;
     state = run(state, { type: "submit-wager", actorId: "p2", amount: 50 }, 510).state;
-    // Without buzzing, both can submit — engine pre-marks them as buzzed.
+    // Without buzzing, both can submit; the engine pre-marks them as buzzed.
     const r1 = run(state, { type: "submit-answer", actorId: "p1", answer: "ok" }, 700);
     const r2 = run(r1.state, { type: "submit-answer", actorId: "p2", answer: "ok" }, 710);
     expect(r1.events[0].type).toBe("answer-submitted");

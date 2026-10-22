@@ -9,7 +9,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import { useGameStore } from "@/lib/state/game-store";
 import { selectCanHost } from "@/lib/state/selectors";
 
-/** "Leave this game?" — asked before Home walks out of a game in progress. */
+/** "Leave this game?", asked before Home walks out of a game in progress. */
 export function LeaveRoomDialog() {
   const open = useGameStore((s) => s.leaveConfirmOpen);
   const online = useGameStore((s) => s.online);

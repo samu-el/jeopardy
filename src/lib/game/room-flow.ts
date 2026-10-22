@@ -188,7 +188,7 @@ export function joinGame(
     joinedAt: now,
   };
   return {
-    // First human through the door owns the room — and so does the next one,
+    // First human through the door owns the room, and so does the next one,
     // if the chair is standing empty when they arrive.
     state: ensureHost(
       patch(state, now, {
@@ -346,12 +346,12 @@ export function reassignRoles(state: GameState, departedId: string): GameState {
 /**
  * The chair belongs to someone who is actually here.
  *
- * A host who is present keeps it, spectator or not — hosting without playing
+ * A host who is present keeps it, spectator or not: hosting without playing
  * is a thing people choose. But a chair held by someone absent is a room
  * nobody can run: the board won't open, the answer won't reveal. A room
  * restored from storage comes back with its old host recorded and nobody
  * connected, so the next person through the door would otherwise find a board
- * they cannot touch — and if they are the only one there, no one is coming to
+ * they cannot touch, and if they are the only one there, no one is coming to
  * hand it over.
  *
  * Call it after anyone joins, leaves or drops.

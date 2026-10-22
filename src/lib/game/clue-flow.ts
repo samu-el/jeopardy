@@ -2,7 +2,7 @@
  * A clue's life, from the moment it is picked to the moment it leaves the
  * board: wager, readout, ring-in, answer, reveal, ruling.
  *
- * Every handler here has the same shape — list the rules the command has to
+ * Every handler here has the same shape: list the rules the command has to
  * satisfy, then edit a copy of the position and say what happened.
  */
 import type {
@@ -328,8 +328,8 @@ export function submitAnswer(
     ];
   });
 
-  // Everyone who owes an answer has given one — the one player who rang in,
-  // the Daily Double picker, or the whole table in Final — so the clock has
+  // Everyone who owes an answer has given one (the one player who rang in,
+  // the Daily Double picker, or the whole table in Final), so the clock has
   // nothing left to wait for. Reveal now rather than when the answer window
   // would have run out: those seconds were dead air for the whole room.
   const clue = written.state.activeClue!;
@@ -424,7 +424,7 @@ export function judgeAnswer(
 
     if (command.correct === true) {
       bumpStat(draft.stats.correctByPlayer, target);
-      // Right answer takes the board — except in Final, where nothing is left
+      // Right answer takes the board, except in Final, where nothing is left
       // to pick, and in rooms that let everyone answer the same clue.
       if (!draft.settings.allowMultipleCorrect && draft.round !== "final-jeopardy") {
         draft.pickerId = target;
@@ -446,7 +446,7 @@ export function judgeAnswer(
       clue.currentJudgePlayerId = clue.judgeQueue.find(
         (playerId) => clue.judges[playerId] === undefined,
       );
-      // Whether anyone else gets a go depends only on who is left — never on
+      // Whether anyone else gets a go depends only on who is left, never on
       // how long the host took to rule. A Daily Double belongs to its picker
       // alone, so a miss there simply ends the clue.
       const reopens =
@@ -557,7 +557,7 @@ export function tickGame(state: GameState, now: number): GameEngineResult {
     waiting.wagerWindowEndsAt !== undefined &&
     now >= waiting.wagerWindowEndsAt
   ) {
-    // Nobody wagered in time — stake the house minimum and read the clue.
+    // Nobody wagered in time: stake the house minimum and read the clue.
     const forced = editClue(next, now, (clue, draft) => {
       const pending = [...clue.waitingForWager];
       const staked: GameEvent[] = pending.map((playerId) => {

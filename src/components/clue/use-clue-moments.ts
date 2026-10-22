@@ -5,8 +5,8 @@ import type { PublicGameState } from "@/lib/game";
 import { playSfx, startFinalTheme, stopFinalTheme } from "@/lib/ai";
 
 /**
- * The two signature moments of a clue — the Daily Double sting and the
- * Final Jeopardy think music — as hooks any clue surface can run.
+ * The two signature moments of a clue (the Daily Double sting and the
+ * Final Jeopardy think music) as hooks any clue surface can run.
  *
  * The television draws its own clue (`TvClue`), and the television is the
  * screen with the speakers, so these cannot live only inside `ClueStage`.

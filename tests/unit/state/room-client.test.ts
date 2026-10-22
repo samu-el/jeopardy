@@ -247,7 +247,7 @@ describe("store gating in a shared room", () => {
     vi.useRealTimers();
   });
 
-  it("a guest can't add bots, restart, or switch the judge — and hears why", () => {
+  it("a guest can't add bots, restart, or switch the judge, and hears why", () => {
     const store = useGameStore.getState();
     store.addBot(baselineBotProfiles[0]);
     store.exitToLobby();

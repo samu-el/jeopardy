@@ -29,7 +29,7 @@ export function loadIdentity(): PlayerIdentity {
       if (parsed?.playerId) return parsed;
     }
   } catch {
-    // Private mode or a corrupt entry — fall through and mint a new id.
+    // Private mode or a corrupt entry: fall through and mint a new id.
   }
   const identity: PlayerIdentity = { playerId: randomId() };
   try {

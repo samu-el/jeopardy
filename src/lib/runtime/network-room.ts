@@ -30,7 +30,7 @@ export interface NetworkRoomConfig {
 
 /**
  * A shared room. The server owns the state; this client sends intent and
- * renders whatever comes back. Commands carry no actor id — the bridge stamps
+ * renders whatever comes back. Commands carry no actor id: the bridge stamps
  * it from the socket session, so a client can only ever act as itself.
  */
 export class NetworkRoomRuntime implements RoomRuntime {

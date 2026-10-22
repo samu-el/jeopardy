@@ -21,7 +21,7 @@ const incorrectFill = "#C8102E";
 const correctInk = "#03220F";
 
 /**
- * The AI judge's opinion, in words, with how sure it is of that ruling —
+ * The AI judge's opinion, in words, with how sure it is of that ruling,
  * and anything it calls ambiguous flagged for the host to look at.
  */
 export function describeSuggestion(answer: string, expected: string) {
@@ -45,8 +45,8 @@ interface JudgeBenchProps {
  * The host's bench.
  *
  * While an answer waits: who said what, the AI's suggestion, and Correct /
- * Incorrect / Skip. Once it has been ruled on — by the host or by the AI
- * judge — the bench stays up with the ruling and the keys to reverse it or
+ * Incorrect / Skip. Once it has been ruled on (by the host or by the AI
+ * judge) the bench stays up with the ruling and the keys to reverse it or
  * undo it, for as long as the clue is on screen.
  */
 export function JudgeBench({ state, send }: JudgeBenchProps) {
@@ -192,7 +192,7 @@ function Readout({
         {name}
       </Box>
       <Box component="span" sx={{ color: jeopardyPalette.goldBright, fontWeight: 700 }}>
-        {answer || "—"}
+        {answer || "No answer"}
       </Box>
       {expected ? (
         <Box component="span" sx={{ fontSize: 12, color: ui.inkMuted }}>
@@ -221,7 +221,7 @@ function Suggestion({
   match: number | null;
 }) {
   // Neutral ink: the words carry the verdict, so the colour doesn't have to
-  // — and can't contradict it.
+  // (and can't contradict it).
   return (
     <Box
       component="span"

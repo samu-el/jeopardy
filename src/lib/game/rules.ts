@@ -1,8 +1,8 @@
 /**
  * The rules of the game, with no commands in sight.
  *
- * Everything here answers a question about a position — may this player ring
- * in, who picks next, what is this wager worth, is the round over — or does
+ * Everything here answers a question about a position (may this player ring
+ * in, who picks next, what is this wager worth, is the round over) or does
  * one small mechanical thing to a copy of the state. The command handlers in
  * `clue-flow.ts` and `room-flow.ts` are then mostly a list of rules and a
  * short edit, which is the shape they should have been all along.
@@ -113,7 +113,7 @@ export function patch(state: GameState, now: number, changes: Partial<GameState>
  * Copies the position, hands the copy to `apply` to rearrange in place, and
  * returns it stamped along with whatever events `apply` reports. The copy is
  * private until it is returned, so mutating it is the clearest way to write
- * these — no `next.activeClue!.buzzes` chains three levels deep.
+ * these: no `next.activeClue!.buzzes` chains three levels deep.
  */
 export function edit(
   state: GameState,
@@ -168,7 +168,7 @@ export function reject(
 }
 
 /**
- * The first rule this command breaks, as a rejection — or nothing, when it
+ * The first rule this command breaks, as a rejection, or nothing, when it
  * breaks none. Rules are read in order, so they can be listed from the most
  * basic ("is there even a clue up?") to the most particular.
  */
@@ -242,8 +242,8 @@ export function withoutPlayer(active: ActiveClueState, playerId: string): Active
 /**
  * Who opens the board.
  *
- * The first round opens with a host at a lectern, if there is one — they
- * pressed start — and otherwise with the lowest score. Every later round opens
+ * The first round opens with a host at a lectern, if there is one (they
+ * pressed start), and otherwise with the lowest score. Every later round opens
  * with the trailing contestant, the way the show does it, so a seated host no
  * longer gets the first pick of Double Jeopardy for free. Ties go to the
  * earliest seat.
@@ -282,7 +282,7 @@ export function seatOrder(state: GameState): string[] {
     .map((seat) => seat.id);
 }
 
-/** Contestants only — spectators and displays are never ranked. */
+/** Contestants only: spectators and displays are never ranked. */
 export function getStandings(state: GameState): Standing[] {
   const seats = seatOrder(state);
   const sorted = getActivePlayers(state)
@@ -320,7 +320,7 @@ export function leadingOpponentScore(state: GameState, playerId: string): number
 
 /**
  * Who plays Final Jeopardy: contestants who finished the last round in the
- * black. Anyone at or below zero sits it out — no wager box, and the room
+ * black. Anyone at or below zero sits it out: no wager box, and the room
  * does not wait on them.
  */
 export function getFinalists(state: GameState): GamePlayer[] {
@@ -470,7 +470,7 @@ export function clampWager(
 /**
  * Whether a wrong ruling on this clue could still hand it to someone else:
  * a contestant who has neither rung in nor been ruled on. Never on a Daily
- * Double or in Final — those belong to the players who wagered.
+ * Double or in Final; those belong to the players who wagered.
  */
 export function reboundPossible(state: GameState, active: ActiveClueState): boolean {
   if (active.dailyDoublePlayerId || active.round === "final-jeopardy") return false;
@@ -482,7 +482,7 @@ export function reboundPossible(state: GameState, active: ActiveClueState): bool
 
 /**
  * Whether the correct response may be shown to the table. Only once the clue
- * is settled — ruled right, or nobody left who could ring in on a rebound —
+ * is settled (ruled right, or nobody left who could ring in on a rebound),
  * so nobody gets to buzz on an answer they have just been shown.
  */
 export function isResponsePublic(state: GameState, active: ActiveClueState): boolean {
@@ -528,7 +528,7 @@ export function getBoardForRound(state: GameState, round: GameRound): GameClue[]
  * game. Final Jeopardy opens differently from the others: it puts its one
  * clue up immediately and asks the whole table to wager.
  *
- * Mutates the draft it is given — it only ever runs inside an `edit`.
+ * Mutates the draft it is given; it only ever runs inside an `edit`.
  */
 export function advanceToNextRound(draft: GameState, now: number): GameEvent[] {
   const nextRound = getNextRoundWithClues(draft, draft.round);

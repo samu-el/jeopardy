@@ -1,7 +1,7 @@
 import { Analytics } from "@vercel/analytics/next";
 
 /**
- * Vercel Web Analytics — how many people reach the page.
+ * Vercel Web Analytics: how many people reach the page.
  *
  * On in production, off everywhere else. The default is deliberately *on*:
  * this file used to be an opt-in gate reading `NEXT_PUBLIC_ANALYTICS`, and

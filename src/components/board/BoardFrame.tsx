@@ -87,7 +87,7 @@ export function BoardFrame({ children, ref, ratio, tall, fill, label }: BoardFra
               },
           width: `min(100%, calc(var(--board-height) * ${ratio}))`,
           // The grid keeps the set's proportions. A clue panel on a phone
-          // does not — it needs height for the buzzer and the answer field.
+          // does not: it needs height for the buzzer and the answer field.
           // A television has the room for both, so it keeps the ratio.
           aspectRatio: tall && !fill ? { xs: "auto", md: `${ratio}` } : `${ratio}`,
           height: tall && !fill ? { xs: "min(66vh, 560px)", md: "auto" } : "auto",

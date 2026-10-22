@@ -243,7 +243,7 @@ export function getEpisode(
     epNum: raw.epNum,
     airDate: raw.airDate,
     info: raw.info,
-    title: raw.info ? `Episode ${raw.epNum} — ${raw.info}` : `Episode ${raw.epNum}`,
+    title: raw.info ? `Episode ${raw.epNum}: ${raw.info}` : `Episode ${raw.epNum}`,
     jeopardy: raw.jeopardy,
     double: raw.double,
     triple: raw.triple,

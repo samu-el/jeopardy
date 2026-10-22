@@ -254,7 +254,7 @@ export class RoomDirector {
     const buzzedIds = Object.keys(active.buzzes);
     for (const [botId, profile] of this.profiles.entries()) {
       if (active.buzzes[botId] !== undefined) {
-        // Already at the podium — make sure an answer is on its way.
+        // Already at the podium; make sure an answer is on its way.
         if (!active.submitted[botId]) {
           const decision = this.memory.answerFor(botId, profile, clue);
           this.defer(

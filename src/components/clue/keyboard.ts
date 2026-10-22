@@ -1,7 +1,7 @@
 /**
  * Whether a keystroke landed on something that has its own use for it.
  *
- * Space buzzes and single letters judge — but only when focus is on the game
+ * Space buzzes and single letters judge, but only when focus is on the game
  * itself (the page, the clue, the buzzer). A focused button, menu item or
  * field keeps its own keys, and anything inside a dialog or popover is left
  * alone entirely.

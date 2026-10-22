@@ -175,7 +175,7 @@ export function BuzzLights({
                 : `0 0 8px ${ui.goldTint}`,
           }}
         >
-          {seconds === null || seconds === undefined ? "—" : `${seconds}s`}
+          {seconds === null || seconds === undefined ? "--" : `${seconds}s`}
         </Box>
         {control ? phaseLabel : null}
       </Box>

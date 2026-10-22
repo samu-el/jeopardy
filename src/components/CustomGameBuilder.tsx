@@ -67,8 +67,8 @@ interface CustomGameBuilderProps {
 /**
  * Write a game: columns per round, a Final, and a link to share it.
  *
- * The draft saves itself as it's typed, so closing the dialog — by Close,
- * Escape or the back gesture — never loses work. A click outside is ignored:
+ * The draft saves itself as it's typed, so closing the dialog (by Close,
+ * Escape or the back gesture) never loses work. A click outside is ignored:
  * it's the one close nobody means.
  */
 export function CustomGameBuilder({ open, onClose, onBeforeDeal }: CustomGameBuilderProps) {
@@ -229,19 +229,8 @@ function BuilderBody({
 
   return (
     <>
-      <DialogTitle sx={{ pb: 1 }}>
-        <span id={titleId}>Build a game</span>
-        <Typography
-          component="span"
-          variant="caption"
-          sx={{ display: "block", color: "text.secondary" }}
-          aria-live="polite"
-        >
-          {builder.progress.complete} of {builder.progress.total} clues written ·{" "}
-          {builder.progress.hasFinal ? "Final ready" : "no Final yet"}
-          {builder.savedAt ? " · Draft saved in this browser" : ""}
-        </Typography>
-      </DialogTitle>
+      {/* Progress lives on the round tabs (3/30, Final ✓), not in a subtitle. */}
+      <DialogTitle id={titleId}>Build a game</DialogTitle>
       <DialogContent dividers ref={contentRef}>
         <Stack spacing={2}>
           {builder.shareUrl && publishedFresh ? (
@@ -330,7 +319,7 @@ function BuilderBody({
           pb: { xs: "max(8px, env(safe-area-inset-bottom))", sm: 2 },
         }}
       >
-        <Tooltip title="Import, export and start over">
+        <Tooltip title="File">
           <Button
             startIcon={<FolderIcon />}
             onClick={(event) => setFileMenu(event.currentTarget)}
@@ -363,15 +352,7 @@ function BuilderBody({
         <Button onClick={onClose} sx={{ minWidth: 0, px: { xs: 1, sm: 2 } }}>
           Close
         </Button>
-        <Tooltip
-          title={
-            isRoomHost
-              ? inGame
-                ? "Ends the game in progress and deals this one"
-                : "Deal this board now"
-              : "Only the host can put a game on the board"
-          }
-        >
+        <Tooltip title={isRoomHost ? "" : "Only the host can put a game on the board"}>
           <span>
             <Button
               onClick={playNow}
@@ -406,10 +387,7 @@ function BuilderBody({
           <ListItemIcon>
             <UploadIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText
-            primary="Import JSON or CSV…"
-            secondary="CSV columns: round, category, value, clue, answer, dd"
-          />
+          <ListItemText primary="Import JSON or CSV…" />
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -455,10 +433,7 @@ function BuilderBody({
             <ListItemIcon>
               <LinkIcon fontSize="small" />
             </ListItemIcon>
-            <ListItemText
-              primary="Publish as a new link"
-              secondary="The old link keeps the old version"
-            />
+            <ListItemText primary="Publish as a new link" />
           </MenuItem>
         ) : null}
         <MenuItem
@@ -543,18 +518,8 @@ function RoundTabLabel({ builder, round }: { builder: BuilderDraft; round: Board
 
 function RoundPanel({ builder, round }: { builder: BuilderDraft; round: BoardRound }) {
   const columns = categoriesForRound(builder.draft, round);
-  const dailyDoubleNote =
-    round === "jeopardy"
-      ? "one Daily Double"
-      : round === "double-jeopardy"
-        ? "up to two Daily Doubles"
-        : "up to three Daily Doubles";
   return (
     <Stack spacing={2} role="tabpanel" aria-label={roundNames[round].plain}>
-      <Typography variant="body2" color="text.secondary">
-        Write a clue and its answer in each cell. This round can hide {dailyDoubleNote}: the
-        player who finds one wagers on it alone. Empty cells show as blanks.
-      </Typography>
       {columns.map((category, index) => (
         <CategoryCard
           key={category.id}
@@ -588,9 +553,6 @@ function RoundPanel({ builder, round }: { builder: BuilderDraft; round: BoardRou
           Add category
         </Button>
       ) : null}
-      {columns.length === 0 ? (
-        <Typography variant="body2">No categories in this round yet.</Typography>
-      ) : null}
     </Stack>
   );
 }
@@ -619,9 +581,6 @@ function FinalCard({ builder }: { builder: BuilderDraft }) {
   return (
     <Card variant="outlined" role="tabpanel" aria-label="Final Jeopardy">
       <CardContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          One last clue everyone wagers on. Leave all three empty to end after the last round.
-        </Typography>
         <Stack spacing={1.5}>
           {field("category", "Final Jeopardy category", builderLimits.category)}
           {field("clue", "Final Jeopardy clue", builderLimits.clue)}

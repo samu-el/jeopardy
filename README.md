@@ -5,7 +5,7 @@ board, the buzzer and shared rooms, on Bun, Next.js and TypeScript.
 
 Play solo against AI opponents, or open a room, read out the four-character
 code, and play the same board with everyone else in it. Rooms are
-server-authoritative — the server owns the state and the clock, clients send
+server-authoritative: the server owns the state and the clock, clients send
 intent only.
 
 ## Quick Start
@@ -42,8 +42,8 @@ which runs alongside it:
 bun run rooms:dev
 ```
 
-Point the app at it with `NEXT_PUBLIC_ROOMS_URL` — see `.env.example` and
-`docs/06-multiplayer.md`. `GET /api/health` reports that the app is up.
+Point the app at it with `NEXT_PUBLIC_ROOMS_URL` (see `.env.example` and
+`docs/06-multiplayer.md`). `GET /api/health` reports that the app is up.
 
 ## What's here
 
@@ -51,7 +51,7 @@ Point the app at it with `NEXT_PUBLIC_ROOMS_URL` — see `.env.example` and
   The server holds the board, the buzzer and the clock; a refresh reclaims your
   seat and score, and hosting moves on if the host drops. Each room is a
   Durable Object on Cloudflare's free plan, so rooms survive a restart and
-  cost nothing when idle — see `docs/06-multiplayer.md`.
+  cost nothing when idle (see `docs/06-multiplayer.md`).
 - **The whole game.** Archived and custom boards, every round, Daily Doubles,
   Final Jeopardy wagers, buzz windows with the show's early-buzz lockout,
   judging (by a host or the fuzzy judge), chat, replays and stats.
@@ -63,8 +63,8 @@ Point the app at it with `NEXT_PUBLIC_ROOMS_URL` — see `.env.example` and
   a score change.
 - **Sound.** A synthesized cue set (select, ring-in, correct, wrong, time's up,
   Daily Double, round start, applause) and a 30-second Final Jeopardy
-  countdown. The show's own recordings are copyrighted, so none are shipped —
-  these are original tones written to sit in the same register and pacing.
+  countdown. The show's own recordings are copyrighted, so none are shipped.
+  These are original tones written to sit in the same register and pacing.
 - **Voice readout.** The clue is read aloud by a selectable system voice, with
   the buzzer opening when the readout ends.
 

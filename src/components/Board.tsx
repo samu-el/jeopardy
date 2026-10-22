@@ -40,8 +40,8 @@ interface BoardProps {
    */
   fill?: boolean;
   /**
-   * When a clue closes, put keyboard focus back on the board — on the next
-   * square in the same column, or the board itself — instead of letting it
+   * When a clue closes, put keyboard focus back on the board (on the next
+   * square in the same column, or the board itself) instead of letting it
    * fall to the top of the page.
    */
   returnFocus?: boolean;
@@ -52,7 +52,7 @@ interface BoardProps {
  *
  * A category strip, a value you can press, a square the archive never had,
  * and the ghost board that stands in before a game is dealt are all the same
- * blue rectangle with different text — so they are one component rather than
+ * blue rectangle with different text, so they are one component rather than
  * four near-copies of the same `sx` block.
  */
 type Tile =

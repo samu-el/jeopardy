@@ -24,7 +24,7 @@ interface ClueStageProps {
 /**
  * The clue itself, and nothing anyone presses.
  *
- * The category, the value, the clue, and the answer once it is revealed —
+ * The category, the value, the clue, and the answer once it is revealed:
  * what the whole room is reading. The clock, the buzzer, the answer field
  * and the host's controls sit under the board in `ClueControls`, so a long
  * clue has the panel to itself and the board stops being a control surface.

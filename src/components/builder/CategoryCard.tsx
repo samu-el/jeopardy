@@ -216,19 +216,17 @@ function ClueRow({
         }}
         sx={{ gridColumn: { xs: "1 / -1", md: "auto" } }}
       />
-      <Tooltip title="A Daily Double lets the player who finds it wager on the clue.">
-        <FormControlLabel
-          sx={{ mr: 0, gridColumn: { xs: "1 / -1", md: "auto" } }}
-          control={
-            <Checkbox
-              checked={clue.dailyDouble}
-              onChange={(_, value) => onChange(clue.id, { dailyDouble: value })}
-              slotProps={{ input: { "aria-label": `${where} is a Daily Double` } }}
-            />
-          }
-          label="Daily Double"
-        />
-      </Tooltip>
+      <FormControlLabel
+        sx={{ mr: 0, gridColumn: { xs: "1 / -1", md: "auto" } }}
+        control={
+          <Checkbox
+            checked={clue.dailyDouble}
+            onChange={(_, value) => onChange(clue.id, { dailyDouble: value })}
+            slotProps={{ input: { "aria-label": `${where} is a Daily Double` } }}
+          />
+        }
+        label="Daily Double"
+      />
       <Box sx={{ display: { xs: "none", md: "block" } }}>
         <RemoveRow where={where} onRemove={onRemove} />
       </Box>

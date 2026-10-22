@@ -20,10 +20,10 @@ Method: I played real games against the running app (fixture board, 4 clues plus
 
 ## P1
 
-**[P1] Final Jeopardy on the TV says "Daily Double — waiting for the wager" and "$0"**
+**[P1] Final Jeopardy on the TV says "Daily Double: waiting for the wager" and "$0"**
 
 - Where: `TvClue.tsx`. `waiting` always renders the Daily Double copy, and the header is always `${category} · $${value}`.
-- What's wrong: while Final wagers are being placed, the TV shows "DAILY DOUBLE — WAITING FOR THE WAGER" under "PROGRAMMING · $0". It never says "Final Jeopardy".
+- What's wrong: while Final wagers are being placed, the TV shows "DAILY DOUBLE: WAITING FOR THE WAGER" under "PROGRAMMING · $0". It never says "Final Jeopardy".
 - Repro: reach Final with a display attached. See `tv-final-wager-1080.png`.
 - Suggested fix: branch on `clue.round === "final-jeopardy"`. Headline "FINAL JEOPARDY!", the category in large type, "Contestants are wagering…" (or who is still wagering), and no value.
 

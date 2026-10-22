@@ -141,7 +141,7 @@ Method: Playwright against http://localhost:3000 plus rooms worker :8787, at 144
 **[P2] Buzz window control misleads non-hosts**
 
 - Where: game-store.ts:391. The change is sent only when `isHost`. The Select reads the local `preferences.buzzWindowSeconds`, not `publicState.settings.buzzWindowMs`.
-- What's wrong: a guest can pick "20 seconds — relaxed". It persists locally and shows as chosen, but the room keeps its own window. There's no explanation of what the window is (time after the readout).
+- What's wrong: a guest can pick "20 seconds: relaxed". It persists locally and shows as chosen, but the room keeps its own window. There's no explanation of what the window is (time after the readout).
 - Suggested fix: for non-hosts, show the room's value read-only ("Set by host"). Add helper text.
 
 **[P2] Settings key uses a speaker icon, identical to the voice Preview button**

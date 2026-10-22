@@ -76,7 +76,7 @@ describe("LocalRoomRuntime", () => {
     await vi.advanceTimersByTimeAsync(20_000);
 
     const state = runtime.getPublicState();
-    // The bot took its turn — score changed (positive on correct, negative on wrong)
+    // The bot took its turn: score changed (positive on correct, negative on wrong)
     const bot = state.players.find((p) => p.id === "bot-legend");
     expect(bot?.score).not.toBe(0);
     expect(chats.length).toBeGreaterThan(0);
@@ -97,7 +97,7 @@ describe("LocalRoomRuntime", () => {
     runtime.sendCommand("host", { type: "pick-clue", clueId: "j-1" });
     runtime.destroy();
     await vi.advanceTimersByTimeAsync(20_000);
-    // No assertion needed — test passes if no errors leak from killed timers
+    // No assertion needed: the test passes if no errors leak from killed timers
     expect(true).toBe(true);
   });
 });

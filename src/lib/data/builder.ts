@@ -781,7 +781,7 @@ export function coerceBuilderGame(input: unknown): BuilderImportResult {
 }
 
 /**
- * Reads an imported file — builder JSON, an exported game, or a CSV — into a
+ * Reads an imported file (builder JSON, an exported game, or a CSV) into a
  * draft, with every problem it found. Never throws.
  */
 export function importBuilderGame(source: string, fileName = ""): BuilderImportResult {

@@ -80,11 +80,6 @@ export function ReplayView({ open, onClose }: ReplayViewProps) {
                   ) : null}
                 </Box>
               ))}
-              {visible.length === 0 ? (
-                <Typography variant="caption" color="text.secondary">
-                  Press Play to step through events.
-                </Typography>
-              ) : null}
             </Box>
           </Stack>
         )}

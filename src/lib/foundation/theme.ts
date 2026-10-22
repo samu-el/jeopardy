@@ -8,8 +8,8 @@ import { viewportRootStyles } from "./viewport";
  * every colour here is one of those, so a MUI component and a hand-drawn
  * one end up the same colour without either knowing about the other.
  *
- * Type: the show's condensed face for anything that labels or commands —
- * headings, buttons, eyebrows, numbers — and a plain sans for reading.
+ * Type: the show's condensed face for anything that labels or commands
+ * (headings, buttons, eyebrows, numbers), and a plain sans for reading.
  */
 const bodyFont = jeopardyFonts.body;
 

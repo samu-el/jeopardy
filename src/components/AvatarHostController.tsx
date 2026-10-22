@@ -67,7 +67,7 @@ export function AvatarHostController() {
         getSpeechRate: () => useGameStore.getState().preferences.speechRate,
         // The buzzer follows the voice, not a guess made when the clue was
         // picked. Cues queue, so "Math, for 200" is still being said when the
-        // estimate would otherwise open the buzzer — every cue that runs
+        // estimate would otherwise open the buzzer. Every cue that runs
         // ahead of the clue holds it shut.
         //
         // Held from the moment the cue is handed to the voice, not from when
@@ -122,7 +122,7 @@ export function AvatarHostController() {
     preferences.musicVolume,
   ]);
 
-  // Muting, or turning the host off, stops the voice at once — not at the
+  // Muting, or turning the host off, stops the voice at once, not at the
   // end of the sentence.
   const soundEnabled = preferences.soundEnabled;
   const hostMode = preferences.avatarHostMode;
@@ -144,7 +144,7 @@ export function AvatarHostController() {
   }, [runtime, screen]);
 
   // The room publishes its events and then its state. Stings play once per
-  // batch, the moment it lands — never again when the state catches up. The
+  // batch, the moment it lands, never again when the state catches up. The
   // host's lines need that state (the clue's text arrives with it), so an
   // event that couldn't be narrated yet is retried when the state changes,
   // and one that was narrated is never said twice.
@@ -400,7 +400,7 @@ function handleEvent(
     }
     case "clue-picked": {
       // Real Jeopardy: host echoes "Science, four hundred" when the
-      // player makes a selection — before reading the clue itself.
+      // player makes a selection, before reading the clue itself.
       const active = state.currentClue;
       // The state that names this clue hasn't arrived yet: try again when it does.
       if (active?.clueId !== event.clueId) return null;
@@ -409,7 +409,7 @@ function handleEvent(
       if (!category) return null;
       // Whatever the host was still saying is dropped: cues queue, so a pick
       // made during the category rundown would otherwise leave the clue
-      // waiting behind it — read to a board whose buzzer already opened.
+      // waiting behind it, read to a board whose buzzer already opened.
       return narrator.emit(
         { type: "clue-selected", context: { category, value } },
         { interruptQueue: true, eventId },

@@ -153,7 +153,7 @@ test.describe("Display mode", () => {
       await display.goto(`/?room=${code}&display=1`);
       await expect(display.getByTestId("display-view")).toBeVisible({ timeout: 30_000 });
 
-      // The code is plain here on purpose — the room needs to read it.
+      // The code is plain here on purpose: the room needs to read it.
       await expect(display.getByTestId("display-room-code")).toHaveText(code, {
         timeout: 20_000,
       });
@@ -169,11 +169,11 @@ test.describe("Display mode", () => {
       // either screen, or it would be sitting in a seat and owed a buzzer.
       await expect(player.getByTestId(/^podium-/)).toHaveCount(1);
       await expect(display.getByText("Display", { exact: true })).toHaveCount(0);
-      // And the television carries no lectern at all — not even the
-      // players' — because it is there to show the board.
+      // And the television carries no lectern at all (not even the
+      // players'), because it is there to show the board.
       await expect(display.getByTestId(/^podium-/)).toHaveCount(0);
 
-      // The join panel goes away completely — QR, code and URL — and the
+      // The join panel goes away completely (QR, code and URL) and the
       // board keeps playing without it.
       await display.getByTestId("hide-join-panel").click();
       await expect(display.getByTestId("display-join")).toHaveCount(0);
@@ -246,7 +246,7 @@ test.describe("Display mode", () => {
     await expect(page.getByTestId("tv-clue-text")).toContainText("Two plus two", {
       ignoreCase: true,
     });
-    // Nothing else is on the clue — no buzzer, no timer, no judging.
+    // Nothing else is on the clue: no buzzer, no timer, no judging.
     await expect(page.getByTestId("buzzer")).toHaveCount(0);
 
     // Two: the answer.

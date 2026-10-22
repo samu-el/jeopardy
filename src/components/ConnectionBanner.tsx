@@ -14,7 +14,7 @@ type BannerAction = "use-here" | "retry" | "offline" | "home";
 const banner: Partial<Record<RoomStatusView, { text: string; actions: BannerAction[] }>> = {
   connecting: { text: "Connecting to the room…", actions: [] },
   reconnecting: {
-    text: "Connection lost — reconnecting. Your seat and score are held.",
+    text: "Connection lost. Reconnecting. Your seat and score are held.",
     actions: [],
   },
   unreachable: {
@@ -42,7 +42,7 @@ const actionLabel: Record<BannerAction, string> = {
 
 /**
  * Tells a player, in the one place they will look, that the room is not
- * live — why, and what they can do about it. Each reason gets its own way
+ * live: why, and what they can do about it. Each reason gets its own way
  * out; a tab replaced by another used to be offered "Play solo", which led
  * to an empty board.
  */

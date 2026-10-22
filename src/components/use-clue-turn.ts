@@ -16,7 +16,7 @@ export interface ClueTurn extends ClueTurnView {
  *
  * The working-out is `deriveClueTurn`, a pure function with its own tests.
  * This hook only supplies a ticking clock and remembers how long each
- * window was when it first appeared — a rebound buzz window is shorter than
+ * window was when it first appeared: a rebound buzz window is shorter than
  * the stretch since the readout ended, and the public state doesn't say.
  */
 export function useClueTurn(state: PublicGameState, currentClientId: string): ClueTurn {

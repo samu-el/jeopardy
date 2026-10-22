@@ -31,7 +31,7 @@ export const showTimings: Pick<
   // Baseline readout padding; the per-char term below carries most of the
   // timing so short clues don't wait forever.
   buzzUnlockDelayMs: 1_500,
-  // 70ms/char ≈ 140 wpm — a comfortable host pace that lines up with the
+  // 70ms/char ≈ 140 wpm, a comfortable host pace that lines up with the
   // TTS rate used for the readout.
   readoutPerCharMs: 70,
   buzzWindowMs: 6_000,
@@ -151,7 +151,7 @@ export class RoomHost {
     (this.persistTimer as unknown as { unref?: () => void }).unref?.();
   }
 
-  /** Reports any pending change immediately — used before dropping a room. */
+  /** Reports any pending change immediately, used before dropping a room. */
   flush() {
     if (!this.persistTimer) return;
     clearTimeout(this.persistTimer);
@@ -230,7 +230,7 @@ export class RoomHost {
                 ? `${name} +$${event.delta}`
                 : event.correct === false
                   ? `${name} $${event.delta}`
-                  : `${name} —`,
+                  : `${name} skipped`,
           });
           break;
         }

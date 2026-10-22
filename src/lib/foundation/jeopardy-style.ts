@@ -13,7 +13,7 @@ export const goldScale = {
 
 /**
  * Set design tokens. The show's board is a very specific blue with gold
- * values, black gaps and heavy drop shadows — every surface that should read
+ * values, black gaps and heavy drop shadows. Every surface that should read
  * as "the board" pulls its colours and type from here.
  */
 export const jeopardyPalette = {
@@ -51,8 +51,8 @@ export const jeopardyPalette = {
 /**
  * The show sets categories and values in an ultra-compressed sans (Swiss 911)
  * and clues in a rounded slab serif (ITC Korinna). Neither is web-licensable
- * here, so each stack names the real face first — it is used when a viewer
- * happens to have it — then the closest webfont, then a system fallback.
+ * here, so each stack names the real face first (it is used when a viewer
+ * happens to have it), then the closest webfont, then a system fallback.
  */
 export const jeopardyFonts = {
   // `--font-oswald` / `--font-bitter` are set by `next/font` in
@@ -76,7 +76,7 @@ export const jeopardyClueShadow = "0.04em 0.04em 0.02em rgba(0,0,0,0.6)";
  * a specific look. The rest of the app is the studio around it: a black
  * stage, panels in one deep blue, one blue for anything you can press, gold
  * for anything worth pointing at. Every component draws from this list and
- * nothing else — the last design had three colour systems arguing.
+ * nothing else. The last design had three colour systems arguing.
  */
 export const ui = {
   /** The page. */
@@ -235,7 +235,7 @@ export function clueType<T extends object>(overrides?: T) {
 }
 
 /**
- * Longer clue, smaller type — the show sets a wordy clue down rather than
+ * Longer clue, smaller type: the show sets a wordy clue down rather than
  * letting it overrun the monitor, and gives it a wider measure so it still
  * lands in about the same number of lines.
  *

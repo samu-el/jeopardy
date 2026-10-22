@@ -124,15 +124,15 @@ export function TvClue({ state, canControl, onCommand }: TvClueProps) {
               fontSize: "clamp(18px, 3.4cqw, 56px)",
             })}
           >
-            {wagerer ? `Daily Double — ${wagerer} is wagering` : "Daily Double — wagering"}
+            {wagerer ? `Daily Double: ${wagerer} is wagering` : "Daily Double: wagering"}
           </Typography>
         ) : (
           <Typography
             component="span"
             data-testid="tv-clue-text"
             sx={clueType({
-              // Once the answer is up the question steps back to a caption —
-              // the answer is what the room is looking at now — but stays
+              // Once the answer is up the question steps back to a caption
+              // (the answer is what the room is looking at now) but stays
               // readable across a room.
               fontSize: answered ? "clamp(14px, 2.4cqw, 40px)" : clueScale(clue.clue?.length ?? 0).tv,
               lineHeight: 1.2,

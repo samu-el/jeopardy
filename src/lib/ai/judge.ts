@@ -1,7 +1,7 @@
 /**
  * The fuzzy judge: rules a typed answer against a clue's correct response.
  *
- * It works on whole words, never on character substrings — "on" is not
+ * It works on whole words, never on character substrings: "on" is not
  * "London" and "2" is not "12". Numbers (digits, number words, ordinals and
  * regnal numerals) have to agree exactly, because Jeopardy answers hinge on
  * them: Henry VIII is not Henry VII, and Mary is not Mary I.
@@ -732,7 +732,7 @@ export function describeVerdict(verdict: JudgeVerdict): string {
     case "likely-correct":
       return "Likely correct";
     case "unsure":
-      return verdict.correct ? "Unsure — leaning correct" : "Unsure — leaning wrong";
+      return verdict.correct ? "Unsure, leaning correct" : "Unsure, leaning wrong";
     case "likely-wrong":
       return "Likely wrong";
   }
@@ -748,7 +748,7 @@ export interface AmbiguousJudgeInput extends JudgeInput {
 
 /**
  * Hook for an env-gated higher-quality judge (e.g. an LLM tool call) when
- * the fuzzy verdict is ambiguous. Default implementation returns null — the
+ * the fuzzy verdict is ambiguous. Default implementation returns null; the
  * caller falls back to the fuzzy verdict, keeping the app free-forever.
  */
 export type AmbiguousJudgeResolver = (
@@ -769,7 +769,7 @@ export async function judgeWithReasoning(input: JudgeInput): Promise<JudgeVerdic
       const upgraded = await resolver({ ...input, fuzzyVerdict: fuzzy });
       if (upgraded) return upgraded;
     } catch {
-      // ignore — fall through to fuzzy
+      // ignore: fall through to fuzzy
     }
   }
   return fuzzy;

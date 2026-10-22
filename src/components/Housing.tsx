@@ -16,7 +16,7 @@ function merge(base: SxProps<Theme>, sx?: SxProps<Theme>): SxProps<Theme> {
 }
 
 /**
- * Several controls mounted in one dark pill — the strip of keys on a
+ * Several controls mounted in one dark pill: the strip of keys on a
  * lectern, the room readout, the toolbar. One housing reads as one
  * instrument; the same buttons loose on the page read as clutter.
  */

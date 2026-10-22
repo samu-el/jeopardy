@@ -5,7 +5,7 @@ import type { ClientGameCommand, ServerRealtimeMessage } from "./contracts";
  *
  * Deliberately not Socket.IO. The room runs inside a Cloudflare Durable
  * Object in production, which speaks the standard WebSocket API and cannot
- * host Socket.IO's Node server — and the same frames work unchanged against
+ * host Socket.IO's Node server, and the same frames work unchanged against
  * the local Node bridge used in development and the e2e suite.
  */
 
@@ -56,8 +56,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /**
  * Parses a frame from the network. Anything that isn't a shape we recognise
- * comes back as undefined rather than throwing: a client — or something
- * pretending to be one — can send whatever it likes, and a room must not
+ * comes back as undefined rather than throwing: a client (or something
+ * pretending to be one) can send whatever it likes, and a room must not
  * fall over because of it.
  *
  * Only the envelope is checked here. The command inside a `command` frame is

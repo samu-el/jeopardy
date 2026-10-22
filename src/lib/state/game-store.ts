@@ -144,7 +144,7 @@ export interface GameStoreState {
    */
   displayMode: boolean;
   setDisplayMode: (on: boolean) => void;
-  /** Joins a room as a display — no seat, no buzzer, no name to type. */
+  /** Joins a room as a display: no seat, no buzzer, no name to type. */
   joinAsDisplay: (roomId: string) => Promise<boolean>;
   lastEvents: GameEvent[];
   lastCue: AvatarHostCue | null;
@@ -175,7 +175,7 @@ export interface GameStoreState {
    */
   pendingRoomId: string | null;
   setPendingRoomId: (id: string | null) => void;
-  /** The player id this client acts as — the seat, not the room owner. */
+  /** The player id this client acts as: the seat, not the room owner. */
   selfId: () => string;
   joinOnlineRoom: (roomId: string) => Promise<boolean>;
   leaveOnlineRoom: () => void;
@@ -559,7 +559,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   leaveOnlineRoom: () => {
     const { runtime, online, lobby } = get();
     if (runtime && online && online.role === "player") {
-      // Give the seat back explicitly — a dropped socket mid-game is held
+      // Give the seat back explicitly. A dropped socket mid-game is held
       // open for a reconnect, which isn't what "leave" means.
       runtime.sendCommand(lobby.hostId, { type: "leave-game" });
     }
@@ -633,7 +633,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     }
 
     // No room yet. Open a shared one so every board carries a code from the
-    // first clue — nobody has to decide up front whether friends are joining.
+    // first clue, so nobody has to decide up front whether friends are joining.
     // If the rooms service can't be reached the player is offered the board
     // offline; the room keeps trying either way. Frames written before the
     // socket opens are queued and replayed, so the board is dealt at once.
@@ -645,7 +645,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     // Restart, Again and Lobby reset everyone's board: the host's call only.
     if (online && !selectCanHost(get())) return;
     if (online && runtime) {
-      // Shared rooms stay open — reloading the board resets everyone at once.
+      // Shared rooms stay open: reloading the board resets everyone at once.
       const clues = resolveClues(lobby);
       if (clues.length > 0) {
         runtime.sendCommand(lobby.hostId, { type: "load-game", clues });

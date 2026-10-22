@@ -23,7 +23,6 @@ import ShuffleIcon from "@mui/icons-material/ShuffleOutlined";
 import {
   decadeOptions,
   describeEmptyFilter,
-  fetchArchiveStats,
   fetchDecadeCounts,
   fetchEpisodeById,
   fetchEpisodeList,
@@ -43,6 +42,7 @@ import {
   type ArchiveProblem,
 } from "./use-archive";
 import { useRoomRole } from "./use-room-role";
+import { visuallyHiddenSx } from "./visually-hidden";
 
 interface GamePickerProps {
   open: boolean;
@@ -59,7 +59,7 @@ const pageSize = 60;
  *
  * Picking a game in the middle of one deals it for the whole room, after
  * asking; picking one before Begin stages it. Only the host changes the
- * board — anyone else is told so rather than shown controls that do nothing.
+ * board. Anyone else is told so rather than shown controls that do nothing.
  */
 export function GamePicker({ open, onClose }: GamePickerProps) {
   const theme = useTheme();
@@ -141,13 +141,11 @@ function PickerBody({
   const [listState, setListState] = useState<"loading" | "ready" | "more">("loading");
   const [listError, setListError] = useState<ArchiveProblem | null>(null);
   const [listNonce, setListNonce] = useState(0);
-  const [stats, setStats] = useState<{ total: number } | null>(null);
   const [decadeCounts, setDecadeCounts] = useState<Record<string, number>>({});
   const [confirming, setConfirming] = useState<(() => Promise<ArchiveEpisodeResponse>) | null>(
     null,
   );
 
-  useWhileOpen(true, fetchArchiveStats, setStats);
   // The eras on offer follow the theme, so a pair of chips never leads nowhere.
   useWhileOpen(true, () => fetchDecadeCounts(theme), setDecadeCounts, [theme]);
 
@@ -224,20 +222,8 @@ function PickerBody({
 
   return (
     <>
-      <DialogTitle id={titleId}>
-        Change game
-        {stats && stats.total > 0 ? (
-          <Typography variant="caption" sx={{ ml: 1, color: "text.secondary" }}>
-            {stats.total.toLocaleString()} episodes
-          </Typography>
-        ) : null}
-      </DialogTitle>
+      <DialogTitle id={titleId}>Change game</DialogTitle>
       <DialogContent dividers>
-        {inGame ? (
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-            A game is in progress. Choosing a new one replaces the board for everyone.
-          </Typography>
-        ) : null}
         <Tabs
           value={mode}
           onChange={(_, value) => setMode(value)}
@@ -275,13 +261,13 @@ function PickerBody({
               <TextField
                 size="small"
                 label="Search categories, dates and events"
-                placeholder="e.g. potent potables, 1999, college"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 fullWidth
                 slotProps={{ htmlInput: { enterKeyHint: "search" } }}
               />
-              <Typography variant="caption" color="text.secondary" aria-live="polite">
+              {/* Heard, not shown: the list and its "Show more" key say it on screen. */}
+              <Box aria-live="polite" sx={visuallyHiddenSx}>
                 {listState === "loading"
                   ? "Loading episodes…"
                   : listError
@@ -289,7 +275,7 @@ function PickerBody({
                     : total === 0
                       ? "No episodes"
                       : `Showing ${listings.length.toLocaleString()} of ${total.toLocaleString()}`}
-              </Typography>
+              </Box>
               <Stack spacing={1} sx={{ maxHeight: { xs: "none", sm: 360 }, overflow: "auto" }}>
                 {listState === "loading" ? (
                   <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>

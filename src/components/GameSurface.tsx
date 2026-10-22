@@ -21,13 +21,13 @@ import { useCompactPlay } from "./use-compact-play";
 interface GameSurfaceProps {
   /**
    * Whether this screen offers the controls at all. The server still decides
-   * who may actually pick — this only stops a screen from showing a button
+   * who may actually pick. This only stops a screen from showing a button
    * it knows would be refused.
    */
   interactive?: boolean;
   /**
    * Television layout: the board fills the screen, and the clue becomes a
-   * card you click through — question, answer, board — with no timer, buzzer
+   * card you click through (question, answer, board) with no timer, buzzer
    * or judging on it.
    */
   tv?: boolean;
@@ -39,7 +39,7 @@ interface GameSurfaceProps {
  *
  * Room wraps it in a toolbar and chat; a display shows it alone on a
  * television. It lives here so those two are the same thing rather than two
- * drawings of it — a board that looks different on the TV to the one in your
+ * drawings of it. A board that looks different on the TV to the one in your
  * hand is a board people argue about.
  */
 export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps) {
@@ -63,7 +63,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
   }, [introEndsAt]);
   const introVisible = Boolean(introEndsAt && now < introEndsAt);
 
-  // Contestants only. A spectator — a display on a TV, or someone watching —
+  // Contestants only. A spectator (a display on a TV, or someone watching)
   // has no score to show and no buzzer to light, so a lectern for them is
   // just an empty seat on the set.
   const unordered = useMemo(
@@ -137,7 +137,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
   );
 
   // Only whoever has the board picks. The host may stand in for a picker who
-  // has dropped off — never for a bot, whose pick is already on its way.
+  // has dropped off, never for a bot, whose pick is already on its way.
   const picker = publicState?.players.find((player) => player.id === publicState.pickerId);
   const hostMayPick =
     canHost &&
@@ -167,7 +167,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
     if (!openClueId || !interactive || tv) return;
     if (mayTakeFocus()) clueRegionRef.current?.focus({ preventScroll: true });
     // On a phone the clue, its clock and the buzz bar are sized to fit one
-    // screen together — so make sure that screen is the one showing.
+    // screen together, so make sure that screen is the one showing.
     if (compact) {
       const board = document.querySelector('[data-testid="board"]');
       const strip = document.querySelector('[data-testid="clue-controls"]');
@@ -260,7 +260,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
       <Box>
       {/* Over the lecterns, under the board: the board carries the clue,
           this strip carries the clock and everything anyone presses. A
-          television has neither — it is only ever the clue. */}
+          television has neither: it is only ever the clue. */}
       {publicState && interactive ? <GameAnnouncer state={publicState} selfId={selfId} /> : null}
       {publicState ? (
         <ClueControls state={publicState} currentClientId={selfId} />

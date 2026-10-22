@@ -9,7 +9,7 @@ import { expect, type Page } from "@playwright/test";
 export async function dismissOnboarding(page: Page) {
   const dismiss = page.getByRole("button", { name: "Let’s play" });
   await dismiss.click({ timeout: 10_000 }).catch(() => {
-    // Already dismissed for this browser profile — nothing to clear.
+    // Already dismissed for this browser profile, nothing to clear.
   });
   await expect(dismiss).toHaveCount(0);
 }

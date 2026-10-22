@@ -85,7 +85,6 @@ export function useBuilderDraft() {
     issues: GameDataIssue[];
   } | null>(null);
   const [pendingImport, setPendingImport] = useState<PendingImport | null>(null);
-  const [savedAt, setSavedAt] = useState<number | null>(null);
 
   // Autosave, debounced, and flushed when the dialog closes.
   const latest = useRef(draft);
@@ -96,7 +95,6 @@ export function useBuilderDraft() {
     const timer = setTimeout(() => {
       saveDraft(draft);
       dirty.current = false;
-      setSavedAt(Date.now());
     }, 400);
     return () => clearTimeout(timer);
   }, [draft, saveDraft]);
@@ -283,7 +281,6 @@ export function useBuilderDraft() {
     publishing,
     publishError,
     shareUrl,
-    savedAt,
     hasPublishedLink,
     importReport,
     dismissImportReport: () => setImportReport(null),

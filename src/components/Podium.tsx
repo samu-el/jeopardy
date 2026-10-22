@@ -28,7 +28,7 @@ interface PodiumProps {
    * A lectern is one height, always. Reserving it only while a clue was up
    * meant the whole row grew the moment one opened; reserving it only on
    * your own lectern meant yours stood taller than everyone else's. The
-   * space is small enough to carry all the time — which is why the buttons
+   * space is small enough to carry all the time, which is why the buttons
    * inside it are as tight as they are.
    */
   reserveControls?: boolean;
@@ -40,7 +40,7 @@ interface PodiumProps {
 }
 
 /** Two stacked buttons and the gap above them. Kept deliberately mean:
- *  every lectern carries this whether it has buttons or not — but each key
+ *  every lectern carries this whether it has buttons or not, but each key
  *  is still a 28px target, and 44px on a touch screen. */
 export const podiumControlsHeight = { base: 66, coarse: 98 };
 

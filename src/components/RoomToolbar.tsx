@@ -73,7 +73,7 @@ export function RoomToolbar({
   const inGame = Boolean(runtime && publicState && publicState.round !== "lobby");
 
   // Leaving for real: hand the seat back rather than holding a socket open
-  // behind the landing page — asked first while a game is on. The wordmark
+  // behind the landing page, asked first while a game is on. The wordmark
   // and the Leave key do the same.
   const leave = goHome;
 
@@ -109,7 +109,7 @@ export function RoomToolbar({
   }
 
   return (
-    // Three columns on a wide screen — mark, room, keys — so the room
+    // Three columns on a wide screen (mark, room, keys) so the room
     // housing sits on the board's centre line rather than trailing the
     // mark. A phone stacks it: the mark centred on top, the two housings
     // side by side and centred beneath it. Nothing hangs off one edge.
@@ -306,7 +306,7 @@ export function RoomToolbar({
  *
  * It deliberately does not open a second one. A new tab is a new client with
  * no seat and no host chair, which makes for a board nobody standing at the
- * screen can actually run — and running it from the screen is the point.
+ * screen can actually run, and running it from the screen is the point.
  * Same client, same seat, same authority: plug this machine into the TV, or
  * cast the tab, and click the board where everyone can see it.
  *
@@ -334,7 +334,7 @@ function DisplayButton() {
 
 /**
  * One key in the toolbar housing: a round well that lights when the pointer
- * is over it. Flat on purpose — five raised keys in a row is a keyboard,
+ * is over it. Flat on purpose: five raised keys in a row is a keyboard,
  * and this is a strip of switches.
  */
 function ToolKey({ title, sx, children, ...props }: IconButtonProps & { title: string }) {

@@ -20,7 +20,7 @@ export interface RoomSnapshot {
 }
 
 /**
- * Where rooms live between restarts. Every method is allowed to fail — a
+ * Where rooms live between restarts. Every method is allowed to fail: a
  * store outage degrades the app to in-memory rooms rather than taking play
  * down, so callers treat errors as "not stored".
  */

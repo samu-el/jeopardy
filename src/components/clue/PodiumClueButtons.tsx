@@ -27,7 +27,7 @@ interface PodiumClueButtonsProps {
  * The buttons you press: BUZZ, and the host's Reveal and Next.
  *
  * The buzzer rings in on pointer-down, not on release, so a tap is timed
- * when the finger lands — the same moment a keyboard player's Space is.
+ * when the finger lands: the same moment a keyboard player's Space is.
  */
 export function PodiumClueButtons({
   state,
@@ -39,7 +39,7 @@ export function PodiumClueButtons({
   const { clue, send, canIBuzz } = turn;
   const [attempt, setAttempt] = useState<{ clueId: string; at: number } | null>(null);
 
-  // Take focus when the buzzer opens — unless you are busy elsewhere (typing
+  // Take focus when the buzzer opens, unless you are busy elsewhere (typing
   // in chat, in a settings panel). Driven by the client's own view of the
   // clock: the snapshot's `canBuzz` was worked out before the readout ended.
   useEffect(() => {

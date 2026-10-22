@@ -10,6 +10,7 @@ import Switch from "@mui/material/Switch";
 import Typography from "@mui/material/Typography";
 import { ui } from "@/lib/foundation/jeopardy-style";
 import { useGameStore } from "@/lib/state/game-store";
+import { useRoomRole } from "./use-room-role";
 
 interface ShortcutsOverlayProps {
   open: boolean;
@@ -19,14 +20,14 @@ interface ShortcutsOverlayProps {
 interface Shortcut {
   key: string;
   label: string;
-  /** Only does anything for the player running the room. */
+  /** Only does anything for the player running the room, so only listed for them. */
   hostOnly?: boolean;
   /** A single character key, switched off with the setting below. */
   single?: boolean;
 }
 
 const SHORTCUTS: Shortcut[] = [
-  { key: "Space", label: "Ring in — early costs you a lockout" },
+  { key: "Space", label: "Ring in" },
   { key: "Enter", label: "Send your answer or wager" },
   { key: "Alt + M", label: "Answer by voice" },
   { key: "R", label: "Reveal the response", hostOnly: true, single: true },
@@ -40,6 +41,8 @@ const SHORTCUTS: Shortcut[] = [
 export function ShortcutsOverlay({ open, onClose }: ShortcutsOverlayProps) {
   const enabled = useGameStore((s) => s.preferences.shortcutsEnabled !== false);
   const setPreference = useGameStore((s) => s.setPreference);
+  const { isRoomHost } = useRoomRole();
+  const shown = SHORTCUTS.filter((entry) => isRoomHost || !entry.hostOnly);
   useEffect(() => {
     if (!open) return;
     function onKey(event: KeyboardEvent) {
@@ -55,11 +58,8 @@ export function ShortcutsOverlay({ open, onClose }: ShortcutsOverlayProps) {
         <Typography variant="overline" component="h2" id="shortcuts-title">
           Keyboard shortcuts
         </Typography>
-        <Typography variant="body2" sx={{ color: ui.inkMuted, mt: 0.5 }}>
-          Space rings in when focus is on the board or the clue, not on a button or a field.
-        </Typography>
         <Stack spacing={1} sx={{ mt: 1 }}>
-          {SHORTCUTS.map((entry) => (
+          {shown.map((entry) => (
             <Stack
               key={entry.key}
               direction="row"
@@ -71,14 +71,6 @@ export function ShortcutsOverlay({ open, onClose }: ShortcutsOverlayProps) {
                 sx={{ color: entry.single && !enabled ? ui.inkMuted : ui.ink }}
               >
                 {entry.label}
-                {entry.hostOnly ? (
-                  <Box
-                    component="span"
-                    sx={{ ml: 0.75, fontSize: 10, color: ui.gold, letterSpacing: "0.1em" }}
-                  >
-                    HOST
-                  </Box>
-                ) : null}
               </Typography>
               <Box
                 sx={{
@@ -97,16 +89,19 @@ export function ShortcutsOverlay({ open, onClose }: ShortcutsOverlayProps) {
             </Stack>
           ))}
         </Stack>
-        <FormControlLabel
-          sx={{ mt: 2 }}
-          control={
-            <Switch
-              checked={enabled}
-              onChange={(_, value) => setPreference("shortcutsEnabled", value)}
-            />
-          }
-          label="Single-key shortcuts (R, Y, N, S)"
-        />
+        {/* Every single-key shortcut is the host's, so only the host gets the switch. */}
+        {isRoomHost ? (
+          <FormControlLabel
+            sx={{ mt: 2 }}
+            control={
+              <Switch
+                checked={enabled}
+                onChange={(_, value) => setPreference("shortcutsEnabled", value)}
+              />
+            }
+            label="Single-key shortcuts"
+          />
+        ) : null}
       </DialogContent>
     </Dialog>
   );

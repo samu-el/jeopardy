@@ -23,15 +23,15 @@ interface TvResultsProps {
  * The end of the game, on the television.
  *
  * The climax the whole room is watching: the winner (or winners) large, a
- * podium of the top three, the full standings, and — when this screen saw
- * Final Jeopardy — what each contestant wrote and wagered. Contestants only:
+ * podium of the top three, the full standings, and (when this screen saw
+ * Final Jeopardy) what each contestant wrote and wagered. Contestants only:
  * a television is never a player.
  */
 export function TvResults({ state, reducedMotion }: TvResultsProps) {
   const { standings, winners, tie } = computeResults(state);
   const final = getFinalRecord(state);
   const podium = standings.slice(0, 3);
-  // Silver, gold, bronze — the winner in the middle, the way a podium stands.
+  // Silver, gold, bronze: the winner in the middle, the way a podium stands.
   const podiumOrder = podium.length === 3 ? [podium[1], podium[0], podium[2]] : podium;
   const rise = reducedMotion
     ? {}

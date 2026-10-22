@@ -150,8 +150,8 @@ function storeListeners(set: StoreSet, get: StoreGet) {
  * Deal the board into a room that already exists: the clues, the settings
  * this lobby chose, the bots that aren't seated yet, then go.
  *
- * Both paths into a game run this — the one that opens a fresh room and the
- * one that reuses a room already on screen — and they used to be two copies
+ * Both paths into a game run this (the one that opens a fresh room and the
+ * one that reuses a room already on screen), and they used to be two copies
  * that drifted a setting apart.
  */
 export function dealBoard(
@@ -174,7 +174,7 @@ export function dealBoard(
 
   if (runtime instanceof NetworkRoomRuntime) {
     // `load-game` keeps the players it finds, so only bots the room has never
-    // seen need seating — a reconnect must not clone the whole roster.
+    // seen need seating: a reconnect must not clone the whole roster.
     const seated =
       options.seatBots === "missing"
         ? new Set((publicState?.players ?? []).map((player) => player.id))
@@ -202,8 +202,8 @@ export const roomConnectGraceMs = 6_000;
 
 /**
  * If a room has never connected once the grace runs out, say so and offer to
- * play offline. This used to swap the room for a local one on its own — on a
- * blip, or when a second tab took the seat — leaving guests with a host who
+ * play offline. This used to swap the room for a local one on its own (on a
+ * blip, or when a second tab took the seat), leaving guests with a host who
  * was OFFLINE for good.
  */
 export function watchForUnreachableRoom(set: StoreSet, get: StoreGet, roomId: string) {

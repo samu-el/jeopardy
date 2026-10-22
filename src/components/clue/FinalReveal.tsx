@@ -44,7 +44,7 @@ export function FinalReveal({ state }: { state: PublicGameState }) {
             {entry.name}
           </Typography>
           <Typography component="span" sx={{ color: jeopardyPalette.goldBright, fontWeight: 700 }}>
-            {entry.answer || "—"}
+            {entry.answer || "No answer"}
           </Typography>
           {entry.wager !== undefined ? (
             <Typography component="span" sx={{ fontSize: 12, color: jeopardyPalette.gold }}>

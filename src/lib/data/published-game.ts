@@ -155,7 +155,7 @@ export function publishedGameToNormalized(game: PublishedGame): NormalizedGame {
 const idAlphabet = "abcdefghjkmnpqrstuvwxyz23456789";
 
 /**
- * Ten characters from a 31-character alphabet — roughly 50 bits. A share link
+ * Ten characters from a 31-character alphabet, roughly 50 bits. A share link
  * is the only thing protecting a game, so the id has to be unguessable rather
  * than merely unique.
  */

@@ -46,7 +46,7 @@ const answerInputHints = {
  * The clock and the things you type: the countdown, the answer, the wager,
  * and the host's judging.
  *
- * The buttons live on your lectern (`PodiumClueButtons`) — or, on a phone, in
+ * The buttons live on your lectern (`PodiumClueButtons`) or, on a phone, in
  * the bar along the bottom. What is left here is what a lectern has no room
  * for: a progress bar, a text field, and a row about somebody else's answer.
  */
@@ -190,8 +190,8 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
       />
 
       {!answerRevealed ? (
-        // One instrument: the lamps, the countdown and — while the clock is
-        // yours — the answer field share a housing.
+        // One instrument: the lamps, the countdown and (while the clock is
+        // yours) the answer field share a housing.
         <BuzzLights
           remaining={turn.lightsRemaining}
           reducedMotion={reducedMotion}
@@ -248,7 +248,7 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
           data-testid="final-spectating"
           sx={{ color: ui.inkMuted, textAlign: "center", maxWidth: 420 }}
         >
-          Final Jeopardy is for players above $0 — you&rsquo;re watching this one.
+          Watching Final Jeopardy
         </Typography>
       ) : null}
 

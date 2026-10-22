@@ -42,7 +42,7 @@ function labelOf(options: { id: string; label: string }[], id: string | undefine
   return options.find((entry) => entry.id === id)?.label;
 }
 
-/** "No Kids episodes from the 80s" — what a filter combination found nothing for. */
+/** "No Kids episodes from the 80s": what a filter combination found nothing for. */
 export function describeEmptyFilter(theme?: string, decade?: string): string {
   const themeLabel = theme && theme !== "all" ? labelOf(themeOptions, theme) : undefined;
   const decadeLabel = decade && decade !== "all" ? labelOf(decadeOptions, decade) : undefined;

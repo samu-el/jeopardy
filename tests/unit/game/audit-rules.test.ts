@@ -161,7 +161,7 @@ describe("[P0] spectators and displays are never contestants", () => {
     const over = { ...s, round: "complete" as const, activeClue: undefined };
     const results = getPublicGameState(over, 900).results!;
     expect(results.leaders).toEqual(["zed", "amy"]);
-    // Nobody finished in the black, so nobody won — least of all the TV.
+    // Nobody finished in the black, so nobody won, least of all the TV.
     expect(results.winners).toEqual([]);
   });
 

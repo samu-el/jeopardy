@@ -22,9 +22,7 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForwardOutlined";
 import EditNoteIcon from "@mui/icons-material/EditNoteOutlined";
 import LoginIcon from "@mui/icons-material/LoginOutlined";
 import PersonIcon from "@mui/icons-material/PersonOutlined";
-import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOverOutlined";
 import SmartToyIcon from "@mui/icons-material/SmartToyOutlined";
-import TvIcon from "@mui/icons-material/TvOutlined";
 import { baselineBotProfiles } from "@/lib/ai/profiles";
 import { primeAudio, primeSpeech } from "@/lib/ai";
 import { defaultPlayerName, useGameStore } from "@/lib/state/game-store";
@@ -33,7 +31,6 @@ import {
   hasImpossibleCharacters,
   isCompleteRoomCode,
   parseInviteInput,
-  roomCodeLength,
 } from "@/lib/realtime/invite-code";
 import {
   controls,
@@ -131,11 +128,9 @@ export function Landing() {
   const inviteArriving = useInviteArriving(pendingRoomId);
   const stillInRoom = online && online.status !== "rejected" ? online : null;
   const codeReady = isCompleteRoomCode(codeInput);
-  const codeHint = hasImpossibleCharacters(codeInput)
+  const codeError = hasImpossibleCharacters(codeInput)
     ? "Codes never use I, O, 0 or 1"
-    : codeInput.length > 0 && codeInput.length < roomCodeLength
-      ? `${roomCodeLength} characters`
-      : " ";
+    : undefined;
 
   /** Hands back a seat still held from an earlier room, staying on this page. */
   function leaveLingeringRoom() {
@@ -144,7 +139,7 @@ export function Landing() {
     setScreen("landing");
   }
 
-  /** One click straight onto a board — no picker, no settings detour. */
+  /** One click straight onto a board: no picker, no settings detour. */
   async function newGame() {
     primeAudio();
     primeSpeech();
@@ -242,9 +237,9 @@ export function Landing() {
         maxWidth="lg"
         sx={{ flex: 1, display: "flex", flexDirection: "column" }}
       >
-        {/* Wide screens: the mark and what the game offers on the left, the two
-            ways in on the right, both centred on the same line. Phones: one
-            column, mark first, then the keys, then the notes. */}
+        {/* Wide screens: the mark and the builder on the left, the two ways in
+            on the right, both centred on the same line. Phones: one column,
+            mark first, then the keys, then the builder. */}
         <Box
           component="section"
           aria-labelledby="landing-title"
@@ -256,8 +251,8 @@ export function Landing() {
               md: "minmax(0, 1fr) minmax(0, 360px)",
             },
             gridTemplateAreas: {
-              xs: '"brand" "actions" "features"',
-              md: '"brand actions" "features actions"',
+              xs: '"brand" "actions" "build"',
+              md: '"brand actions" "build actions"',
             },
             gridTemplateRows: { md: "1fr 1fr" },
             columnGap: { md: 8, lg: 12 },
@@ -280,17 +275,6 @@ export function Landing() {
             <Typography component="h1" id="landing-title" sx={{ m: 0, lineHeight: 0 }}>
               {/* The mark is an image named "Jeopardy!", which names the heading. */}
               <Wordmark size="xl" />
-            </Typography>
-            <Typography
-              sx={{
-                color: ui.inkMuted,
-                fontSize: { xs: 17, md: 21 },
-                maxWidth: 520,
-                lineHeight: 1.45,
-              }}
-            >
-              Thousands of real games from the archive. Play solo, against bots, or with
-              a room full of friends.
             </Typography>
           </Box>
 
@@ -365,23 +349,34 @@ export function Landing() {
                   textAlign: "left",
                 }}
               >
-                <Box>
-                  <Typography sx={eyebrowSx}>Joining room</Typography>
-                  <Typography
-                    component="h2"
-                    id="join-card-title"
+                <Typography
+                  component="h2"
+                  id="join-card-title"
+                  sx={{
+                    fontFamily: jeopardyFonts.display,
+                    color: ui.ink,
+                    fontSize: { xs: 22, sm: 24 },
+                    fontWeight: 700,
+                    lineHeight: 1,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.02em",
+                    display: "flex",
+                    alignItems: "baseline",
+                    gap: 1.5,
+                  }}
+                >
+                  Join
+                  <Box
+                    component="span"
                     sx={{
-                      fontFamily: jeopardyFonts.display,
                       color: ui.goldBright,
                       fontSize: { xs: 36, sm: 40 },
-                      fontWeight: 700,
-                      lineHeight: 1,
                       letterSpacing: "0.18em",
                     }}
                   >
                     {pendingRoomId}
-                  </Typography>
-                </Box>
+                  </Box>
+                </Typography>
                 <LandingField label="Your name" htmlFor="join-card-name">
                   <InputBase
                     id="join-card-name"
@@ -465,7 +460,6 @@ export function Landing() {
                 >
                   <LandingPanel
                     tone="board"
-                    eyebrow="Host"
                     title="Start a new game"
                     titleId="landing-host-title"
                     onSubmit={() => {
@@ -566,7 +560,6 @@ export function Landing() {
 
                   <LandingPanel
                     tone="surface"
-                    eyebrow="Join"
                     title="Join a room"
                     titleId="landing-join-title"
                     noValidate
@@ -575,13 +568,8 @@ export function Landing() {
                     <LandingField
                       label="Room code"
                       htmlFor="landing-room-code"
-                      hint={
-                        codeHint.trim()
-                          ? codeHint
-                          : "Ask the host for their 4-character code."
-                      }
-                      hintId="landing-room-code-hint"
-                      error={hasImpossibleCharacters(codeInput)}
+                      error={codeError}
+                      errorId="landing-room-code-error"
                     >
                       <InputBase
                         id="landing-room-code"
@@ -591,11 +579,12 @@ export function Landing() {
                         onChange={(event) =>
                           setCodeInput(parseInviteInput(event.target.value))
                         }
-                        error={hasImpossibleCharacters(codeInput)}
+                        error={Boolean(codeError)}
                         inputProps={{
-                          "aria-describedby": "landing-room-code-hint",
-                          "aria-invalid":
-                            hasImpossibleCharacters(codeInput) || undefined,
+                          "aria-describedby": codeError
+                            ? "landing-room-code-error"
+                            : undefined,
+                          "aria-invalid": Boolean(codeError) || undefined,
                           autoCapitalize: "characters",
                           autoCorrect: "off",
                           autoComplete: "off",
@@ -623,37 +612,16 @@ export function Landing() {
 
           <Box
             sx={{
-              gridArea: "features",
+              gridArea: "build",
               alignSelf: { md: "start" },
               display: "flex",
               flexDirection: "column",
               alignItems: { xs: "stretch", md: "flex-start" },
-              gap: 3,
               width: "100%",
               maxWidth: { xs: 480, md: 520 },
               justifySelf: { xs: "center", md: "start" },
             }}
           >
-            <Box
-              component="ul"
-              sx={{ m: 0, p: 0, listStyle: "none", display: "grid", gap: 2.25 }}
-            >
-              <LandingFeature
-                icon={<RecordVoiceOverIcon />}
-                title="Every clue read aloud"
-                body="Turn Sound on in Settings and the host reads the board."
-              />
-              <LandingFeature
-                icon={<SmartToyIcon />}
-                title="Bots that play"
-                body="Pick “Add a bot”, or add any of four tiers from Players. They buzz, answer and wager."
-              />
-              <LandingFeature
-                icon={<TvIcon />}
-                title="Play with friends"
-                body="Share the room code. Put the board on a TV."
-              />
-            </Box>
             <Button
               variant="text"
               startIcon={<EditNoteIcon />}
@@ -681,59 +649,6 @@ export function Landing() {
           onBeforeDeal={leaveLingeringRoom}
         />
       ) : null}
-    </Box>
-  );
-}
-
-function LandingFeature({
-  icon,
-  title,
-  body,
-}: {
-  icon: ReactNode;
-  title: string;
-  body: string;
-}) {
-  return (
-    <Box
-      component="li"
-      sx={{ display: "flex", gap: 2, alignItems: "flex-start", textAlign: "left" }}
-    >
-      <Box
-        aria-hidden
-        sx={{
-          flex: "none",
-          display: "grid",
-          placeItems: "center",
-          width: 40,
-          height: 40,
-          borderRadius: "10px",
-          color: ui.goldBright,
-          background: ui.goldTint,
-          border: "1px solid rgba(242,193,78,0.28)",
-          "& svg": { fontSize: 22 },
-        }}
-      >
-        {icon}
-      </Box>
-      <Box>
-        <Typography
-          component="h2"
-          sx={{
-            fontFamily: jeopardyFonts.display,
-            fontSize: 17,
-            fontWeight: 700,
-            letterSpacing: "0.04em",
-            textTransform: "uppercase",
-            color: ui.ink,
-          }}
-        >
-          {title}
-        </Typography>
-        <Typography variant="body2" sx={{ color: ui.inkMuted, mt: 0.25 }}>
-          {body}
-        </Typography>
-      </Box>
     </Box>
   );
 }
@@ -857,19 +772,9 @@ function panelSx(tone: "board" | "surface") {
   } as const;
 }
 
-const eyebrowSx = {
-  fontFamily: jeopardyFonts.display,
-  color: ui.goldBright,
-  fontSize: 11,
-  fontWeight: 700,
-  letterSpacing: "0.2em",
-  textTransform: "uppercase",
-} as const;
-
 /** One of the two ways in: a card with its own form. */
 function LandingPanel({
   tone,
-  eyebrow,
   title,
   titleId,
   noValidate,
@@ -877,7 +782,6 @@ function LandingPanel({
   children,
 }: {
   tone: "board" | "surface";
-  eyebrow: string;
   title: string;
   titleId: string;
   noValidate?: boolean;
@@ -896,24 +800,21 @@ function LandingPanel({
       }}
       sx={panelSx(tone)}
     >
-      <Box>
-        <Typography sx={eyebrowSx}>{eyebrow}</Typography>
-        <Typography
-          component="h2"
-          id={titleId}
-          sx={{
-            fontFamily: jeopardyFonts.display,
-            color: ui.ink,
-            fontSize: { xs: 22, sm: 24 },
-            fontWeight: 700,
-            lineHeight: 1.1,
-            textTransform: "uppercase",
-            letterSpacing: "0.02em",
-          }}
-        >
-          {title}
-        </Typography>
-      </Box>
+      <Typography
+        component="h2"
+        id={titleId}
+        sx={{
+          fontFamily: jeopardyFonts.display,
+          color: ui.ink,
+          fontSize: { xs: 22, sm: 24 },
+          fontWeight: 700,
+          lineHeight: 1.1,
+          textTransform: "uppercase",
+          letterSpacing: "0.02em",
+        }}
+      >
+        {title}
+      </Typography>
       <Box
         className="landing-panel-body"
         sx={{
@@ -930,22 +831,20 @@ function LandingPanel({
   );
 }
 
-/** A visible label over its control, plus an optional hint under it. */
+/** A visible label over its control, plus what's wrong with it when something is. */
 function LandingField({
   label,
   htmlFor,
   id,
-  hint,
-  hintId,
   error,
+  errorId,
   children,
 }: {
   label: string;
   htmlFor?: string;
   id?: string;
-  hint?: string;
-  hintId?: string;
-  error?: boolean;
+  error?: string;
+  errorId?: string;
   children: ReactNode;
 }) {
   return (
@@ -964,13 +863,9 @@ function LandingField({
         {label}
       </Box>
       {children}
-      {hint ? (
-        <Typography
-          id={hintId}
-          variant="caption"
-          sx={{ color: error ? ui.red : ui.inkFaint, minHeight: "1.25em" }}
-        >
-          {hint}
+      {error ? (
+        <Typography id={errorId} variant="caption" sx={{ color: ui.red }}>
+          {error}
         </Typography>
       ) : null}
     </Box>

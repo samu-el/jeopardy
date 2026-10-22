@@ -9,7 +9,7 @@ test.describe("Clue controls", () => {
   test("plays a whole clue from the keyboard alone", async ({ page }) => {
     await openClue(page);
 
-    // Space rings in — no pointer involved.
+    // Space rings in, no pointer involved.
     await page.keyboard.press("Space");
     await expect(page.getByTestId("buzzer")).toHaveText("IN!", { timeout: 15_000 });
 
@@ -34,7 +34,7 @@ test.describe("Clue controls", () => {
     expect(before).not.toBeNull();
     expect(Math.abs((await buzzerCentre())! - before!)).toBeLessThan(2);
 
-    // Enter sends it — and with the only player who rang in answered, the
+    // Enter sends it, and with the only player who rang in answered, the
     // answer comes up at once rather than when the clock runs out. Y scores
     // it, and the board comes back.
     await page.keyboard.press("Enter");
@@ -50,11 +50,12 @@ test.describe("Clue controls", () => {
     await openClue(page);
 
     await page.keyboard.press("?");
-    await expect(page.getByText("Ring in — early costs you a lockout")).toBeVisible();
-    await expect(page.getByText("Answer by voice")).toBeVisible();
+    const overlay = page.getByRole("dialog", { name: "Keyboard shortcuts" });
+    await expect(overlay.getByText("Ring in", { exact: true })).toBeVisible();
+    await expect(overlay.getByText("Answer by voice")).toBeVisible();
 
     await page.keyboard.press("Escape");
-    await expect(page.getByText("Ring in — early costs you a lockout")).toBeHidden();
+    await expect(overlay).toBeHidden();
   });
 
   test("dictation fills the answer and sends it", async ({ page }) => {
@@ -258,7 +259,7 @@ test.describe("Clue controls", () => {
 
     // Focus moved from the square into the clue, and the live region said it.
     await expect(page.getByTestId("clue-region")).toBeFocused({ timeout: 5_000 }).catch(async () => {
-      // Once the buzzer opens it takes focus from the clue — also on the surface.
+      // Once the buzzer opens it takes focus from the clue, also on the surface.
       await expect(page.getByTestId("buzzer")).toBeFocused();
     });
     await expect(page.getByTestId("clue-region")).toHaveAttribute("aria-label", /\$200/);
