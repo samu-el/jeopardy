@@ -73,7 +73,7 @@ export function Podium({
   // ring-in, so a wrong answer shows red rather than simply going dark.
   const lit = isBuzzed || (judgeResult !== undefined && judgeResult !== null);
   const verdictLabel =
-    judgeResult === true ? "CORRECT" : judgeResult === false ? "WRONG" : null;
+    judgeResult === true ? "Correct" : judgeResult === false ? "Wrong" : null;
   const summary = [
     isYou ? `${player.displayName} (you)` : player.displayName,
     formatScore(player.score),
@@ -95,10 +95,10 @@ export function Podium({
         : isFirstBuzzer
           ? jeopardyPalette.buzzLight
           : isBuzzed
-            ? "rgba(255,255,255,0.4)"
+            ? ui.inkFaint
             : "transparent";
 
-  const accent = color ?? (isYou ? jeopardyPalette.podiumEdge : ui.lineStrong);
+  const accent = color ?? (isYou ? ui.blueText : ui.lineStrong);
 
   return (
     <Box
@@ -113,12 +113,16 @@ export function Podium({
         display: "flex",
         flexDirection: "column",
         opacity: player.connected ? 1 : 0.55,
-        filter: isFirstBuzzer
-          ? "drop-shadow(0 0 14px rgba(255,255,255,0.5))"
+        // The first to ring in gets a white edge, the picker a gold one:
+        // drawn as an outline, never a glow.
+        outline: isFirstBuzzer
+          ? `2px solid ${jeopardyPalette.buzzLight}`
           : isPicker
-            ? `drop-shadow(0 0 10px ${jeopardyPalette.gold}66)`
-            : "none",
-        transition: reducedMotion ? "none" : "filter 160ms ease, opacity 200ms ease",
+            ? `2px solid ${ui.goldBright}`
+            : "2px solid transparent",
+        outlineOffset: "3px",
+        borderRadius: "8px",
+        transition: reducedMotion ? "none" : "outline-color 120ms ease-out, opacity 200ms ease-out",
       }}
     >
       {(emoji || color) && (
@@ -133,8 +137,8 @@ export function Podium({
             width: 32,
             height: 32,
             borderRadius: "50%",
-            background: color ?? "rgba(255,255,255,0.08)",
-            border: "2px solid #000",
+            background: color ?? ui.surfaceRaised,
+            border: `2px solid ${ui.stage}`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -148,27 +152,25 @@ export function Podium({
       <Box
         sx={{
           position: "relative",
-          background: `linear-gradient(180deg, ${jeopardyPalette.podium} 0%, #0A0D3A 100%)`,
-          borderTop: `2px solid ${accent}`,
+          background: ui.surface,
+          borderTop: `3px solid ${accent}`,
           borderLeft: `1px solid ${ui.line}`,
           borderRight: `1px solid ${ui.line}`,
-          borderRadius: "6px 6px 2px 2px",
+          borderBottom: `1px solid ${ui.line}`,
+          borderRadius: "8px",
           px: 1,
           pt: emoji || color ? 2.25 : 1,
           pb: 1.25,
           textAlign: "center",
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10), inset 0 -2px 10px rgba(0,0,0,0.55)",
         }}
       >
         <Typography
           noWrap
           sx={{
-            fontFamily: jeopardyFonts.display,
-            color: "rgba(255,255,255,0.92)",
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
+            color: ui.ink,
             fontWeight: 600,
-            fontSize: { xs: 10, sm: 12 },
+            fontSize: { xs: 13, sm: 14 },
+            lineHeight: 1.3,
             mb: 0.75,
           }}
         >
@@ -236,33 +238,15 @@ export function Podium({
 
       <Box
         aria-hidden
-        sx={{
-          height: 14,
-          background: "linear-gradient(180deg, #0A0D3A 0%, #04061F 100%)",
-          clipPath: "polygon(6% 0, 94% 0, 100% 100%, 0 100%)",
-        }}
-      />
-
-      <Box
-        aria-hidden
         data-testid={`buzz-light-${player.id}`}
         sx={{
-          mt: 0.5,
+          mt: 0.75,
           mx: "auto",
           width: "62%",
           height: 6,
           borderRadius: 99,
-          background: lit ? lightColor : "rgba(255,255,255,0.05)",
-          boxShadow: lit ? `0 0 16px 2px ${lightColor}` : "inset 0 0 0 1px rgba(255,255,255,0.04)",
-          transition: reducedMotion ? "none" : "background 120ms ease, box-shadow 120ms ease",
-          animation:
-            isFirstBuzzer && judgeResult === undefined && !reducedMotion
-              ? "podium-pulse 0.7s ease-in-out infinite"
-              : "none",
-          "@keyframes podium-pulse": {
-            "0%, 100%": { opacity: 1 },
-            "50%": { opacity: 0.45 },
-          },
+          background: lit ? lightColor : ui.line,
+          transition: reducedMotion ? "none" : "background-color 120ms ease-out",
         }}
       />
 
@@ -276,15 +260,16 @@ export function Podium({
         aria-hidden
         sx={{
           mt: 0.6,
-          minHeight: 11,
+          minHeight: 16,
           justifyContent: "center",
           flexWrap: "wrap",
-          fontFamily: jeopardyFonts.display,
-          letterSpacing: "0.1em",
-          fontSize: 10,
+          columnGap: 1,
+          fontSize: 12,
+          fontWeight: 600,
+          lineHeight: 1.3,
         }}
       >
-        {isYou ? <Box sx={{ color: ui.ink, fontWeight: 700 }}>YOU</Box> : null}
+        {isYou ? <Box sx={{ color: ui.ink, fontWeight: 700 }}>You</Box> : null}
         {buzzPosition !== undefined ? (
           <Box sx={{ color: ui.ink }}>{ordinal(buzzPosition)}</Box>
         ) : null}
@@ -299,14 +284,14 @@ export function Podium({
             {verdictLabel}
           </Box>
         ) : null}
-        {isHost ? <Box sx={{ color: jeopardyPalette.gold }}>HOST</Box> : null}
-        {isPicker ? <Box sx={{ color: jeopardyPalette.goldBright }}>PICKS</Box> : null}
-        {lockedOut ? <Box sx={{ color: jeopardyPalette.incorrect }}>LOCKED</Box> : null}
+        {isHost ? <Box sx={{ color: ui.inkMuted }}>Host</Box> : null}
+        {isPicker ? <Box sx={{ color: ui.goldBright }}>Picks</Box> : null}
+        {lockedOut ? <Box sx={{ color: jeopardyPalette.incorrect }}>Locked</Box> : null}
         {player.spectator ? (
-          <Box sx={{ color: ui.inkMuted }}>SPECTATOR</Box>
+          <Box sx={{ color: ui.inkMuted }}>Spectator</Box>
         ) : null}
         {!player.connected ? (
-          <Box sx={{ color: ui.inkMuted }}>OFFLINE</Box>
+          <Box sx={{ color: ui.inkMuted }}>Offline</Box>
         ) : null}
       </Stack>
     </Box>

@@ -100,7 +100,7 @@ export function ConnectionBanner() {
         right: 0,
         zIndex: 20,
         pointerEvents: "none",
-        background: rejected ? "rgba(140,20,32,0.96)" : ui.surface,
+        background: rejected ? ui.incorrectFill : ui.surface,
         borderTop: `1px solid ${ui.lineStrong}`,
         px: 2,
         py: 1,

@@ -17,12 +17,12 @@ export const goldScale = {
  * as "the board" pulls its colours and type from here.
  */
 export const jeopardyPalette = {
-  /** The board blue. */
+  /** The board blue: the brand, and the surface the board, the clue and the landing stand on. */
   board: "#060CE9",
   boardDeep: "#0409A8",
   boardShade: "#03066B",
-  /** Gaps between cells, and the studio surround. */
-  gap: "#000000",
+  /** Gaps between cells: the black seams of the set, tinted to the stage. */
+  gap: "#03041A",
   /** Dollar values and the Daily Double wager prompt (burnished gold). */
   goldDeep: goldScale.deep,
   goldBright: goldScale.bright,
@@ -31,10 +31,10 @@ export const jeopardyPalette = {
    * bright one. Use `goldDeep` (same value) instead.
    */
   gold: goldScale.deep,
-  categoryText: "#FFFFFF",
-  clueText: "#FFFFFF",
+  categoryText: "#FAFAFF",
+  clueText: "#FAFAFF",
   /** Contestant score displays: white on black, red when negative. */
-  scorePositive: "#FFFFFF",
+  scorePositive: "#FAFAFF",
   scoreNegative: "#FF5A5A",
   podium: "#1A1E5B",
   podiumEdge: "#3D45B8",
@@ -45,7 +45,9 @@ export const jeopardyPalette = {
    * near-black is 6.2:1 and keeps the red itself unchanged.
    */
   onIncorrect: "#1A0003",
-  buzzLight: "#FFFFFF",
+  buzzLight: "#FAFAFF",
+  /** A value printed faintly on a ghost tile before a game is dealt (an overlay, so alpha). */
+  ghostValue: "rgba(214,159,76,0.16)",
 } as const;
 
 /**
@@ -73,65 +75,121 @@ export const jeopardyClueShadow = "0.04em 0.04em 0.02em rgba(0,0,0,0.6)";
  * Everything that is not the board.
  *
  * The board has its own colours above because it is a specific object with
- * a specific look. The rest of the app is the studio around it: a black
- * stage, panels in one deep blue, one blue for anything you can press, gold
- * for anything worth pointing at. Every component draws from this list and
- * nothing else. The last design had three colour systems arguing.
+ * a specific look. The rest of the app is the studio around it: a stage
+ * tinted toward the board's blue, panels one step lighter, gold for the one
+ * thing to press and for what is selected or focused. Every component draws
+ * from this list and nothing else. `design.md` at the repo root names the
+ * roles; `cssRoles` below writes them on `:root` for hand-written CSS.
+ *
+ * Every colour is solid hex so `contrast.ts` can test it; alpha is kept for
+ * overlays (tints, scrims) only.
  */
 export const ui = {
-  /** The page. */
-  stage: "#000000",
-  /** Panels, cards, dialogs, popovers, the chat, the lectern base. */
-  surface: "#0B0F2A",
-  /** A panel resting on a panel; hover on a surface. */
-  surfaceRaised: "#141A44",
-  line: "rgba(255,255,255,0.10)",
-  lineStrong: "rgba(255,255,255,0.22)",
-  ink: "#FFFFFF",
-  inkMuted: "rgba(255,255,255,0.64)",
+  /** The page: near-black, tinted toward the board blue. */
+  stage: "#080A1F",
+  /** Panels, dialogs, popovers, the chat, the lectern. */
+  surface: "#0F1333",
+  /** A key at rest; a panel resting on a panel; hover on a surface. */
+  surfaceRaised: "#181D49",
+  /** A hairline between rows and around panels. */
+  line: "#2A2F5E",
+  /** A field's edge and a key's outline: 3:1 or better on every surface. */
+  lineStrong: "#6E74A8",
+  ink: "#F5F6FF",
+  /** Secondary text. */
+  inkMuted: "#B9BDE0",
   /**
-   * The quietest text that still carries meaning: captions, "LOCKED",
-   * disabled labels. 0.40 was 3.7:1 on the surfaces; 0.54 clears 4.5:1 on
-   * every surface below (stage, surface, surfaceRaised, readout, keyOff).
+   * The quietest text that still carries meaning: captions, disabled
+   * labels. Clears 4.5:1 on every surface below (stage, surface,
+   * surfaceRaised, readout, keyOff).
    */
-  inkFaint: "rgba(255,255,255,0.54)",
-  /** The one interactive blue: buttons, links, focus, the wordmark. */
+  inkFaint: "#9DA2CC",
+  /** Hover wash on a surface (an overlay, so alpha). */
+  hoverTint: "rgba(185,189,224,0.10)",
+  /** A key that cannot be pressed right now. */
+  keyOff: "#11143A",
+  /**
+   * The old interactive blue. Gold is the signal now; blue stays for links
+   * on the stage and for the info tone.
+   */
   blue: "#4B5BFF",
   blueDeep: "#3444E6",
   blueTint: "rgba(75,91,255,0.16)",
-  /**
-   * The interactive blue when it is *text* on a dark surface (a selected
-   * tab, a link). `blue` itself is 3.4-3.8:1 there; this is 6.2:1 or better.
-   */
+  /** Blue as *text* on a dark surface: 6.2:1 or better. */
   blueText: "#8A96FF",
-  /** The one accent: values, the room code, what is lit right now. */
+  /** The one accent: the primary action, the selection, focus, the room code. */
   goldBright: goldScale.bright,
   goldDeep: goldScale.deep,
+  /** The primary key under the pointer. */
+  goldHover: "#F7CF6B",
   /**
    * @deprecated Ambiguous: this is the *bright* gold, while
    * `jeopardyPalette.gold` is the deep one. Use `goldBright` (same value).
    */
   gold: goldScale.bright,
   goldTint: "rgba(242,193,78,0.14)",
+  /** The focus ring, on every surface and on the board. */
+  focus: goldScale.bright,
   green: "#2FD07A",
   red: "#FF4E5B",
+  /** The red under the pointer. */
+  redHover: "#FF6E79",
+  /** The Incorrect key: a deeper red that carries light text (5.5:1). */
+  incorrectFill: "#C8102E",
+  incorrectFillHover: "#A50D26",
+  /** The Correct key under the pointer. */
+  greenHover: "#27B86B",
+  /** A negative score or a wrong ruling, as text on the stage or the board. */
+  negativeInk: "#FF9C9C",
+  /** A right ruling, as text on the board. */
+  positiveInk: "#B8F5C4",
   /** Text on a `red` fill: near-black, 6.2:1 (white would be 3.2:1). */
   onRed: "#1A0003",
   /** Text on a `gold` fill. */
   onGold: "#1A1200",
   /** Text on a `green` fill. */
   onGreen: "#03170C",
-  /** Corners. One radius for panels and controls; the board has none. */
+  /** Text on the board blue, and its quieter step (7:1). */
+  onBoard: "#FAFAFF",
+  onBoardMuted: "#D9DCFF",
+  /** A scrim laid over the board blue to set a block apart (an overlay). */
+  boardScrim: "rgba(3,6,107,0.55)",
+  /** The QR code stays black on white whatever the theme: scanners need it. */
+  qrDark: "#000000",
+  qrLight: "#FFFFFF",
+  /** Corners: controls, and the panels that hold them (concentric). */
   radius: 8,
+  radiusPanel: 12,
+} as const;
+
+/** The roles from `design.md`, as CSS custom properties on `:root`. */
+export const cssRoles = {
+  "--color-paper": ui.stage,
+  "--color-paper-2": ui.surface,
+  "--color-paper-3": ui.surfaceRaised,
+  "--color-ink": ui.ink,
+  "--color-ink-2": ui.inkMuted,
+  "--color-muted": ui.inkFaint,
+  "--color-rule": ui.line,
+  "--color-edge": ui.lineStrong,
+  "--color-accent": ui.goldBright,
+  "--color-accent-ink": ui.onGold,
+  "--color-focus": ui.focus,
+  "--color-field": jeopardyPalette.board,
+  "--color-error": ui.red,
+  "--color-success": ui.green,
+  "--font-display": jeopardyFonts.display,
+  "--font-body": jeopardyFonts.body,
+  "--font-outlier": jeopardyFonts.clue,
+  "--radius-control": `${ui.radius}px`,
+  "--radius-panel": `${ui.radiusPanel}px`,
 } as const;
 
 /**
- * The physical language for everything you press or read outside the board.
- *
- * A lectern has keys; a set has lamps and readouts. These give the chrome
- * the same build: a key has a lit top edge and a dark underside, a readout is
- * black glass set into the surface, a housing is the strip a row of keys is
- * mounted in. Every control in the studio is one of these.
+ * The physical language for everything you press or read outside the board,
+ * kept flat: a key is a raised fill and a hairline, a readout is the stage
+ * colour set into a surface. No bevels, inset highlights or glows; elevation
+ * is lightness.
  */
 export const controls = {
   /** A row of keys or readouts mounted together. */
@@ -153,50 +211,46 @@ export const controls = {
     margin: "6px 3px",
     background: ui.line,
   },
-  /** Black glass, set in: a score display, a text field, a code readout. */
+  /** A readout: a score, a text field, a code. The stage colour, set in. */
   readout: {
-    background: "#04061A",
+    background: "#05061A",
     border: `1px solid ${ui.lineStrong}`,
     borderRadius: "6px",
-    boxShadow: "inset 0 2px 6px rgba(0,0,0,0.65)",
+    boxShadow: "none",
   },
-  /** A dark key at rest. */
+  /** A key at rest. */
   key: {
-    background: "linear-gradient(180deg, #232A6B 0%, #161B4F 100%)",
-    border: "1px solid rgba(255,255,255,0.14)",
+    background: ui.surfaceRaised,
+    border: `1px solid ${ui.lineStrong}`,
     color: ui.ink,
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18), 0 1px 0 rgba(0,0,0,0.6)",
-    "&:hover": {
-      background: "linear-gradient(180deg, #2B3380 0%, #1B2160 100%)",
-      borderColor: "rgba(255,255,255,0.24)",
-    },
-    "&:active": { transform: "translateY(1px)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.1)" },
+    boxShadow: "none",
+    "&:hover": { background: "#21275A", borderColor: ui.inkMuted },
+    "&:active": { transform: "translateY(1px)" },
   },
-  /** The key that moves the game on. */
+  /** The key that moves the game on: gold, like the values on the board. */
   keyPrimary: {
-    background: `linear-gradient(180deg, #5C6BFF 0%, ${ui.blueDeep} 100%)`,
-    border: "1px solid rgba(255,255,255,0.18)",
-    color: ui.ink,
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.28), 0 1px 0 rgba(0,0,0,0.6)",
-    "&:hover": { background: `linear-gradient(180deg, #6B79FF 0%, ${ui.blue} 100%)` },
-    "&:active": { transform: "translateY(1px)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.14)" },
+    background: ui.goldBright,
+    border: `1px solid ${ui.goldBright}`,
+    color: ui.onGold,
+    boxShadow: "none",
+    "&:hover": { background: ui.goldHover, borderColor: ui.goldHover },
+    "&:active": { transform: "translateY(1px)" },
   },
-  /** The buzzer, armed: a red button you could feel for in the dark. */
+  /** The buzzer, armed: the only red control. */
   buzzer: {
-    background: "linear-gradient(180deg, #FF7070 0%, #E01E37 55%, #B0122A 100%)",
-    border: "1px solid rgba(255,140,140,0.5)",
-    color: ui.ink,
-    boxShadow:
-      "inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -2px 0 rgba(0,0,0,0.35), 0 0 18px rgba(255,80,90,0.55)",
-    "&:hover": { boxShadow: "inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -2px 0 rgba(0,0,0,0.35), 0 0 26px rgba(255,80,90,0.75)" },
-    "&:active": { transform: "translateY(1px)", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.5), 0 0 10px rgba(255,80,90,0.4)" },
+    background: ui.red,
+    border: `1px solid ${ui.red}`,
+    color: ui.onRed,
+    boxShadow: "none",
+    "&:hover": { background: ui.redHover, borderColor: ui.redHover },
+    "&:active": { transform: "translateY(1px)" },
   },
   /** A key that cannot be pressed right now: recessed, unlit. */
   keyOff: {
-    background: "#0E1236",
+    background: ui.keyOff,
     border: `1px solid ${ui.line}`,
     color: ui.inkFaint,
-    boxShadow: "inset 0 2px 4px rgba(0,0,0,0.55)",
+    boxShadow: "none",
   },
 } as const;
 
@@ -207,15 +261,17 @@ export const boardRows = 5;
 /**
  * The set's face, in one call.
  *
- * Every category strip, eyebrow, button face and readout in the app is this
- * recipe with a size and a colour on top. Spelling the four properties out
+ * Every category strip, clue header and money readout on the board and the
+ * television is this recipe with a size and a colour on top. Spelling the four properties out
  * per component is how fourteen slightly different versions of the same
  * label appeared in the first place.
  */
 const displayBase = {
   fontFamily: jeopardyFonts.display,
   textTransform: "uppercase",
-  letterSpacing: "0.08em",
+  // Capitals are the show's display voice; tracked 0.02em at most, and
+  // never below 16px (smaller text is the body face, as written).
+  letterSpacing: "0.02em",
 } as const;
 
 export function displayType<T extends object>(overrides?: T) {

@@ -137,7 +137,7 @@ export function DisplayView() {
       sx={{
         position: "fixed",
         inset: 0,
-        background: "#000",
+        background: ui.stage,
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
@@ -192,7 +192,7 @@ export function DisplayView() {
               data-testid="exit-display"
               aria-label="Leave TV mode"
               onClick={() => setDisplayMode(false)}
-              sx={{ color: "rgba(255,255,255,0.8)" }}
+              sx={{ color: ui.inkMuted }}
             >
               <ExitIcon fontSize="small" />
             </IconButton>
@@ -212,7 +212,7 @@ export function DisplayView() {
               }
               setPreference("soundEnabled", !soundEnabled);
             }}
-            sx={{ color: "rgba(255,255,255,0.8)" }}
+            sx={{ color: ui.inkMuted }}
           >
             {soundEnabled ? <VolumeUpIcon fontSize="small" /> : <VolumeOffIcon fontSize="small" />}
           </IconButton>
@@ -224,7 +224,7 @@ export function DisplayView() {
               data-testid="show-join-panel"
               aria-label="Show the join code"
               onClick={() => writeJoinPanel(true)}
-              sx={{ color: "rgba(255,255,255,0.8)" }}
+              sx={{ color: ui.inkMuted }}
             >
               <QrCodeIcon fontSize="small" />
             </IconButton>
@@ -242,7 +242,7 @@ export function DisplayView() {
                 void document.documentElement.requestFullscreen().catch(() => {});
               }
             }}
-            sx={{ color: "rgba(255,255,255,0.8)" }}
+            sx={{ color: ui.inkMuted }}
           >
             {fullscreen ? (
               <FullscreenExitIcon fontSize="small" />
@@ -275,9 +275,10 @@ export function DisplayView() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "rgba(255,255,255,0.7)",
+            color: ui.inkMuted,
             fontFamily: jeopardyFonts.display,
-            letterSpacing: "0.2em",
+            fontSize: "clamp(18px, 3vh, 40px)",
+            letterSpacing: "0.02em",
             pointerEvents: "none",
           }}
         >
@@ -332,7 +333,7 @@ function RoomUnavailable({
         alignItems: "center",
         justifyContent: "center",
         textAlign: "center",
-        background: "#000",
+        background: ui.stage,
         px: 3,
       }}
     >
@@ -341,7 +342,9 @@ function RoomUnavailable({
         sx={{
           fontFamily: jeopardyFonts.display,
           textTransform: "uppercase",
-          letterSpacing: "0.12em",
+          fontWeight: 700,
+          letterSpacing: "0.01em",
+          lineHeight: 1.05,
           fontSize: "clamp(24px, 5vh, 64px)",
           color: ui.ink,
         }}
@@ -379,7 +382,7 @@ function JoinPanel({ roomId, onHide }: { roomId: string | null; onHide: () => vo
     QRCode.toDataURL(joinUrl, {
       margin: 1,
       width: 320,
-      color: { dark: "#000000ff", light: "#ffffffff" },
+      color: { dark: `${ui.qrDark}ff`, light: `${ui.qrLight}ff` },
     })
       .then((url) => {
         if (!cancelled) setQr(url);
@@ -414,7 +417,7 @@ function JoinPanel({ roomId, onHide }: { roomId: string | null; onHide: () => vo
           src={qr}
           alt={`QR code to join room ${roomId}`}
           data-testid="display-qr"
-          style={{ width: 80, height: 80, borderRadius: 6, background: "#fff" }}
+          style={{ width: 96, height: 96, borderRadius: 6, background: ui.qrLight }}
         />
       ) : null}
       <Box>
@@ -422,15 +425,17 @@ function JoinPanel({ roomId, onHide }: { roomId: string | null; onHide: () => vo
           data-testid="display-room-code"
           sx={{
             fontFamily: jeopardyFonts.display,
-            letterSpacing: "0.3em",
-            fontSize: "clamp(24px, 2.6vw, 44px)",
-            color: ui.ink,
+            letterSpacing: "0.12em",
+            fontSize: "clamp(28px, 2.8vw, 52px)",
+            fontWeight: 700,
+            fontVariantNumeric: "tabular-nums",
+            color: ui.goldBright,
             lineHeight: 1.15,
           }}
         >
           {roomId ?? ""}
         </Typography>
-        <Typography sx={{ fontSize: 13, color: ui.inkMuted }}>
+        <Typography sx={{ fontSize: "clamp(14px, 1vw, 18px)", color: ui.inkMuted }}>
           {joinUrl.replace(/^https?:\/\//, "")}
         </Typography>
       </Box>

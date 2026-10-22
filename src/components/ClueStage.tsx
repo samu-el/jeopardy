@@ -13,7 +13,10 @@ import {
   clueType,
   displayType,
   jeopardyPalette,
+  jeopardyTextShadow,
+  ui,
 } from "@/lib/foundation/jeopardy-style";
+import { MetaParts } from "./MetaParts";
 import { DailyDoubleSplash } from "./DailyDoubleSplash";
 import { useReducedMotion } from "./use-reduced-motion";
 
@@ -43,8 +46,8 @@ export function ClueStage({ state }: ClueStageProps) {
   const headline = clue.dailyDouble
     ? dailyDoubleHeadline(clue.wagers[clue.dailyDoublePlayerId ?? ""])
     : isFinal
-      ? "FINAL JEOPARDY!"
-      : `$${clue.value}`;
+      ? ["FINAL JEOPARDY!"]
+      : [`$${clue.value}`];
   const scale = clueScale(clue.clue?.length ?? 0);
 
   return (
@@ -73,7 +76,7 @@ export function ClueStage({ state }: ClueStageProps) {
       >
         <Typography
           component="h2"
-          sx={displayType({ color: "rgba(255,255,255,0.72)", fontSize: { xs: 12, sm: 14 } })}
+          sx={displayType({ color: ui.onBoardMuted, fontSize: { xs: 16, sm: 18 } })}
         >
           {clue.category}
         </Typography>
@@ -81,11 +84,13 @@ export function ClueStage({ state }: ClueStageProps) {
           sx={displayType({
             color: jeopardyPalette.gold,
             fontWeight: 700,
-            fontSize: { xs: 14, sm: 20 },
-            textShadow: "0.06em 0.06em 0 rgba(0,0,0,0.85)",
+            fontSize: { xs: 16, sm: 22 },
+            textShadow: jeopardyTextShadow,
           })}
         >
-          {headline}
+          {/* The hidden separator keeps "DAILY DOUBLE · $150" as one phrase for
+              a screen reader; on screen the two parts stand apart. */}
+          <MetaParts parts={headline} separator=" · " />
         </Typography>
       </Stack>
 
@@ -136,14 +141,18 @@ export function ClueStage({ state }: ClueStageProps) {
           ) : (
             <Typography
               sx={displayType({
-                color: "rgba(255,255,255,0.65)",
-                fontSize: { xs: 16, md: 24 },
-                letterSpacing: "0.1em",
+                color: ui.onBoardMuted,
+                fontSize: { xs: 18, md: 26 },
               })}
             >
-              {clue.waitingForWager.length > 0
-                ? `Wager · ${clue.waitingForWager.map((id) => playerName(state, id)).join(", ")}`
-                : ""}
+              {clue.waitingForWager.length > 0 ? (
+                <MetaParts
+                  parts={["Wager", clue.waitingForWager.map((id) => playerName(state, id)).join(", ")]}
+                  separator=": "
+                />
+              ) : (
+                ""
+              )}
             </Typography>
           )}
         </Box>
@@ -171,8 +180,8 @@ export function ClueStage({ state }: ClueStageProps) {
   );
 }
 
-function dailyDoubleHeadline(wager: number | undefined): string {
-  return wager === undefined ? "DAILY DOUBLE" : `DAILY DOUBLE · $${wager}`;
+function dailyDoubleHeadline(wager: number | undefined): string[] {
+  return wager === undefined ? ["DAILY DOUBLE"] : ["DAILY DOUBLE", `$${wager}`];
 }
 
 /** Flashes the splash once per Daily Double, while its wager is open. */

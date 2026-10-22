@@ -15,6 +15,7 @@ const EMOJIS = [
   "🚀", "🎯", "🧠", "⚡", "🎲", "🎩", "🪐", "🌟",
 ];
 
+/** The player's own colours: data a player picks, not the app's palette. */
 const COLORS = [
   "#4B5BFF",
   "#33d684",
@@ -38,7 +39,7 @@ export function AvatarPicker({ playerId, emoji, color, size = 36, label }: Avata
   const setPlayerAvatar = useGameStore((s) => s.setPlayerAvatar);
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const display = emoji ?? "•";
-  const bg = color ?? "rgba(255,255,255,0.08)";
+  const bg = color ?? ui.surfaceRaised;
   return (
     <>
       <Tooltip title={label ?? "Avatar"}>
@@ -52,12 +53,12 @@ export function AvatarPicker({ playerId, emoji, color, size = 36, label }: Avata
               height: size,
               borderRadius: "50%",
               background: bg,
-              border: "1px solid rgba(255,255,255,0.16)",
+              border: `1px solid ${ui.lineStrong}`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               fontSize: size * 0.55,
-              color: emoji ? undefined : "rgba(255,255,255,0.6)",
+              color: emoji ? undefined : ui.inkMuted,
             }}
           >
             {display}
@@ -78,16 +79,18 @@ export function AvatarPicker({ playerId, emoji, color, size = 36, label }: Avata
               key={entry}
               component="button"
               aria-label={`Emoji ${entry}`}
+              aria-pressed={emoji === entry}
               onClick={() => setPlayerAvatar(playerId, { emoji: entry })}
               sx={{
                 width: 32,
                 height: 32,
-                background: emoji === entry ? ui.blueTint : "transparent",
-                border: "1px solid rgba(255,255,255,0.08)",
+                background: emoji === entry ? ui.goldTint : "transparent",
+                border: `1px solid ${emoji === entry ? ui.goldBright : ui.line}`,
                 borderRadius: 1,
                 cursor: "pointer",
                 fontSize: 18,
-                "&:hover": { background: "rgba(255,255,255,0.06)" },
+                "&:hover": { background: ui.hoverTint },
+                "&:active": { transform: "translateY(1px)" },
               }}
             >
               {entry}
@@ -101,10 +104,10 @@ export function AvatarPicker({ playerId, emoji, color, size = 36, label }: Avata
               width: 32,
               height: 32,
               background: "transparent",
-              border: "1px dashed rgba(255,255,255,0.18)",
+              border: `1px dashed ${ui.lineStrong}`,
               borderRadius: 1,
               cursor: "pointer",
-              color: "rgba(255,255,255,0.6)",
+              color: ui.inkMuted,
             }}
           >
             ×
@@ -117,6 +120,7 @@ export function AvatarPicker({ playerId, emoji, color, size = 36, label }: Avata
               key={entry}
               component="button"
               aria-label={`Color ${entry}`}
+              aria-pressed={color === entry}
               onClick={() => setPlayerAvatar(playerId, { color: entry })}
               sx={{
                 width: 24,
@@ -124,8 +128,8 @@ export function AvatarPicker({ playerId, emoji, color, size = 36, label }: Avata
                 background: entry,
                 border:
                   color === entry
-                    ? "2px solid rgba(255,255,255,0.8)"
-                    : "1px solid rgba(255,255,255,0.12)",
+                    ? `2px solid ${ui.ink}`
+                    : `1px solid ${ui.line}`,
                 borderRadius: "50%",
                 cursor: "pointer",
               }}
@@ -139,10 +143,10 @@ export function AvatarPicker({ playerId, emoji, color, size = 36, label }: Avata
               width: 24,
               height: 24,
               background: "transparent",
-              border: "1px dashed rgba(255,255,255,0.2)",
+              border: `1px dashed ${ui.lineStrong}`,
               borderRadius: "50%",
               cursor: "pointer",
-              color: "rgba(255,255,255,0.6)",
+              color: ui.inkMuted,
               fontSize: 12,
             }}
           >

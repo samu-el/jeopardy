@@ -2,7 +2,7 @@
 
 import Box from "@mui/material/Box";
 import type { GameRound } from "@/lib/game";
-import { jeopardyFonts, jeopardyPalette } from "@/lib/foundation/jeopardy-style";
+import { boardGradient, jeopardyFonts, jeopardyPalette, jeopardyTextShadow } from "@/lib/foundation/jeopardy-style";
 
 interface RoundIntroProps {
   round: GameRound;
@@ -35,7 +35,7 @@ export function RoundIntro({ round, visible, reducedMotion }: RoundIntroProps) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: `linear-gradient(180deg, ${jeopardyPalette.board} 0%, ${jeopardyPalette.boardShade} 100%)`,
+        background: boardGradient,
         animation: reducedMotion ? "none" : "round-card-in 420ms ease-out both",
         "@keyframes round-card-in": {
           from: { opacity: 0 },
@@ -48,7 +48,7 @@ export function RoundIntro({ round, visible, reducedMotion }: RoundIntroProps) {
           fontFamily: jeopardyFonts.display,
           fontWeight: 700,
           color: jeopardyPalette.categoryText,
-          textShadow: "0.05em 0.05em 0 rgba(0,0,0,0.7)",
+          textShadow: jeopardyTextShadow,
           fontSize: "clamp(30px, 8vw, 104px)",
           letterSpacing: "0.01em",
           textAlign: "center",

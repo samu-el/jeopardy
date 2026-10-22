@@ -12,6 +12,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { ui } from "@/lib/foundation/jeopardy-style";
 import { loadLastReplay, type ReplayEntry, type ReplayLog } from "@/lib/runtime";
+import { MetaParts } from "./MetaParts";
 
 interface ReplayViewProps {
   open: boolean;
@@ -41,9 +42,11 @@ export function ReplayView({ open, onClose }: ReplayViewProps) {
           </Typography>
         ) : (
           <Stack spacing={2}>
-            <Typography variant="caption" color="text.secondary">
-              {entries.length} events · started{" "}
-              {new Date(log.startedAt).toLocaleString()}
+            <Typography variant="caption" color="text.secondary" component="p">
+              <MetaParts
+                gap="1.5em"
+                parts={[`${entries.length} events`, `started ${new Date(log.startedAt).toLocaleString()}`]}
+              />
             </Typography>
             <LinearProgress
               variant="determinate"
@@ -65,7 +68,7 @@ export function ReplayView({ open, onClose }: ReplayViewProps) {
                 <Box key={index} sx={{ mb: 0.5 }}>
                   <Typography
                     component="span"
-                    sx={{ color: ui.inkMuted, mr: 1, fontSize: 11 }}
+                    sx={{ color: ui.inkMuted, mr: 1, fontSize: 12 }}
                   >
                     {new Date(entry.t).toLocaleTimeString()}
                   </Typography>

@@ -5,6 +5,10 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import SpeakerNotesIcon from "@mui/icons-material/SpeakerNotesOutlined";
+import SentimentVerySatisfiedIcon from "@mui/icons-material/SentimentVerySatisfiedOutlined";
+import SentimentSatisfiedIcon from "@mui/icons-material/SentimentSatisfiedOutlined";
+import PsychologyAltIcon from "@mui/icons-material/PsychologyAltOutlined";
+import SearchIcon from "@mui/icons-material/SearchOutlined";
 import { useGameStore } from "@/lib/state/game-store";
 import {
   AvatarNarrator,
@@ -21,6 +25,7 @@ import {
   type AvatarHostCue,
 } from "@/lib/ai";
 import type { GameEvent, PublicGameState } from "@/lib/game";
+import { jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
 
 const voiceAdapter = typeof window === "undefined" ? null : createVoiceAdapter();
 
@@ -214,11 +219,10 @@ export function AvatarHostController() {
           alignItems: "center",
           ...(showCaption
             ? {
-                background: "linear-gradient(135deg, rgba(14,21,48,0.96), rgba(31,63,191,0.5))",
-                border: "1px solid rgba(255,255,255,0.12)",
-                borderRadius: 2,
+                background: ui.surface,
+                border: `1px solid ${ui.lineStrong}`,
+                borderRadius: `${ui.radiusPanel}px`,
                 p: { xs: 1, sm: 1.5 },
-                boxShadow: 6,
               }
             : {}),
         }}
@@ -263,7 +267,14 @@ function HostAvatar({
   reducedMotion: boolean;
   label: string;
 }) {
-  const face = hint === "applaud" ? "😄" : hint === "thoughtful" ? "🤔" : hint === "lean-in" ? "🧐" : "🙂";
+  const Face =
+    hint === "applaud"
+      ? SentimentVerySatisfiedIcon
+      : hint === "thoughtful"
+        ? PsychologyAltIcon
+        : hint === "lean-in"
+          ? SearchIcon
+          : SentimentSatisfiedIcon;
   const moving = !reducedMotion;
   return (
     <Box
@@ -281,11 +292,10 @@ function HostAvatar({
         placeItems: "center",
         fontSize: 26,
         lineHeight: 1,
-        background: "radial-gradient(circle at 35% 30%, #3a5bd9, #0e1530 75%)",
+        background: jeopardyPalette.board,
         border: "2px solid",
-        borderColor: speaking ? "secondary.main" : "rgba(255,255,255,0.25)",
-        boxShadow: speaking ? "0 0 0 3px rgba(255,204,0,0.25)" : 2,
-        transition: moving ? "border-color 150ms, box-shadow 150ms" : undefined,
+        borderColor: speaking ? ui.goldBright : ui.lineStrong,
+        transition: moving ? "border-color 150ms ease-out" : undefined,
         "@keyframes host-talk": {
           "0%, 100%": { transform: "scale(1)" },
           "50%": { transform: "scale(1.06)" },
@@ -303,7 +313,7 @@ function HostAvatar({
           : undefined,
       }}
     >
-      <span aria-hidden>{face}</span>
+      <Face aria-hidden sx={{ fontSize: 26, color: ui.onBoard }} />
     </Box>
   );
 }

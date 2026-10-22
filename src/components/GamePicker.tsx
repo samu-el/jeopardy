@@ -43,6 +43,7 @@ import {
 } from "./use-archive";
 import { useRoomRole } from "./use-room-role";
 import { visuallyHiddenSx } from "./visually-hidden";
+import { MetaParts } from "./MetaParts";
 
 interface GamePickerProps {
   open: boolean;
@@ -450,9 +451,8 @@ function EpisodeRow({
     <Paper variant="outlined" sx={{ p: 1.5, display: "flex", alignItems: "center", gap: 2 }}>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography sx={{ fontWeight: 700 }}>#{episode.number}</Typography>
-        <Typography variant="caption" color="text.secondary" noWrap component="p">
-          {episode.airDate ?? ""}
-          {episode.info ? ` · ${episode.info}` : ""}
+        <Typography variant="caption" color="text.secondary" component="p" sx={{ minWidth: 0 }}>
+          <MetaParts parts={[episode.airDate ?? "", episode.info ?? ""]} gap="1em" />
         </Typography>
       </Box>
       <Button

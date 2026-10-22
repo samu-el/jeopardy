@@ -13,12 +13,13 @@ import type { ClientGameCommand } from "@/lib/realtime";
 import { describeVerdict, judgeAnswer as fuzzyJudge } from "@/lib/ai";
 import { controls, jeopardyFonts, jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
 import { Housing, HousingDivider } from "../Housing";
+import { MetaParts } from "../MetaParts";
 import { benchKeySx, wrapHousingSx } from "./bench-style";
 
-/** White text on this red is 5.9:1; the palette's brighter red is 3.2:1. */
-const incorrectFill = "#C8102E";
+/** Light text on this red is 5.5:1; the palette's brighter red is 3.2:1. */
+const incorrectFill = ui.incorrectFill;
 /** Dark text on the palette green: 9:1. */
-const correctInk = "#03220F";
+const correctInk = ui.onGreen;
 
 /**
  * The AI judge's opinion, in words, with how sure it is of that ruling,
@@ -115,9 +116,9 @@ export function JudgeBench({ state, send }: JudgeBenchProps) {
               alignItems: "center",
               gap: 0.5,
               fontFamily: jeopardyFonts.display,
-              fontSize: 11,
-              letterSpacing: "0.08em",
-              color: ruling.correct ? jeopardyPalette.correct : "#FF8A93",
+              fontSize: 16,
+              letterSpacing: "0.02em",
+              color: ruling.correct ? jeopardyPalette.correct : ui.negativeInk,
             }}
           >
             {ruling.correct ? <CheckIcon sx={{ fontSize: 14 }} /> : <CloseIcon sx={{ fontSize: 14 }} />}
@@ -134,8 +135,8 @@ export function JudgeBench({ state, send }: JudgeBenchProps) {
         sx={{
           ...benchKeySx,
           ...(ruling.correct
-            ? { background: incorrectFill, color: "#fff", "&:hover": { background: "#A50D26" } }
-            : { background: jeopardyPalette.correct, color: correctInk, "&:hover": { background: "#27B86B" } }),
+            ? { background: incorrectFill, color: ui.ink, "&:hover": { background: ui.incorrectFillHover } }
+            : { background: jeopardyPalette.correct, color: correctInk, "&:hover": { background: ui.greenHover } }),
         }}
       >
         Mark {ruling.correct ? "incorrect" : "correct"}
@@ -195,13 +196,13 @@ function Readout({
         {answer || "No answer"}
       </Box>
       {expected ? (
-        <Box component="span" sx={{ fontSize: 12, color: ui.inkMuted }}>
+        <Box component="span" sx={{ fontSize: 13, color: ui.inkMuted }}>
           (expected: {expected})
         </Box>
       ) : null}
       {note}
       {wager !== undefined ? (
-        <Box component="span" sx={{ fontSize: 12, color: jeopardyPalette.gold }}>
+        <Box component="span" sx={{ fontSize: 13, color: ui.goldBright }}>
           wagered ${wager}
         </Box>
       ) : null}
@@ -230,7 +231,7 @@ function Suggestion({
         display: "inline-flex",
         alignItems: "center",
         gap: 0.5,
-        fontSize: 12,
+        fontSize: 13,
         color: ui.inkMuted,
       }}
     >
@@ -241,13 +242,17 @@ function Suggestion({
       ) : (
         <CloseIcon sx={{ fontSize: 14 }} aria-hidden />
       )}
-      AI: {verdict}
-      {match !== null ? ` · ${match}% sure` : ""}
-      {nearMiss ? (
-        <Box component="span" sx={{ color: jeopardyPalette.gold, fontWeight: 700 }}>
-          · close, check it
-        </Box>
-      ) : null}
+      <MetaParts
+        parts={[
+          `AI: ${verdict}`,
+          match !== null ? `${match}% sure` : null,
+          nearMiss ? (
+            <Box component="span" sx={{ color: ui.goldBright, fontWeight: 700 }}>
+              close, check it
+            </Box>
+          ) : null,
+        ]}
+      />
     </Box>
   );
 }
@@ -264,7 +269,7 @@ function VerdictKeys({ onJudge }: { onJudge: (correct: boolean | null) => void }
           ...benchKeySx,
           background: jeopardyPalette.correct,
           color: correctInk,
-          "&:hover": { background: "#27B86B" },
+          "&:hover": { background: ui.greenHover },
         }}
       >
         Correct
@@ -277,8 +282,8 @@ function VerdictKeys({ onJudge }: { onJudge: (correct: boolean | null) => void }
         sx={{
           ...benchKeySx,
           background: incorrectFill,
-          color: "#fff",
-          "&:hover": { background: "#A50D26" },
+          color: ui.ink,
+          "&:hover": { background: ui.incorrectFillHover },
         }}
       >
         Incorrect

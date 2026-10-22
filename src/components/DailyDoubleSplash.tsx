@@ -2,7 +2,7 @@
 
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import { jeopardyFonts, jeopardyPalette } from "@/lib/foundation/jeopardy-style";
+import { boardGradient, jeopardyFonts, jeopardyPalette, jeopardyTextShadow } from "@/lib/foundation/jeopardy-style";
 
 interface DailyDoubleSplashProps {
   visible: boolean;
@@ -23,7 +23,7 @@ export function DailyDoubleSplash({ visible, reducedMotion }: DailyDoubleSplashP
         position: "absolute",
         inset: 0,
         zIndex: 6,
-        background: `radial-gradient(circle at 50% 40%, ${jeopardyPalette.board} 0%, ${jeopardyPalette.boardShade} 70%, #01023A 100%)`,
+        background: boardGradient,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -44,16 +44,15 @@ export function DailyDoubleSplash({ visible, reducedMotion }: DailyDoubleSplashP
             fontWeight: 700,
             color: jeopardyPalette.goldBright,
             fontSize: "clamp(34px, 9vw, 110px)",
-            lineHeight: 0.95,
+            lineHeight: 1,
             letterSpacing: "0.02em",
-            textShadow: "0.05em 0.05em 0 rgba(0,0,0,0.75)",
+            textShadow: jeopardyTextShadow,
             transform: "skewX(-8deg)",
             animation: reducedMotion
               ? "none"
               : `dd-slam 420ms ${index * 130}ms cubic-bezier(0.2, 0.9, 0.25, 1) both`,
             "@keyframes dd-slam": {
               from: { transform: "skewX(-8deg) scale(2.4)", opacity: 0 },
-              "70%": { transform: "skewX(-8deg) scale(0.94)", opacity: 1 },
               to: { transform: "skewX(-8deg) scale(1)", opacity: 1 },
             },
           }}

@@ -7,10 +7,11 @@ import Stack from "@mui/material/Stack";
 import type { PublicGameState } from "@/lib/game";
 import { nameOf } from "@/lib/game/clue-turn";
 import { primeAudio, primeSpeech } from "@/lib/ai";
-import { controls, jeopardyFonts, ui } from "@/lib/foundation/jeopardy-style";
+import { controls, ui } from "@/lib/foundation/jeopardy-style";
 import { useClueTurn } from "../use-clue-turn";
 import { answerFocusProxyId, mayTakeFocus } from "./keyboard";
-import { barButtonSx, stackedButtonSx } from "./bench-style";
+import { barButtonSx, buzzerFaceSx, stackedButtonSx } from "./bench-style";
+import { visuallyHiddenSx } from "../visually-hidden";
 
 interface PodiumClueButtonsProps {
   state: PublicGameState;
@@ -107,8 +108,8 @@ export function PodiumClueButtons({
       sx={{
         ...keySx,
         ...(canIBuzz ? controls.buzzer : controls.keyOff),
-        ...(bar ? { flex: "1 1 auto", fontSize: 22 } : { fontSize: 13 }),
-        letterSpacing: "0.12em",
+        ...buzzerFaceSx,
+        ...(bar ? { flex: "1 1 auto", fontSize: 24 } : { fontSize: 17 }),
         "&.Mui-disabled": {
           ...controls.keyOff,
           // The disabled label carries information (IN!, LOCKED), so it
@@ -140,8 +141,14 @@ export function PodiumClueButtons({
     >
       Next clue
       {turn.autoAdvanceSeconds !== null ? (
-        <Box component="span" sx={{ ml: 0.75, opacity: 0.8, fontVariantNumeric: "tabular-nums" }}>
-          · {turn.autoAdvanceSeconds}s
+        <Box
+          component="span"
+          sx={{ ml: 1, pl: 1, borderLeft: `1px solid currentColor`, fontVariantNumeric: "tabular-nums" }}
+        >
+          <Box component="span" sx={visuallyHiddenSx}>
+            , in{" "}
+          </Box>
+          {turn.autoAdvanceSeconds}s
         </Box>
       ) : null}
     </Button>
@@ -151,12 +158,10 @@ export function PodiumClueButtons({
     <Box
       role="status"
       sx={{
-        fontFamily: jeopardyFonts.display,
-        fontSize: bar ? 12 : 10,
-        letterSpacing: "0.06em",
+        fontSize: bar ? 14 : 12,
+        fontWeight: 600,
         color: ui.inkMuted,
         textAlign: "center",
-        textTransform: "uppercase",
       }}
     >
       {beaten} was first

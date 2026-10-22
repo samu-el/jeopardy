@@ -15,6 +15,7 @@ import { useGameStore } from "@/lib/state/game-store";
 import { selectRoomInteractive } from "@/lib/state/selectors";
 import { controls, jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
 import { MicAnswerField } from "./MicAnswerField";
+import { MetaParts } from "./MetaParts";
 import { BuzzLights } from "./BuzzLights";
 import { Housing, HousingDivider, HousingLabel } from "./Housing";
 import { FinalReveal } from "./clue/FinalReveal";
@@ -258,7 +259,12 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5, maxWidth: "100%" }}>
           <Housing sx={wrapHousingSx}>
             <HousingLabel sx={{ height: 32, pl: 1.25, pr: 1 }}>
-              {isFinal ? "Final wager" : "Wager"} · ${turn.wagerLimits.min}–${turn.wagerLimits.max}
+              <MetaParts
+                parts={[
+                  isFinal ? "Final wager" : "Wager",
+                  `$${turn.wagerLimits.min} to $${turn.wagerLimits.max}`,
+                ]}
+              />
             </HousingLabel>
             <TextField
               type="number"
@@ -299,7 +305,7 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
                 }
               }}
             />
-            <Button variant="contained" onClick={handleSubmitWager} sx={{ ...controls.keyPrimary, ...benchKeySx }}>
+            <Button variant="contained" onClick={handleSubmitWager} sx={benchKeySx}>
               Wager
             </Button>
             <HousingDivider sx={{ display: { xs: "none", sm: "block" } }} />
@@ -326,7 +332,7 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
               id="wager-error"
               role="alert"
               variant="caption"
-              sx={{ color: "#FF8A93", fontWeight: 600 }}
+              sx={{ color: ui.negativeInk, fontWeight: 600 }}
             >
               {wagerError}
             </Typography>
@@ -350,7 +356,7 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
         <Typography
           variant="overline"
           data-testid="times-up"
-          sx={{ color: jeopardyPalette.goldBright, fontWeight: 700, letterSpacing: "0.14em" }}
+          sx={{ color: jeopardyPalette.goldBright, fontWeight: 700 }}
         >
           Time&rsquo;s up
         </Typography>

@@ -6,7 +6,7 @@ import { createEmptyStats, type PublicGameState } from "@/lib/game";
 import { buzzOrder, seatOrder } from "@/lib/game/clue-turn";
 import { useGameStore } from "@/lib/state/game-store";
 import { selectCanHost, selectRoomInteractive } from "@/lib/state/selectors";
-import { jeopardyPalette } from "@/lib/foundation/jeopardy-style";
+import { jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
 import { Board } from "./Board";
 import { ClueStage } from "./ClueStage";
 import { ClueControls, PodiumClueButtons } from "./ClueControls";
@@ -231,7 +231,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
                   display: "flex",
                   background: jeopardyPalette.board,
                   outline: "none",
-                  "&:focus-visible": { boxShadow: `inset 0 0 0 3px ${jeopardyPalette.goldBright}` },
+                  "&:focus-visible": { outline: `3px solid ${ui.focus}`, outlineOffset: "-3px" },
                 }}
               >
                 {tv ? (
@@ -318,8 +318,8 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
               px: "max(12px, env(safe-area-inset-left, 0px))",
               pt: 1,
               pb: "max(10px, env(safe-area-inset-bottom, 0px))",
-              background: "linear-gradient(180deg, rgba(3,4,20,0.6) 0%, rgba(3,4,20,0.96) 30%)",
-              borderTop: "1px solid rgba(255,255,255,0.08)",
+              background: ui.stage,
+              borderTop: `1px solid ${ui.line}`,
               // The keyboard is up and the answer is being typed: the bar
               // would only float over the field.
               "html[data-keyboard-open] &": { display: "none" },

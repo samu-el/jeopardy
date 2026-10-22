@@ -77,10 +77,8 @@ function NoticeToast({ notice }: { notice: RoomNotice }) {
         pr: 0.5,
         py: 0.5,
         background: ui.surfaceRaised,
-        border: `1px solid ${ui.lineStrong}`,
-        borderLeft: `4px solid ${accent[notice.kind]}`,
+        border: `1px solid ${accent[notice.kind]}`,
         borderRadius: `${ui.radius}px`,
-        boxShadow: "0 6px 20px rgba(0,0,0,0.45)",
       }}
     >
       <Typography sx={{ flex: 1, fontSize: 14, color: ui.ink }}>{notice.text}</Typography>
