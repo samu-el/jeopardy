@@ -3,7 +3,6 @@
  * nav: kept (the room toolbar) · signature: the board, blue tiles and gold values, on the laptop and the TV · states: loading, empty, error, full where the app has logic
  * axes: dark/display-condensed/warm · posture: Committed (board blue is a declared surface; gold is the one signal) · contrast: pass (tests/unit/foundation/tokens.test.ts) · v2.0.0 */
 /* Hallmark · pre-emit critique: P4 H4 E4 S5 R4 V3 · weakest: V, a brand redesign keeps the show's board, so the variety is in the chrome; flattened the bevels and glows instead of inventing a new look */
-/* Hallmark · dismissed 30a · AvatarPicker's emoji are the avatars a player chooses and stores as their face: player content shown back, not icons, and the stored avatar contract stays */
 /*
  * The system lives in TypeScript (src/lib/foundation/jeopardy-style.ts) and reaches the page through the MUI
  * theme (src/lib/foundation/theme.ts), which writes the design.md roles (--color-*, --font-*) on :root.

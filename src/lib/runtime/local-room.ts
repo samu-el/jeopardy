@@ -1,9 +1,12 @@
 import type { BotProfile } from "@/lib/ai/profiles";
 import {
+  normalizeAvatar,
+  normalizeAvatarColor,
   type GameClue,
   type GamePlayer,
   type GameSettings,
   type GameState,
+  type PlayerAvatar,
   type PublicGameState,
 } from "@/lib/game";
 import {
@@ -24,8 +27,8 @@ export interface LocalRoomConfig {
   roomId: string;
   hostId: string;
   hostName: string;
-  humanPlayers: { id: string; name: string; spectator?: boolean; emoji?: string; color?: string }[];
-  bots: { id: string; name: string; profile: BotProfile; emoji?: string; color?: string }[];
+  humanPlayers: { id: string; name: string; spectator?: boolean; avatar?: PlayerAvatar; color?: string }[];
+  bots: { id: string; name: string; profile: BotProfile; avatar?: PlayerAvatar; color?: string }[];
   clues: GameClue[];
   settings?: Partial<GameSettings>;
   seed?: number;
@@ -56,8 +59,8 @@ export class LocalRoomRuntime implements RoomRuntime {
         kind: "human",
         connected: true,
         spectator: Boolean(player.spectator),
-        emoji: player.emoji,
-        color: player.color,
+        avatar: normalizeAvatar(player.avatar),
+        color: normalizeAvatarColor(player.color),
       })),
       ...config.bots.map<GamePlayer>((bot) => ({
         id: bot.id,
@@ -65,8 +68,8 @@ export class LocalRoomRuntime implements RoomRuntime {
         kind: "ai-bot",
         connected: true,
         spectator: false,
-        emoji: bot.emoji,
-        color: bot.color,
+        avatar: normalizeAvatar(bot.avatar),
+        color: normalizeAvatarColor(bot.color),
       })),
     ];
 

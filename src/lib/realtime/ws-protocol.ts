@@ -14,7 +14,12 @@ export interface ClientJoinFrame {
   roomId: string;
   clientId: string;
   displayName?: string;
-  emoji?: string;
+  /**
+   * An avatar key (see `avatarIcons`). The room keeps only keys it knows.
+   * Clients from before icon keys send `emoji` instead, which is dropped, so
+   * they show their initial.
+   */
+  avatar?: string;
   color?: string;
   spectator?: boolean;
   /** Only an explicit create request may bring a room into existence. */
@@ -36,7 +41,7 @@ export type ClientFrame =
       id: string;
       displayName?: string;
       profileId?: string;
-      emoji?: string;
+      avatar?: string;
       color?: string;
     }
   | { t: "ping"; sentAt: number };
@@ -83,7 +88,7 @@ export function decodeClientFrame(raw: string): ClientFrame | undefined {
         roomId: parsed.roomId,
         clientId: parsed.clientId,
         displayName: asString(parsed.displayName),
-        emoji: asString(parsed.emoji),
+        avatar: asString(parsed.avatar),
         color: asString(parsed.color),
         spectator: parsed.spectator === true,
         create: parsed.create === true,
@@ -111,7 +116,7 @@ export function decodeClientFrame(raw: string): ClientFrame | undefined {
         id: parsed.id,
         displayName: asString(parsed.displayName),
         profileId: asString(parsed.profileId),
-        emoji: asString(parsed.emoji),
+        avatar: asString(parsed.avatar),
         color: asString(parsed.color),
       };
     case "ping":

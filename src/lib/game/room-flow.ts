@@ -10,6 +10,7 @@ import type {
   GameState,
   PlayableRound,
 } from "./contracts";
+import { normalizeAvatar, normalizeAvatarColor } from "./avatars";
 import {
   createEmptyStats,
   emptyClueIndex,
@@ -104,7 +105,18 @@ export function addBot(
   ]);
   if (denied) return denied;
 
-  const bot: GamePlayer = { ...command.bot, kind: "ai-bot", connected: true, spectator: false };
+  // Built field by field: a face is a known key and a colour a hex, and
+  // nothing else a client sends (an old client's emoji) is kept.
+  const bot: GamePlayer = {
+    id: command.bot.id,
+    displayName: command.bot.displayName,
+    kind: "ai-bot",
+    connected: true,
+    spectator: false,
+    avatar: normalizeAvatar(command.bot.avatar),
+    color: normalizeAvatarColor(command.bot.color),
+    joinedAt: command.bot.joinedAt,
+  };
   return {
     state: patch(state, now, {
       players: { ...state.players, [bot.id]: bot },
@@ -150,8 +162,8 @@ export function joinGame(
       ...existing,
       displayName: displayName || existing.displayName,
       connected: true,
-      emoji: command.emoji ?? existing.emoji,
-      color: command.color ?? existing.color,
+      avatar: normalizeAvatar(command.avatar) ?? existing.avatar,
+      color: normalizeAvatarColor(command.color) ?? existing.color,
       spectator: command.spectator ?? existing.spectator,
     };
     return {
@@ -183,8 +195,8 @@ export function joinGame(
     kind: "human",
     connected: true,
     spectator: Boolean(command.spectator),
-    emoji: command.emoji,
-    color: command.color,
+    avatar: normalizeAvatar(command.avatar),
+    color: normalizeAvatarColor(command.color),
     joinedAt: now,
   };
   return {
@@ -277,8 +289,8 @@ export function setPlayerProfile(
         [targetId]: {
           ...player!,
           displayName: renamed || player!.displayName,
-          emoji: command.emoji ?? player!.emoji,
-          color: command.color ?? player!.color,
+          avatar: normalizeAvatar(command.avatar) ?? player!.avatar,
+          color: normalizeAvatarColor(command.color) ?? player!.color,
           spectator: command.spectator ?? player!.spectator,
         },
       },

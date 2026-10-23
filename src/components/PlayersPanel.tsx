@@ -16,8 +16,8 @@ import SmartToyIcon from "@mui/icons-material/SmartToyOutlined";
 import { baselineBotProfiles } from "@/lib/ai/profiles";
 import { useGameStore } from "@/lib/state/game-store";
 import { selectCanHost } from "@/lib/state/selectors";
-import { ui } from "@/lib/foundation/jeopardy-style";
 import { AvatarPicker } from "./AvatarPicker";
+import { PlayerAvatar } from "./PlayerAvatar";
 
 export function PlayersPanel() {
   const lobby = useGameStore((s) => s.lobby);
@@ -47,7 +47,8 @@ export function PlayersPanel() {
       <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
         <AvatarPicker
           playerId={lobby.hostId}
-          emoji={lobby.hostEmoji}
+          name={lobby.hostName}
+          avatar={lobby.hostAvatar}
           color={lobby.hostColor}
           label="Your avatar"
         />
@@ -65,20 +66,7 @@ export function PlayersPanel() {
           {guest
             ? roomBots.map((bot) => (
                 <Stack key={bot.id} direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                  <Box
-                    aria-hidden
-                    sx={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: "50%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      background: bot.color ?? ui.surfaceRaised,
-                    }}
-                  >
-                    {bot.emoji ?? ""}
-                  </Box>
+                  <PlayerAvatar name={bot.displayName} avatar={bot.avatar} color={bot.color} />
                   <Chip
                     icon={<SmartToyIcon aria-hidden />}
                     label={bot.displayName}
@@ -97,7 +85,8 @@ export function PlayersPanel() {
             >
               <AvatarPicker
                 playerId={bot.id}
-                emoji={bot.emoji}
+                name={bot.name}
+                avatar={bot.avatar}
                 color={bot.color}
                 size={32}
               />
@@ -128,20 +117,7 @@ export function PlayersPanel() {
                     spacing={1}
                     sx={{ alignItems: "center" }}
                   >
-                    <Box
-                      aria-hidden
-                      sx={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: "50%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        background: player.color ?? ui.surfaceRaised,
-                      }}
-                    >
-                      {player.emoji ?? ""}
-                    </Box>
+                    <PlayerAvatar name={player.displayName} avatar={player.avatar} color={player.color} />
                     <Chip
                       label={player.displayName}
                       sx={{ flex: 1, justifyContent: "flex-start" }}
@@ -172,7 +148,8 @@ export function PlayersPanel() {
                 >
                   <AvatarPicker
                     playerId={human.id}
-                    emoji={human.emoji}
+                    name={human.name}
+                    avatar={human.avatar}
                     color={human.color}
                     size={32}
                   />

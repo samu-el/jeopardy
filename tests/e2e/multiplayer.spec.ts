@@ -23,6 +23,34 @@ test.describe("Shared room", () => {
     }
   });
 
+  test("an avatar the host picks is the face every lectern shows, never an emoji", async ({
+    browser,
+  }) => {
+    const room = await openSharedRoom(browser);
+    const { host, guest } = room;
+    try {
+      // Nobody has picked yet: every face is an initial.
+      await expect(guest.locator('[data-testid^="avatar-"] [data-avatar="initial"]')).toHaveCount(2);
+
+      await host.getByRole("button", { name: "More" }).click();
+      await host.getByRole("menuitem", { name: "Players" }).click();
+      await host.getByRole("button", { name: "Your avatar" }).click();
+      await host.getByRole("button", { name: "Rocket" }).click();
+      await expect(host.getByRole("button", { name: "Rocket" })).toHaveAttribute("aria-pressed", "true");
+      await host.keyboard.press("Escape");
+      await host.keyboard.press("Escape");
+
+      for (const page of [host, guest]) {
+        await expect(page.locator('[data-testid^="avatar-"] [data-avatar="rocket"]')).toHaveCount(1);
+        await expect(page.locator('[data-testid^="avatar-"] [data-avatar="initial"]')).toHaveCount(1);
+        const faces = await page.locator('[data-testid^="avatar-"]').allTextContents();
+        expect(faces.join("")).not.toMatch(/\p{Extended_Pictographic}/u);
+      }
+    } finally {
+      await room.close();
+    }
+  });
+
   test("a guest joins through the invite link and plays on the same board", async ({
     browser,
   }) => {

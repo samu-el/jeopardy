@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Box from "@mui/material/Box";
-import { createEmptyStats, type PublicGameState } from "@/lib/game";
+import { createEmptyStats, type PlayerAvatar as PlayerAvatarKey, type PublicGameState } from "@/lib/game";
 import { buzzOrder, seatOrder } from "@/lib/game/clue-turn";
 import { useGameStore } from "@/lib/state/game-store";
 import { selectCanHost, selectRoomInteractive } from "@/lib/state/selectors";
@@ -78,7 +78,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
               connected: true,
               kind: "human" as const,
               spectator: false,
-              emoji: lobby.hostEmoji,
+              avatar: lobby.hostAvatar,
               color: lobby.hostColor,
             },
             ...lobby.extraHumans.map((human) => ({
@@ -88,7 +88,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
               connected: true,
               kind: "human" as const,
               spectator: false,
-              emoji: human.emoji,
+              avatar: human.avatar,
               color: human.color,
             })),
             ...lobby.bots.map((bot) => ({
@@ -98,7 +98,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
               connected: true,
               kind: "ai-bot" as const,
               spectator: false,
-              emoji: bot.emoji,
+              avatar: bot.avatar,
               color: bot.color,
             })),
           ],
@@ -290,7 +290,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
               player={player}
               state={publicState ?? previewState}
               isYou={player.id === selfId}
-              emoji={player.emoji ?? avatarFor(lobby, player.id)?.emoji}
+              avatar={player.avatar ?? avatarFor(lobby, player.id)?.avatar}
               color={player.color ?? avatarFor(lobby, player.id)?.color}
               controls={
                 interactive && publicState && player.id === selfId && !compact ? (
@@ -339,13 +339,13 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
 function avatarFor(
   lobby: ReturnType<typeof useGameStore.getState>["lobby"],
   playerId: string,
-): { emoji?: string; color?: string } | undefined {
+): { avatar?: PlayerAvatarKey; color?: string } | undefined {
   if (playerId === lobby.hostId) {
-    return { emoji: lobby.hostEmoji, color: lobby.hostColor };
+    return { avatar: lobby.hostAvatar, color: lobby.hostColor };
   }
   const bot = lobby.bots.find((candidate) => candidate.id === playerId);
-  if (bot) return { emoji: bot.emoji, color: bot.color };
+  if (bot) return { avatar: bot.avatar, color: bot.color };
   const human = lobby.extraHumans.find((candidate) => candidate.id === playerId);
-  if (human) return { emoji: human.emoji, color: human.color };
+  if (human) return { avatar: human.avatar, color: human.color };
   return undefined;
 }

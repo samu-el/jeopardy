@@ -6,6 +6,7 @@ import {
   type GameEvent,
   type GamePlayer,
   type GameSettings,
+  type PlayerAvatar,
   type GameState,
 } from "@/lib/game";
 import { InMemoryRealtimeRoom } from "./in-memory-room";
@@ -191,14 +192,14 @@ export class RoomHost {
   }
 
   /** Seats a bot and registers its difficulty profile with the director. */
-  addBot(input: { id: string; displayName: string; profileId?: string; emoji?: string; color?: string }) {
+  addBot(input: { id: string; displayName: string; profileId?: string; avatar?: PlayerAvatar; color?: string }) {
     const profile =
       baselineBotProfiles.find((candidate) => candidate.id === input.profileId) ??
       baselineBotProfiles[1];
     const hostId = this.room.getState().settings.hostId;
     this.room.dispatch(hostId ?? input.id, {
       type: "add-bot",
-      bot: { id: input.id, displayName: input.displayName, emoji: input.emoji, color: input.color },
+      bot: { id: input.id, displayName: input.displayName, avatar: input.avatar, color: input.color },
     });
     this.botProfiles[input.id] = profile;
     this.director.addBot(input.id, profile);

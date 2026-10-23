@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import type { BotProfile } from "@/lib/ai/profiles";
-import type { GameEvent, PublicGameState } from "@/lib/game";
+import type { GameEvent, PlayerAvatar, PublicGameState } from "@/lib/game";
 import {
   NetworkRoomRuntime,
   type ChatMessage,
@@ -72,14 +72,14 @@ export interface LobbyBotConfig {
   id: string;
   name: string;
   profile: BotProfile;
-  emoji?: string;
+  avatar?: PlayerAvatar;
   color?: string;
 }
 
 export interface LobbyHumanConfig {
   id: string;
   name: string;
-  emoji?: string;
+  avatar?: PlayerAvatar;
   color?: string;
 }
 
@@ -94,7 +94,7 @@ export interface LoadedEpisode {
 export interface LobbyConfig {
   hostName: string;
   hostId: string;
-  hostEmoji?: string;
+  hostAvatar?: PlayerAvatar;
   hostColor?: string;
   hostSpectator?: boolean;
   loadedEpisode?: LoadedEpisode;
@@ -188,7 +188,7 @@ export interface GameStoreState {
   setHostName: (name: string) => void;
   setPlayerAvatar: (
     id: string,
-    avatar: { emoji?: string | null; color?: string | null },
+    avatar: { avatar?: PlayerAvatar | null; color?: string | null },
   ) => void;
   setLoadedEpisode: (loaded: LoadedEpisode | undefined) => void;
   setCustomGame: (game: NormalizedGame | undefined, issues: GameDataIssue[]) => void;
@@ -340,14 +340,14 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   setPlayerAvatar: (id, avatar) =>
     set((state) => {
       const patch = (
-        existing: { emoji?: string; color?: string } | undefined,
-      ): { emoji?: string; color?: string } => ({
-        emoji:
-          avatar.emoji === undefined
-            ? existing?.emoji
-            : avatar.emoji === null
+        existing: { avatar?: PlayerAvatar; color?: string } | undefined,
+      ): { avatar?: PlayerAvatar; color?: string } => ({
+        avatar:
+          avatar.avatar === undefined
+            ? existing?.avatar
+            : avatar.avatar === null
               ? undefined
-              : avatar.emoji,
+              : avatar.avatar,
         color:
           avatar.color === undefined
             ? existing?.color
@@ -356,17 +356,17 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
               : avatar.color,
       });
       if (id === state.lobby.hostId) {
-        const next = patch({ emoji: state.lobby.hostEmoji, color: state.lobby.hostColor });
+        const next = patch({ avatar: state.lobby.hostAvatar, color: state.lobby.hostColor });
         const { runtime, online } = get();
         if (runtime && online) {
           runtime.sendCommand(id, {
             type: "set-player-profile",
-            emoji: next.emoji,
+            avatar: next.avatar,
             color: next.color,
           });
         }
         return {
-          lobby: { ...state.lobby, hostEmoji: next.emoji, hostColor: next.color },
+          lobby: { ...state.lobby, hostAvatar: next.avatar, hostColor: next.color },
         };
       }
       return {
@@ -374,13 +374,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
           ...state.lobby,
           bots: state.lobby.bots.map((bot) => {
             if (bot.id !== id) return bot;
-            const next = patch({ emoji: bot.emoji, color: bot.color });
-            return { ...bot, emoji: next.emoji, color: next.color };
+            const next = patch({ avatar: bot.avatar, color: bot.color });
+            return { ...bot, avatar: next.avatar, color: next.color };
           }),
           extraHumans: state.lobby.extraHumans.map((human) => {
             if (human.id !== id) return human;
-            const next = patch({ emoji: human.emoji, color: human.color });
-            return { ...human, emoji: next.emoji, color: next.color };
+            const next = patch({ avatar: human.avatar, color: human.color });
+            return { ...human, avatar: next.avatar, color: next.color };
           }),
         },
       };

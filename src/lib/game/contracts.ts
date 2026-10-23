@@ -1,3 +1,5 @@
+import type { PlayerAvatar } from "./avatars";
+
 export const gameRoundOrder = [
   "lobby",
   "jeopardy",
@@ -19,8 +21,12 @@ export interface GamePlayer {
   kind: PlayerKind;
   connected: boolean;
   spectator: boolean;
-  /** Avatar emoji shown on the podium. Shared so every client sees it. */
-  emoji?: string;
+  /**
+   * The player's face: an icon key or their initial, on `color`. Unset, or a
+   * key this build does not know, shows the initial. Rooms and clients from
+   * before icon keys sent an `emoji` field instead; it is never stored.
+   */
+  avatar?: PlayerAvatar;
   /** Podium accent colour. */
   color?: string;
   /** When the player first joined, used for deterministic host migration. */
@@ -387,7 +393,7 @@ export type GameCommand =
       actorId: string;
       displayName: string;
       spectator?: boolean;
-      emoji?: string;
+      avatar?: PlayerAvatar;
       color?: string;
     }
   | {
@@ -400,7 +406,7 @@ export type GameCommand =
       actorId: string;
       targetPlayerId?: string;
       displayName?: string;
-      emoji?: string;
+      avatar?: PlayerAvatar;
       color?: string;
       spectator?: boolean;
     }

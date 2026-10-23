@@ -7,13 +7,14 @@ import Typography from "@mui/material/Typography";
 import type { PublicGameState, PublicPlayerState } from "@/lib/game";
 import { controls as chrome, jeopardyFonts, jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
 import { formatScore } from "@/lib/game/clue-turn";
+import { PlayerAvatar } from "./PlayerAvatar";
 import { useReducedMotion } from "./use-reduced-motion";
 
 interface PodiumProps {
   player: PublicPlayerState;
   state: PublicGameState;
   isYou: boolean;
-  emoji?: string;
+  avatar?: string;
   color?: string;
   /**
    * Buttons for the clue on screen, drawn inside the lectern. Only your own
@@ -52,7 +53,7 @@ export function Podium({
   player,
   state,
   isYou,
-  emoji,
+  avatar,
   color,
   controls,
   reserveControls,
@@ -143,29 +144,18 @@ export function Podium({
         transition: reducedMotion ? "none" : "outline-color 120ms ease-out, opacity 200ms ease-out",
       }}
     >
-      {(emoji || color) && (
-        <Box
-          aria-hidden
-          sx={{
-            position: "absolute",
-            top: -16,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 1,
-            width: 32,
-            height: 32,
-            borderRadius: "50%",
-            background: color ?? ui.surfaceRaised,
-            border: `2px solid ${ui.stage}`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 18,
-          }}
-        >
-          {emoji ?? ""}
-        </Box>
-      )}
+      <Box
+        data-testid={`avatar-${player.id}`}
+        sx={{
+          position: "absolute",
+          top: -16,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 1,
+        }}
+      >
+        <PlayerAvatar name={player.displayName} avatar={avatar} color={color} size={32} ring={ui.stage} />
+      </Box>
 
       <Box
         sx={{
@@ -177,7 +167,7 @@ export function Podium({
           borderBottom: `1px solid ${ui.line}`,
           borderRadius: "8px",
           px: 1,
-          pt: emoji || color ? 2.25 : 1,
+          pt: 2.25,
           pb: 1.25,
           textAlign: "center",
         }}

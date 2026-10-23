@@ -6,6 +6,7 @@ import {
   type ClientGameCommand,
   type ServerRealtimeMessage,
 } from "@/lib/realtime";
+import type { PlayerAvatar } from "@/lib/game";
 
 export interface SocketClientOptions {
   /**
@@ -18,7 +19,7 @@ export interface SocketClientOptions {
   roomId: string;
   clientId: string;
   displayName: string;
-  emoji?: string;
+  avatar?: PlayerAvatar;
   color?: string;
   spectator?: boolean;
   /** Create the room if it doesn't exist yet (host flow). */
@@ -202,7 +203,7 @@ export class SocketClient {
         roomId: this.options.roomId,
         clientId: this.options.clientId,
         displayName: this.options.displayName,
-        emoji: this.options.emoji,
+        avatar: this.options.avatar,
         color: this.options.color,
         spectator: this.options.spectator,
         create: this.create,
@@ -247,7 +248,7 @@ export class SocketClient {
     this.write({ t: "ai-judge", targetPlayerId });
   }
 
-  addBot(bot: { id: string; displayName: string; profileId?: string; emoji?: string; color?: string }) {
+  addBot(bot: { id: string; displayName: string; profileId?: string; avatar?: PlayerAvatar; color?: string }) {
     this.write({ t: "add-bot", ...bot });
   }
 

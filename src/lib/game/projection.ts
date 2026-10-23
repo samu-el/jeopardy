@@ -14,6 +14,7 @@
  */
 import type {
   ActiveClueState,
+  GamePlayer,
   GameState,
   PublicActiveClueState,
   PublicBoardClue,
@@ -62,7 +63,7 @@ export function getPublicGameState(
     serverTime: now,
     pickerId: state.pickerId,
     players: seatOrder(state).map<PublicPlayerState>((id) => ({
-      ...state.players[id],
+      ...withoutLegacyFace(state.players[id]),
       score: state.scores[id] ?? 0,
     })),
     standings: getStandings(state),
@@ -185,4 +186,15 @@ function toPublicActiveClue(
     lockouts: { ...active.lockouts },
     answerTimedOut: active.answerTimedOut ? [...active.answerTimedOut] : undefined,
   };
+}
+
+/**
+ * A room saved before avatars were icon keys can still hold an `emoji` on a
+ * seat. It never leaves the room: the face falls back to the initial.
+ */
+function withoutLegacyFace(player: GamePlayer): GamePlayer {
+  if (!("emoji" in player)) return player;
+  const copy: GamePlayer & { emoji?: unknown } = { ...player };
+  delete copy.emoji;
+  return copy;
 }

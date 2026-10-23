@@ -22,6 +22,7 @@ const pureModules = [
   "src/lib/game/projection.ts",
   "src/lib/game/rules.ts",
   "src/lib/game/board-layout.ts",
+  "src/lib/game/avatars.ts",
   "src/lib/data/normalize.ts",
   "src/lib/realtime/in-memory-room.ts",
 ];

@@ -1,4 +1,4 @@
-import { maxPlayersPerRoom } from "@/lib/game";
+import { maxPlayersPerRoom, normalizeAvatar } from "@/lib/game";
 import type { RoomHost } from "./room-host";
 import type {
   RealtimeMessageSink,
@@ -93,7 +93,7 @@ export class RoomSession {
           id: frame.id,
           displayName: frame.displayName ?? "Bot",
           profileId: frame.profileId,
-          emoji: frame.emoji,
+          avatar: normalizeAvatar(frame.avatar),
           color: frame.color,
         });
         return;
@@ -170,7 +170,7 @@ export class RoomSession {
       type: "join-game",
       displayName: frame.displayName?.trim() || "Player",
       spectator: frame.spectator,
-      emoji: frame.emoji,
+      avatar: normalizeAvatar(frame.avatar),
       color: frame.color,
     });
     this.options.send({ t: "joined", roomId, clientId: frame.clientId });
