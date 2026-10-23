@@ -3,19 +3,12 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#080A1F" />
+    <meta name="theme-color" content="#000000" />
     <title>Offline · Jeopardy</title>
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <style>
-      /* Hallmark · checked: the offline page, in the system from design.md · v2.0.0 */
-      :root {
-        color-scheme: dark;
-        --color-paper: #080a1f; --color-paper-2: #0f1333; --color-ink: #f5f6ff; --color-ink-2: #b9bde0;
-        --color-rule: #2a2f5e; --color-accent: #f2c14e; --color-accent-ink: #1a1200; --color-focus: #f2c14e;
-        --font-display: "Oswald", "Arial Narrow", Impact, sans-serif;
-        --font-body: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      }
-      html, body { margin: 0; background: var(--color-paper); color: var(--color-ink); overflow-x: clip; }
+      :root { color-scheme: dark; }
+      html, body { margin: 0; background: #000; color: #fff; }
       body {
         min-height: 100vh;
         min-height: 100svh;
@@ -25,38 +18,38 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-family: var(--font-body);
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       }
       main {
         max-width: 28rem;
         text-align: center;
-        background: var(--color-paper-2);
-        border: 1px solid var(--color-rule);
-        border-radius: 12px;
+        background: #0b0f2a;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
         padding: 32px 24px;
       }
       h1 {
         margin: 16px 0 8px;
-        font-family: var(--font-display);
+        font-family: "Arial Narrow", Impact, sans-serif;
         text-transform: uppercase;
-        letter-spacing: 0.01em;
-        line-height: 1.05;
+        letter-spacing: 0.06em;
         font-size: 1.75rem;
       }
-      p { margin: 0 0 24px; color: var(--color-ink-2); line-height: 1.5; }
+      p { margin: 0 0 24px; color: rgba(255, 255, 255, 0.72); line-height: 1.5; }
       button {
         min-height: 48px;
         padding: 0 24px;
         border-radius: 8px;
-        border: 1px solid var(--color-accent);
-        background: var(--color-accent);
-        color: var(--color-accent-ink);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: #3444e6;
+        color: #fff;
         font: inherit;
         font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
         cursor: pointer;
       }
-      button:active { transform: translateY(1px); }
-      button:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+      button:focus-visible { outline: 3px solid #8a96ff; outline-offset: 2px; }
     </style>
   </head>
   <body>

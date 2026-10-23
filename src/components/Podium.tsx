@@ -74,7 +74,7 @@ export function Podium({
   // ring-in, so a wrong answer shows red rather than simply going dark.
   const lit = isBuzzed || (judgeResult !== undefined && judgeResult !== null);
   const verdictLabel =
-    judgeResult === true ? "Correct" : judgeResult === false ? "Wrong" : null;
+    judgeResult === true ? "CORRECT" : judgeResult === false ? "WRONG" : null;
   const summary = [
     isYou ? `${player.displayName} (you)` : player.displayName,
     formatScore(player.score),
@@ -96,31 +96,10 @@ export function Podium({
         : isFirstBuzzer
           ? jeopardyPalette.buzzLight
           : isBuzzed
-            ? ui.inkFaint
-            : ui.line;
+            ? "rgba(255,255,255,0.4)"
+            : "transparent";
 
-  /**
-   * The lamp face: the lectern's light, lit edge to edge. It fills the
-   * controls well (the buttons sit on it) or, on a lectern with no well,
-   * stands as its own strip. Unlit it is a hairline colour; locked out it
-   * takes a red edge.
-   */
-  const lampSx = {
-    background: lit ? lightColor : ui.line,
-    border: `1px solid ${lockedOut ? ui.red : "transparent"}`,
-    borderRadius: "6px",
-    transition: reducedMotion ? "none" : "background-color 120ms ease-out, border-color 120ms ease-out",
-  } as const;
-  const lamp = (fill: boolean) => (
-    <Box
-      aria-hidden
-      data-testid={`buzz-light-${player.id}`}
-      data-lit={lit ? "true" : "false"}
-      sx={fill ? { ...lampSx, position: "absolute", inset: 0 } : { ...lampSx, height: 22, mt: 0.75 }}
-    />
-  );
-
-  const accent = color ?? (isYou ? ui.blueText : ui.lineStrong);
+  const accent = color ?? (isYou ? jeopardyPalette.podiumEdge : ui.lineStrong);
 
   return (
     <Box
@@ -134,14 +113,13 @@ export function Podium({
         mx: "auto",
         display: "flex",
         flexDirection: "column",
-        // Offline is the dimmest; locked out a step brighter, still in the game.
-        opacity: !player.connected ? 0.55 : lockedOut ? 0.7 : 1,
-        // The picker keeps a gold edge, buzzer or not: who rang in shows on
-        // the lamp face below, never as a second outline.
-        outline: isPicker ? `2px solid ${ui.goldBright}` : "2px solid transparent",
-        outlineOffset: "3px",
-        borderRadius: "8px",
-        transition: reducedMotion ? "none" : "outline-color 120ms ease-out, opacity 200ms ease-out",
+        opacity: player.connected ? 1 : 0.55,
+        filter: isFirstBuzzer
+          ? "drop-shadow(0 0 14px rgba(255,255,255,0.5))"
+          : isPicker
+            ? `drop-shadow(0 0 10px ${jeopardyPalette.gold}66)`
+            : "none",
+        transition: reducedMotion ? "none" : "filter 160ms ease, opacity 200ms ease",
       }}
     >
       <Box
@@ -160,25 +138,27 @@ export function Podium({
       <Box
         sx={{
           position: "relative",
-          background: ui.surface,
-          borderTop: `3px solid ${accent}`,
+          background: `linear-gradient(180deg, ${jeopardyPalette.podium} 0%, #0A0D3A 100%)`,
+          borderTop: `2px solid ${accent}`,
           borderLeft: `1px solid ${ui.line}`,
           borderRight: `1px solid ${ui.line}`,
-          borderBottom: `1px solid ${ui.line}`,
-          borderRadius: "8px",
+          borderRadius: "6px 6px 2px 2px",
           px: 1,
           pt: 2.25,
           pb: 1.25,
           textAlign: "center",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10), inset 0 -2px 10px rgba(0,0,0,0.55)",
         }}
       >
         <Typography
           noWrap
           sx={{
-            color: ui.ink,
+            fontFamily: jeopardyFonts.display,
+            color: "rgba(255,255,255,0.92)",
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
             fontWeight: 600,
-            fontSize: { xs: 13, sm: 14 },
-            lineHeight: 1.3,
+            fontSize: { xs: 10, sm: 12 },
             mb: 0.75,
           }}
         >
@@ -232,8 +212,6 @@ export function Podium({
         {reserveControls ? (
           <Box
             sx={{
-              position: "relative",
-              mt: 0.75,
               minHeight: podiumControlsHeight.base,
               "@media (pointer: coarse)": { minHeight: podiumControlsHeight.coarse },
               display: "flex",
@@ -241,13 +219,42 @@ export function Podium({
               justifyContent: "flex-start",
             }}
           >
-            {lamp(true)}
-            <Box sx={{ position: "relative", px: 0.5, pb: 0.5 }}>{controls}</Box>
+            {controls}
           </Box>
-        ) : (
-          lamp(false)
-        )}
+        ) : null}
       </Box>
+
+      <Box
+        aria-hidden
+        sx={{
+          height: 14,
+          background: "linear-gradient(180deg, #0A0D3A 0%, #04061F 100%)",
+          clipPath: "polygon(6% 0, 94% 0, 100% 100%, 0 100%)",
+        }}
+      />
+
+      <Box
+        aria-hidden
+        data-testid={`buzz-light-${player.id}`}
+        sx={{
+          mt: 0.5,
+          mx: "auto",
+          width: "62%",
+          height: 6,
+          borderRadius: 99,
+          background: lit ? lightColor : "rgba(255,255,255,0.05)",
+          boxShadow: lit ? `0 0 16px 2px ${lightColor}` : "inset 0 0 0 1px rgba(255,255,255,0.04)",
+          transition: reducedMotion ? "none" : "background 120ms ease, box-shadow 120ms ease",
+          animation:
+            isFirstBuzzer && judgeResult === undefined && !reducedMotion
+              ? "podium-pulse 0.7s ease-in-out infinite"
+              : "none",
+          "@keyframes podium-pulse": {
+            "0%, 100%": { opacity: 1 },
+            "50%": { opacity: 0.45 },
+          },
+        }}
+      />
 
       {/* Always occupies its line, whether or not this lectern has a badge
           to show. HOST or PICKS on one podium and nothing on the next made
@@ -259,16 +266,15 @@ export function Podium({
         aria-hidden
         sx={{
           mt: 0.6,
-          minHeight: 16,
+          minHeight: 11,
           justifyContent: "center",
           flexWrap: "wrap",
-          columnGap: 1,
-          fontSize: 12,
-          fontWeight: 600,
-          lineHeight: 1.3,
+          fontFamily: jeopardyFonts.display,
+          letterSpacing: "0.1em",
+          fontSize: 10,
         }}
       >
-        {isYou ? <Box sx={{ color: ui.ink, fontWeight: 700 }}>You</Box> : null}
+        {isYou ? <Box sx={{ color: ui.ink, fontWeight: 700 }}>YOU</Box> : null}
         {buzzPosition !== undefined ? (
           <Box sx={{ color: ui.ink }}>{ordinal(buzzPosition)}</Box>
         ) : null}
@@ -283,14 +289,14 @@ export function Podium({
             {verdictLabel}
           </Box>
         ) : null}
-        {isHost ? <Box sx={{ color: ui.inkMuted }}>Host</Box> : null}
-        {isPicker ? <Box sx={{ color: ui.goldBright }}>Picks</Box> : null}
-        {lockedOut ? <Box sx={{ color: jeopardyPalette.incorrect }}>Locked</Box> : null}
+        {isHost ? <Box sx={{ color: jeopardyPalette.gold }}>HOST</Box> : null}
+        {isPicker ? <Box sx={{ color: jeopardyPalette.goldBright }}>PICKS</Box> : null}
+        {lockedOut ? <Box sx={{ color: jeopardyPalette.incorrect }}>LOCKED</Box> : null}
         {player.spectator ? (
-          <Box sx={{ color: ui.inkMuted }}>Spectator</Box>
+          <Box sx={{ color: ui.inkMuted }}>SPECTATOR</Box>
         ) : null}
         {!player.connected ? (
-          <Box sx={{ color: ui.inkMuted }}>Offline</Box>
+          <Box sx={{ color: ui.inkMuted }}>OFFLINE</Box>
         ) : null}
       </Stack>
     </Box>

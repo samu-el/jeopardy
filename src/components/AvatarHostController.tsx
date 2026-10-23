@@ -25,7 +25,6 @@ import {
   type AvatarHostCue,
 } from "@/lib/ai";
 import type { GameEvent, PublicGameState } from "@/lib/game";
-import { jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
 
 const voiceAdapter = typeof window === "undefined" ? null : createVoiceAdapter();
 
@@ -219,10 +218,11 @@ export function AvatarHostController() {
           alignItems: "center",
           ...(showCaption
             ? {
-                background: ui.surface,
-                border: `1px solid ${ui.lineStrong}`,
-                borderRadius: `${ui.radiusPanel}px`,
+                background: "linear-gradient(135deg, rgba(14,21,48,0.96), rgba(31,63,191,0.5))",
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: 2,
                 p: { xs: 1, sm: 1.5 },
+                boxShadow: 6,
               }
             : {}),
         }}
@@ -292,10 +292,11 @@ function HostAvatar({
         placeItems: "center",
         fontSize: 26,
         lineHeight: 1,
-        background: jeopardyPalette.board,
+        background: "radial-gradient(circle at 35% 30%, #3a5bd9, #0e1530 75%)",
         border: "2px solid",
-        borderColor: speaking ? ui.goldBright : ui.lineStrong,
-        transition: moving ? "border-color 150ms ease-out" : undefined,
+        borderColor: speaking ? "secondary.main" : "rgba(255,255,255,0.25)",
+        boxShadow: speaking ? "0 0 0 3px rgba(255,204,0,0.25)" : 2,
+        transition: moving ? "border-color 150ms, box-shadow 150ms" : undefined,
         "@keyframes host-talk": {
           "0%, 100%": { transform: "scale(1)" },
           "50%": { transform: "scale(1.06)" },
@@ -313,7 +314,7 @@ function HostAvatar({
           : undefined,
       }}
     >
-      <Face aria-hidden sx={{ fontSize: 26, color: ui.onBoard }} />
+      <Face aria-hidden sx={{ fontSize: 26, color: "#fff" }} />
     </Box>
   );
 }

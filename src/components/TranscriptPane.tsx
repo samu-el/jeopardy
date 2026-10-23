@@ -10,7 +10,6 @@ import Typography from "@mui/material/Typography";
 import { speakerColor, speakerLabel } from "./chat-style";
 import CloseIcon from "@mui/icons-material/CloseOutlined";
 import { useGameStore } from "@/lib/state/game-store";
-import { ui } from "@/lib/foundation/jeopardy-style";
 
 interface TranscriptPaneProps {
   open: boolean;
@@ -106,15 +105,16 @@ export function TranscriptPane({ open, onClose }: TranscriptPaneProps) {
             <Typography
               component="span"
               sx={{
-                fontSize: 13,
-                fontWeight: 700,
+                fontSize: 10,
+                letterSpacing: 1,
                 color: speakerColor(message.kind),
                 mr: 1,
+                textTransform: "uppercase",
               }}
             >
               {speakerLabel(message.kind)}
             </Typography>
-            <Typography component="span" sx={{ color: ui.ink, fontSize: 14 }}>
+            <Typography component="span" sx={{ color: "rgba(255,255,255,0.85)" }}>
               {message.text}
             </Typography>
           </Box>

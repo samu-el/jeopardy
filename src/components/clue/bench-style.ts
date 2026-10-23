@@ -1,17 +1,6 @@
 import { jeopardyFonts } from "@/lib/foundation/jeopardy-style";
 
 /**
- * The buzzer's face: its labels (BUZZ, IN!, LOCKED) are the show's own
- * capitals, so they take the display face, at 16px or more, barely tracked.
- */
-export const buzzerFaceSx = {
-  fontFamily: jeopardyFonts.display,
-  fontWeight: 700,
-  letterSpacing: "0.04em",
-  textTransform: "uppercase",
-} as const;
-
-/**
  * A bench that may need two rows on a phone: centred, with room at the
  * corners for what wraps. One row on anything wider, with the pill's ends.
  */
@@ -29,7 +18,7 @@ export const benchKeySx = {
   minHeight: 32,
   px: 1.5,
   borderRadius: "999px",
-  fontSize: 14,
+  fontSize: 12,
   "@media (pointer: coarse)": { minHeight: 44 },
 } as const;
 
@@ -57,7 +46,8 @@ export const stackedButtonSx = {
   height: 28,
   py: 0,
   borderRadius: "6px",
-  fontSize: 14,
+  fontFamily: jeopardyFonts.display,
+  fontSize: 12,
   lineHeight: 1,
   "@media (pointer: coarse)": { height: 44 },
 } as const;

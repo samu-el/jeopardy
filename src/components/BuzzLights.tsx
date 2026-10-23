@@ -64,8 +64,11 @@ export function BuzzLights({
         // On a phone the field row leaves no room for it; the lectern's
         // light says who rang in.
         display: control ? { xs: "none", sm: "inline" } : "inline",
+        fontFamily: jeopardyFonts.display,
         fontWeight: 600,
-        fontSize: { xs: 13, sm: 14 },
+        textTransform: "uppercase",
+        letterSpacing: "0.12em",
+        fontSize: { xs: 10, sm: 11 },
         color: ui.inkMuted,
       }}
     >
@@ -90,8 +93,9 @@ export function BuzzLights({
         // Round ends on one row; on a phone a second row makes it a slab, and
         // 24px keeps the corners soft without swallowing what is inside.
         borderRadius: "24px",
-        background: ui.surface,
+        background: "#05071A",
         border: `1px solid ${ui.line}`,
+        boxShadow: "inset 0 1px 3px rgba(0,0,0,0.6)",
       }}
     >
       {/* Idle, the phase is printed left of the lamps. While you type, the
@@ -116,11 +120,16 @@ export function BuzzLights({
                 width: { xs: 22, sm: 38 },
                 height: { xs: 8, sm: 10 },
                 borderRadius: 999,
-                background: on ? ui.goldBright : ui.stage,
-                border: `1px solid ${on ? ui.goldBright : ui.line}`,
+                background: on
+                  ? "linear-gradient(180deg, #FFE7A0 0%, #F2C14E 55%, #C68F2A 100%)"
+                  : "#0A0D28",
+                border: on ? "1px solid rgba(255,230,160,0.6)" : `1px solid ${ui.line}`,
+                boxShadow: on
+                  ? "0 0 10px 1px rgba(242,193,78,0.7), inset 0 1px 0 rgba(255,255,255,0.5)"
+                  : "inset 0 1px 2px rgba(0,0,0,0.7)",
                 transition: reducedMotion
                   ? "none"
-                  : "background-color 120ms ease-out, border-color 120ms ease-out",
+                  : "background 180ms ease, box-shadow 180ms ease, border-color 180ms ease",
               }}
             />
           );
@@ -156,10 +165,14 @@ export function BuzzLights({
             px: 1,
             fontFamily: jeopardyFonts.display,
             fontWeight: 700,
-            fontSize: 16,
-            letterSpacing: "0.02em",
-            color: seconds === null || seconds === undefined ? ui.inkFaint : ui.goldBright,
+            fontSize: 14,
+            letterSpacing: "0.06em",
+            color: seconds === null || seconds === undefined ? ui.inkFaint : ui.gold,
             fontVariantNumeric: "tabular-nums",
+            textShadow:
+              seconds === null || seconds === undefined
+                ? "none"
+                : `0 0 8px ${ui.goldTint}`,
           }}
         >
           {seconds === null || seconds === undefined ? "--" : `${seconds}s`}

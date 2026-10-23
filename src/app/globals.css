@@ -1,29 +1,20 @@
-/* Hallmark · shape: app screen (landing: Stage split) · genre: playful · theme: brand · redesign: full · scope: app
- * paper: #080A1F (oklch 14% 0.04 275) · accent: #F2C14E gold (oklch 83% 0.13 85) · field: #060CE9 board blue · display: Oswald · body: system UI · outlier: Bitter (clue text)
- * nav: kept (the room toolbar) · signature: the board, blue tiles and gold values, on the laptop and the TV · states: loading, empty, error, full where the app has logic
- * axes: dark/display-condensed/warm · posture: Committed (board blue is a declared surface; gold is the one signal) · contrast: pass (tests/unit/foundation/tokens.test.ts) · v2.0.0 */
-/* Hallmark · pre-emit critique: P4 H4 E4 S5 R4 V3 · weakest: V, a brand redesign keeps the show's board, so the variety is in the chrome; flattened the bevels and glows instead of inventing a new look */
 /*
- * The system lives in TypeScript (src/lib/foundation/jeopardy-style.ts) and reaches the page through the MUI
- * theme (src/lib/foundation/theme.ts), which writes the design.md roles (--color-*, --font-*) on :root.
- * This file holds what must exist before any script runs: clipping, and the base ring and states from
- * design.md. They sit in the `base` layer, declared below `mui`, so a component's own focus treatment (a
- * field drawing its ring on its outline rather than on the bare input) still wins.
+ * The look lives in TypeScript (src/lib/foundation/jeopardy-style.ts) and reaches the page through the MUI
+ * theme (src/lib/foundation/theme.ts). This file holds only what must exist before any script runs: clipping,
+ * a focus ring for anything that draws none of its own, and the reduced-motion switch. The ring sits in the
+ * `base` layer, so a component's own focus treatment (a field ringing its outline, a tile ringing inside its
+ * edge) still wins.
  */
 @layer base, mui;
 
 @layer base {
   :focus-visible {
-    outline: 2px solid var(--color-focus);
+    outline: 2px solid #f2c14e;
     outline-offset: 2px;
   }
 
   :disabled {
     cursor: not-allowed;
-  }
-
-  button:not(:disabled):active {
-    transform: translateY(1px);
   }
 }
 

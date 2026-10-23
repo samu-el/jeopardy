@@ -137,7 +137,7 @@ export function DisplayView() {
       sx={{
         position: "fixed",
         inset: 0,
-        background: ui.stage,
+        background: "#000",
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
@@ -180,10 +180,10 @@ export function DisplayView() {
           bottom: 8,
           right: 8,
           zIndex: 20,
-          // Quiet but findable across a room: inkMuted at half strength still
-          // clears 3:1 on the stage.
+          // Quiet but findable across a room: at half strength the keys still
+          // clear 3:1 on the stage.
           opacity: 0.5,
-          transition: "opacity 160ms ease-out",
+          transition: "opacity 160ms",
           "&:hover, &:focus-within": { opacity: 1 },
         }}
       >
@@ -194,7 +194,7 @@ export function DisplayView() {
               data-testid="exit-display"
               aria-label="Leave TV mode"
               onClick={() => setDisplayMode(false)}
-              sx={{ color: ui.inkMuted }}
+              sx={{ color: "rgba(255,255,255,0.8)" }}
             >
               <ExitIcon fontSize="small" />
             </IconButton>
@@ -214,7 +214,7 @@ export function DisplayView() {
               }
               setPreference("soundEnabled", !soundEnabled);
             }}
-            sx={{ color: ui.inkMuted }}
+            sx={{ color: "rgba(255,255,255,0.8)" }}
           >
             {soundEnabled ? <VolumeUpIcon fontSize="small" /> : <VolumeOffIcon fontSize="small" />}
           </IconButton>
@@ -226,7 +226,7 @@ export function DisplayView() {
               data-testid="show-join-panel"
               aria-label="Show the join code"
               onClick={() => writeJoinPanel(true)}
-              sx={{ color: ui.inkMuted }}
+              sx={{ color: "rgba(255,255,255,0.8)" }}
             >
               <QrCodeIcon fontSize="small" />
             </IconButton>
@@ -244,7 +244,7 @@ export function DisplayView() {
                 void document.documentElement.requestFullscreen().catch(() => {});
               }
             }}
-            sx={{ color: ui.inkMuted }}
+            sx={{ color: "rgba(255,255,255,0.8)" }}
           >
             {fullscreen ? (
               <FullscreenExitIcon fontSize="small" />
@@ -277,10 +277,9 @@ export function DisplayView() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: ui.inkMuted,
+            color: "rgba(255,255,255,0.7)",
             fontFamily: jeopardyFonts.display,
-            fontSize: "clamp(18px, 3vh, 40px)",
-            letterSpacing: "0.02em",
+            letterSpacing: "0.2em",
             pointerEvents: "none",
           }}
         >
@@ -327,7 +326,7 @@ function RoomUnavailable({
     <Stack
       role="alert"
       data-testid="display-room-unavailable"
-      spacing={4}
+      spacing={2}
       sx={{
         position: "fixed",
         inset: 0,
@@ -335,7 +334,7 @@ function RoomUnavailable({
         alignItems: "center",
         justifyContent: "center",
         textAlign: "center",
-        background: ui.stage,
+        background: "#000",
         px: 3,
       }}
     >
@@ -344,9 +343,7 @@ function RoomUnavailable({
         sx={{
           fontFamily: jeopardyFonts.display,
           textTransform: "uppercase",
-          fontWeight: 700,
-          letterSpacing: "0.01em",
-          lineHeight: 1.05,
+          letterSpacing: "0.12em",
           fontSize: "clamp(24px, 5vh, 64px)",
           color: ui.ink,
           textWrap: "balance",
@@ -356,10 +353,10 @@ function RoomUnavailable({
         {closed ? `Room ${roomId ?? ""} isn’t open` : `Can’t reach room ${roomId ?? ""}`}
       </Typography>
       <Stack direction="row" spacing={2}>
-        <Button variant="contained" size="large" onClick={onRetry} data-testid="display-retry">
+        <Button variant="contained" onClick={onRetry} data-testid="display-retry">
           Try again
         </Button>
-        <Button variant="outlined" size="large" onClick={onLeave} data-testid="display-leave">
+        <Button variant="outlined" onClick={onLeave} data-testid="display-leave">
           Leave
         </Button>
       </Stack>
@@ -386,7 +383,7 @@ function JoinPanel({ roomId, onHide }: { roomId: string | null; onHide: () => vo
     QRCode.toDataURL(joinUrl, {
       margin: 1,
       width: 320,
-      color: { dark: `${ui.qrDark}ff`, light: `${ui.qrLight}ff` },
+      color: { dark: "#000000ff", light: "#ffffffff" },
     })
       .then((url) => {
         if (!cancelled) setQr(url);
@@ -421,7 +418,7 @@ function JoinPanel({ roomId, onHide }: { roomId: string | null; onHide: () => vo
           src={qr}
           alt={`QR code to join room ${roomId}`}
           data-testid="display-qr"
-          style={{ width: 96, height: 96, borderRadius: 6, background: ui.qrLight }}
+          style={{ width: 80, height: 80, borderRadius: 6, background: "#fff" }}
         />
       ) : null}
       <Box>
@@ -429,17 +426,15 @@ function JoinPanel({ roomId, onHide }: { roomId: string | null; onHide: () => vo
           data-testid="display-room-code"
           sx={{
             fontFamily: jeopardyFonts.display,
-            letterSpacing: "0.12em",
-            fontSize: "clamp(28px, 2.8vw, 52px)",
-            fontWeight: 700,
-            fontVariantNumeric: "tabular-nums",
-            color: ui.goldBright,
+            letterSpacing: "0.3em",
+            fontSize: "clamp(24px, 2.6vw, 44px)",
+            color: ui.ink,
             lineHeight: 1.15,
           }}
         >
           {roomId ?? ""}
         </Typography>
-        <Typography sx={{ fontSize: "clamp(14px, 1vw, 18px)", color: ui.inkMuted }}>
+        <Typography sx={{ fontSize: 13, color: ui.inkMuted }}>
           {joinUrl.replace(/^https?:\/\//, "")}
         </Typography>
       </Box>

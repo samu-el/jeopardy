@@ -5,7 +5,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { PublicGameState } from "@/lib/game";
 import { finalRevealEntries } from "@/lib/game/clue-turn";
-import { controls, jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
+import { controls, jeopardyFonts, jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
 
 /**
  * Final Jeopardy's reveal on a player's own screen: each contestant's answer
@@ -34,12 +34,12 @@ export function FinalReveal({ state }: { state: PublicGameState }) {
             columnGap: 1.25,
             px: 1.5,
             py: 0.75,
-            borderColor: entry.current ? ui.goldBright : undefined,
+            borderColor: entry.current ? jeopardyPalette.gold : undefined,
           }}
         >
           <Typography
             component="span"
-            sx={{ fontSize: 14, fontWeight: 600, color: ui.inkMuted }}
+            sx={{ fontFamily: jeopardyFonts.display, fontSize: 12, letterSpacing: "0.08em", color: ui.inkMuted, textTransform: "uppercase" }}
           >
             {entry.name}
           </Typography>
@@ -47,7 +47,7 @@ export function FinalReveal({ state }: { state: PublicGameState }) {
             {entry.answer || "No answer"}
           </Typography>
           {entry.wager !== undefined ? (
-            <Typography component="span" sx={{ fontSize: 13, color: ui.goldBright }}>
+            <Typography component="span" sx={{ fontSize: 12, color: jeopardyPalette.gold }}>
               wagered ${entry.wager}
             </Typography>
           ) : null}
@@ -55,23 +55,25 @@ export function FinalReveal({ state }: { state: PublicGameState }) {
             component="span"
             sx={{
               ml: "auto",
-              fontSize: 13,
+              fontFamily: jeopardyFonts.display,
+              fontSize: 11,
+              letterSpacing: "0.1em",
               fontWeight: 700,
               color:
                 entry.correct === true
                   ? jeopardyPalette.correct
                   : entry.correct === false
-                    ? ui.negativeInk
+                    ? "#FF8A93"
                     : ui.inkMuted,
             }}
           >
             {entry.correct === true
-              ? "✓ Correct"
+              ? "✓ CORRECT"
               : entry.correct === false
-                ? "✗ Wrong"
+                ? "✗ WRONG"
                 : entry.correct === null
-                  ? "No ruling"
-                  : "Being judged"}
+                  ? "NO RULING"
+                  : "BEING JUDGED"}
           </Typography>
         </Box>
       ))}

@@ -14,8 +14,6 @@ import {
   clueType,
   displayType,
   jeopardyPalette,
-  jeopardyTextShadow,
-  ui,
 } from "@/lib/foundation/jeopardy-style";
 import { MetaParts } from "./MetaParts";
 import { DailyDoubleSplash } from "./DailyDoubleSplash";
@@ -30,7 +28,7 @@ interface TvClueProps {
 
 /** Read from a sofa: the header sits well above caption size on a TV. */
 const headerSize = "clamp(16px, 2.3cqw, 38px)";
-const headerInk = ui.onBoardMuted;
+const headerInk = "rgba(255,255,255,0.82)";
 
 /**
  * The clue, filling a television.
@@ -108,14 +106,14 @@ export function TvClue({ state, canControl, onCommand }: TvClueProps) {
         <Typography
           component="span"
           data-testid="tv-clue-header"
-          sx={displayType({ color: headerInk, fontSize: headerSize })}
+          sx={displayType({ letterSpacing: "0.12em", color: headerInk, fontSize: headerSize })}
         >
           <MetaParts
             gap="1em"
             parts={
               clue.kind === "daily-double"
-                ? [clue.category, "Daily Double", wager !== undefined ? <Money key="wager" value={wager} /> : null]
-                : [clue.category, <Money key="value" value={clue.value} />]
+                ? [clue.category, "Daily Double", wager !== undefined ? formatMoney(wager) : null]
+                : [clue.category, formatMoney(clue.value)]
             }
           />
         </Typography>
@@ -125,6 +123,7 @@ export function TvClue({ state, canControl, onCommand }: TvClueProps) {
             component="span"
             data-testid="tv-waiting"
             sx={displayType({
+              letterSpacing: "0.1em",
               color: jeopardyPalette.goldBright,
               fontSize: "clamp(18px, 3.4cqw, 56px)",
             })}
@@ -142,7 +141,7 @@ export function TvClue({ state, canControl, onCommand }: TvClueProps) {
               fontSize: answered ? "clamp(14px, 2.4cqw, 40px)" : clueScale(clue.clue?.length ?? 0).tv,
               lineHeight: 1.2,
               letterSpacing: "0.005em",
-              color: answered ? headerInk : jeopardyPalette.clueText,
+              color: answered ? "rgba(255,255,255,0.8)" : jeopardyPalette.clueText,
             })}
           >
             {clue.clue}
@@ -200,10 +199,11 @@ function TvFinal({ final }: { final: FinalReveal }) {
         data-testid="tv-final-headline"
         sx={displayType({
           fontWeight: 700,
+          letterSpacing: "0.06em",
           color: jeopardyPalette.goldBright,
           whiteSpace: "nowrap",
           fontSize: revealing ? "clamp(18px, 3cqw, 52px)" : "clamp(24px, 5cqw, 88px)",
-          textShadow: jeopardyTextShadow,
+          textShadow: "0.06em 0.06em 0 rgba(0,0,0,0.85)",
         })}
       >
         Final Jeopardy!
@@ -213,7 +213,8 @@ function TvFinal({ final }: { final: FinalReveal }) {
         component="span"
         data-testid="tv-clue-header"
         sx={displayType({
-          color: final.phase === "wagering" ? ui.onBoard : headerInk,
+          letterSpacing: "0.1em",
+          color: final.phase === "wagering" ? "#fff" : headerInk,
           fontSize: final.phase === "wagering" ? "clamp(22px, 4.4cqw, 76px)" : headerSize,
         })}
       >
@@ -225,20 +226,18 @@ function TvFinal({ final }: { final: FinalReveal }) {
           component="span"
           data-testid="tv-waiting"
           sx={displayType({
+            letterSpacing: "0.08em",
             color: headerInk,
             fontSize: "clamp(16px, 2.2cqw, 36px)",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "0.4em",
           })}
         >
-          <span>Contestants are wagering</span>
-          {final.waitingFor.length > 0 ? (
-            <Box component="span" sx={{ color: ui.onBoard }}>
-              Waiting on {final.waitingFor.join(", ")}
-            </Box>
-          ) : null}
+          <MetaParts
+            gap="1em"
+            parts={[
+              "Contestants are wagering",
+              final.waitingFor.length > 0 ? `waiting on ${final.waitingFor.join(", ")}` : null,
+            ]}
+          />
         </Typography>
       ) : null}
 
@@ -249,7 +248,7 @@ function TvFinal({ final }: { final: FinalReveal }) {
           sx={clueType({
             fontSize: revealing ? "clamp(14px, 2.2cqw, 36px)" : clueScale(final.clue.length).tv,
             lineHeight: 1.2,
-            color: revealing ? headerInk : jeopardyPalette.clueText,
+            color: revealing ? "rgba(255,255,255,0.8)" : jeopardyPalette.clueText,
           })}
         >
           {final.clue}
@@ -264,7 +263,7 @@ function TvFinal({ final }: { final: FinalReveal }) {
           data-testid="tv-final-countdown"
           sx={displayType({
             fontVariantNumeric: "tabular-nums",
-            color: seconds <= 5 ? jeopardyPalette.goldBright : ui.onBoard,
+            color: seconds <= 5 ? jeopardyPalette.goldBright : "#fff",
             fontSize: "clamp(18px, 3cqw, 52px)",
           })}
         >
@@ -322,7 +321,7 @@ function RevealCard({ row }: { row: FinalRevealRow }) {
         ? jeopardyPalette.incorrect
         : row.current
           ? jeopardyPalette.goldBright
-          : headerInk;
+          : "rgba(255,255,255,0.2)";
 
   return (
     <Box
@@ -332,7 +331,7 @@ function RevealCard({ row }: { row: FinalRevealRow }) {
         border: `0.25cqw solid ${edge}`,
         borderRadius: "0.8cqw",
         p: "1cqw",
-        background: ui.boardScrim,
+        background: "rgba(0,0,0,0.25)",
         minWidth: 0,
         display: "flex",
         flexDirection: "column",
@@ -341,7 +340,7 @@ function RevealCard({ row }: { row: FinalRevealRow }) {
     >
       <Typography
         component="span"
-        sx={displayType({ fontSize: "clamp(16px, 1.8cqw, 30px)", color: ui.onBoard })}
+        sx={displayType({ fontSize: "clamp(16px, 1.8cqw, 30px)", color: "#fff" })}
       >
         {row.displayName}
       </Typography>
@@ -350,7 +349,7 @@ function RevealCard({ row }: { row: FinalRevealRow }) {
         data-testid={`tv-final-answer-${row.playerId}`}
         sx={clueType({
           fontSize: "clamp(16px, 1.9cqw, 32px)",
-          color: shown ? jeopardyPalette.clueText : headerInk,
+          color: shown ? jeopardyPalette.clueText : "rgba(255,255,255,0.5)",
           overflowWrap: "anywhere",
         })}
       >
@@ -362,7 +361,7 @@ function RevealCard({ row }: { row: FinalRevealRow }) {
           data-testid={`tv-final-score-${row.playerId}`}
           sx={displayType({
             fontSize: "clamp(16px, 1.5cqw, 26px)",
-            color: row.verdict === false ? ui.negativeInk : row.verdict ? ui.positiveInk : headerInk,
+            color: row.verdict === false ? "#FFB4B4" : row.verdict ? "#B8F5C4" : headerInk,
             fontVariantNumeric: "tabular-nums",
           })}
         >
@@ -383,15 +382,6 @@ function RevealCard({ row }: { row: FinalRevealRow }) {
           Judging…
         </Typography>
       ) : null}
-    </Box>
-  );
-}
-
-/** A dollar figure in a header: the gold of the board's values. */
-function Money({ value }: { value: number }) {
-  return (
-    <Box component="span" sx={{ color: jeopardyPalette.goldBright, fontVariantNumeric: "tabular-nums" }}>
-      {formatMoney(value)}
     </Box>
   );
 }

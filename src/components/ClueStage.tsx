@@ -14,8 +14,6 @@ import {
   clueType,
   displayType,
   jeopardyPalette,
-  jeopardyTextShadow,
-  ui,
 } from "@/lib/foundation/jeopardy-style";
 import { MetaParts } from "./MetaParts";
 import { DailyDoubleSplash } from "./DailyDoubleSplash";
@@ -77,7 +75,7 @@ export function ClueStage({ state }: ClueStageProps) {
       >
         <Typography
           component="h2"
-          sx={displayType({ color: ui.onBoardMuted, fontSize: { xs: 16, sm: 18 } })}
+          sx={displayType({ color: "rgba(255,255,255,0.72)", fontSize: { xs: 12, sm: 14 } })}
         >
           {clue.category}
         </Typography>
@@ -85,8 +83,8 @@ export function ClueStage({ state }: ClueStageProps) {
           sx={displayType({
             color: jeopardyPalette.gold,
             fontWeight: 700,
-            fontSize: { xs: 16, sm: 22 },
-            textShadow: jeopardyTextShadow,
+            fontSize: { xs: 14, sm: 20 },
+            textShadow: "0.06em 0.06em 0 rgba(0,0,0,0.85)",
           })}
         >
           <MetaParts parts={headline} data-testid="clue-headline" />
@@ -140,8 +138,9 @@ export function ClueStage({ state }: ClueStageProps) {
           ) : (
             <Typography
               sx={displayType({
-                color: ui.onBoardMuted,
-                fontSize: { xs: 18, md: 26 },
+                color: "rgba(255,255,255,0.65)",
+                fontSize: { xs: 16, md: 24 },
+                letterSpacing: "0.1em",
               })}
             >
               {clue.waitingForWager.length > 0

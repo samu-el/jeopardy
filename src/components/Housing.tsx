@@ -3,7 +3,7 @@
 import Box from "@mui/material/Box";
 import type { SxProps, Theme } from "@mui/material/styles";
 import type { ReactNode } from "react";
-import { controls, ui } from "@/lib/foundation/jeopardy-style";
+import { controls, jeopardyFonts, ui } from "@/lib/foundation/jeopardy-style";
 
 interface HousingProps {
   children?: ReactNode;
@@ -33,7 +33,7 @@ export function HousingDivider({ sx }: { sx?: SxProps<Theme> }) {
   return <Box aria-hidden sx={merge(controls.divider, sx)} />;
 }
 
-/** A printed label on the housing: the body face, a step smaller, as written. */
+/** A printed label on the housing: the set's face, small and spaced. */
 export function HousingLabel({ children, sx, ...rest }: HousingProps) {
   return (
     <Box
@@ -44,8 +44,11 @@ export function HousingLabel({ children, sx, ...rest }: HousingProps) {
           alignItems: "center",
           height: 36,
           px: 1.5,
+          fontFamily: jeopardyFonts.display,
           fontWeight: 600,
-          fontSize: 13,
+          fontSize: 11,
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
           color: ui.inkMuted,
           whiteSpace: "nowrap",
           fontVariantNumeric: "tabular-nums",

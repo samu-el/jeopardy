@@ -16,10 +16,12 @@ import { Housing, HousingDivider } from "../Housing";
 import { MetaParts } from "../MetaParts";
 import { benchKeySx, wrapHousingSx } from "./bench-style";
 
-/** Light text on this red is 5.5:1; the palette's brighter red is 3.2:1. */
-const incorrectFill = ui.incorrectFill;
+/** White text on this red is 5.9:1; the palette's brighter red is 3.2:1. */
+const incorrectFill = "#C8102E";
+const incorrectFillHover = "#A50D26";
 /** Dark text on the palette green: 9:1. */
-const correctInk = ui.onGreen;
+const correctInk = "#03220F";
+const correctHover = "#27B86B";
 
 /**
  * The AI judge's opinion, in words, with how sure it is of that ruling,
@@ -122,7 +124,7 @@ export function JudgeBench({ state, send }: JudgeBenchProps) {
               gap: 0.5,
               fontSize: 14,
               fontWeight: 600,
-              color: ruling.correct ? jeopardyPalette.correct : ui.negativeInk,
+              color: ruling.correct ? jeopardyPalette.correct : "#FF8A93",
             }}
           >
             {ruling.correct ? <CheckIcon sx={{ fontSize: 16 }} /> : <CloseIcon sx={{ fontSize: 16 }} />}
@@ -139,8 +141,8 @@ export function JudgeBench({ state, send }: JudgeBenchProps) {
         sx={{
           ...benchKeySx,
           ...(ruling.correct
-            ? { background: incorrectFill, color: ui.ink, "&:hover": { background: ui.incorrectFillHover } }
-            : { background: jeopardyPalette.correct, color: correctInk, "&:hover": { background: ui.greenHover } }),
+            ? { background: incorrectFill, color: ui.ink, "&:hover": { background: incorrectFillHover } }
+            : { background: jeopardyPalette.correct, color: correctInk, "&:hover": { background: correctHover } }),
         }}
       >
         Mark {ruling.correct ? "incorrect" : "correct"}
@@ -280,7 +282,7 @@ function VerdictKeys({ onJudge }: { onJudge: (correct: boolean | null) => void }
           ...benchKeySx,
           background: jeopardyPalette.correct,
           color: correctInk,
-          "&:hover": { background: ui.greenHover },
+          "&:hover": { background: correctHover },
         }}
       >
         Correct
@@ -294,7 +296,7 @@ function VerdictKeys({ onJudge }: { onJudge: (correct: boolean | null) => void }
           ...benchKeySx,
           background: incorrectFill,
           color: ui.ink,
-          "&:hover": { background: ui.incorrectFillHover },
+          "&:hover": { background: incorrectFillHover },
         }}
       >
         Incorrect
