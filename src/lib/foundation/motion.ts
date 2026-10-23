@@ -22,7 +22,9 @@ const collapse = {
   animationDuration: "0.01ms !important",
   animationDelay: "0ms !important",
   animationIterationCount: "1 !important",
-  transitionDuration: "0.01ms !important",
+  // 0s, not 0.01ms: a near-zero duration switches on the initial `transition: all`
+  // on every element, so a state change reads back stale for one frame.
+  transitionDuration: "0s !important",
   transitionDelay: "0ms !important",
   scrollBehavior: "auto !important",
 } as const;

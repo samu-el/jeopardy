@@ -217,7 +217,7 @@ export function useBuilderDraft() {
       setImportReport({
         ok: false,
         fileName: file.name,
-        issues: [{ severity: "error", code: "empty-input", message: "The file couldn't be read." }],
+        issues: [{ severity: "error", code: "empty-input", message: "The file couldn’t be read." }],
       });
     reader.onload = () => {
       const result = importBuilderGame(String(reader.result ?? ""), file.name);

@@ -249,7 +249,7 @@ function BuilderBody({
                   ? report.issues.length
                     ? `Imported ${report.fileName}, with ${report.issues.length} ${report.issues.length === 1 ? "note" : "notes"}`
                     : `Imported ${report.fileName}`
-                  : `Couldn't import ${report.fileName}`
+                  : `Couldn’t import ${report.fileName}`
               }
               issues={report.issues}
               onClose={builder.dismissImportReport}

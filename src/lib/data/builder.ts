@@ -420,7 +420,7 @@ export function validateBuilderGame(game: BuilderGame): GameDataIssue[] {
     issues.push({
       severity: "warning",
       code: "dropped-clue",
-      message: `${offBoard.length} ${offBoard.length === 1 ? "clue is" : "clues are"} in a round the board can't show and will be dropped.`,
+      message: `${offBoard.length} ${offBoard.length === 1 ? "clue is" : "clues are"} in a round the board can’t show and will be dropped.`,
     });
   }
 
@@ -800,7 +800,7 @@ export function importBuilderGame(source: string, fileName = ""): BuilderImportR
   try {
     parsed = JSON.parse(source);
   } catch {
-    return shapeError("That file isn't valid JSON. Export a game from the builder, or use a CSV.");
+    return shapeError("That file isn’t valid JSON. Export a game from the builder, or use a CSV.");
   }
   return coerceBuilderGame(parsed);
 }

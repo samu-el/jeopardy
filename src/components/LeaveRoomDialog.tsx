@@ -20,7 +20,7 @@ export function LeaveRoomDialog() {
   const detail = !online
     ? "This game only lives in this tab. Leaving ends it."
     : canHost
-      ? "You're hosting. Someone else in the room will take the chair, and your seat is given up."
+      ? "You’re hosting. Someone else in the room will take the chair, and your seat is given up."
       : "Your seat and score are given up. You can rejoin with the room code.";
 
   return (

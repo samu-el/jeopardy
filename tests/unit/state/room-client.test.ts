@@ -144,7 +144,20 @@ describe("notices", () => {
       "Ada is now hosting",
     );
     expect(hostChangeNotice(snapshot("ada"), snapshot("me"), "me")?.text).toBe(
-      "You're the host now",
+      "You’re the host now",
+    );
+  });
+
+  it("stays quiet when a game starts rather than changing hands", () => {
+    const inRoom = (roomId: string, hostId: string | undefined) =>
+      ({ ...snapshot(hostId), roomId }) as PublicGameState;
+    // A new solo board after an earlier room: a different room, not a hand-over.
+    expect(hostChangeNotice(inRoom("OLD1", "ada"), inRoom("NEW2", "me"), "me")).toBeUndefined();
+    // The first host of a room is not news either.
+    expect(hostChangeNotice(inRoom("ROOM", undefined), inRoom("ROOM", "me"), "me")).toBeUndefined();
+    // A real hand-over in the same room still is.
+    expect(hostChangeNotice(inRoom("ROOM", "ada"), inRoom("ROOM", "me"), "me")?.text).toBe(
+      "You’re the host now",
     );
   });
 

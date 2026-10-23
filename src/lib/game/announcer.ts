@@ -80,7 +80,7 @@ export function announce(
     }
 
     if (clue.correctResponse !== undefined && (!sameClue || was?.correctResponse === undefined)) {
-      if (clue.timedOut) lines.push("Time's up.");
+      if (clue.timedOut) lines.push("Time’s up.");
       lines.push(`The answer: ${clue.correctResponse}.`);
     }
 

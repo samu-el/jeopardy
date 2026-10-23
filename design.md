@@ -37,6 +37,11 @@ Type is fixed at a 1.2 ratio from a 16px body (h6 16, h5 19, h4 23, h3 28, h2 33
 - No bevels, inset highlights, gradients on controls or coloured glow shadows. Elevation is lightness.
 - Focus: a 2px gold outline, offset 2px, instant, on everything that takes focus.
 
+## Exceptions (named on purpose)
+- The judge bench's verdict keys: Correct is a green fill and Incorrect a red one, side by side. They are the ruling itself, colour-coded and labelled, so they are the one place two filled keys stand together (F4).
+- Room codes are tracked capitals in the display face (0.12em to 0.3em) on readouts: the code field, the join card, the room bar and the TV join panel. A code is read out letter by letter; the spacing is what keeps the letters apart.
+- Player avatars are emoji the player picks and stores: their content, shown back as their face, not icons.
+
 ## Motion
 - Character: brisk. Motion is state (a clue zooming from its tile, the round intro), 120 to 220ms on controls; everything ends at once under reduced motion or the in-app switch.
 

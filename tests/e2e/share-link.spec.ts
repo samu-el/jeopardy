@@ -29,11 +29,11 @@ test.describe("Share link join flow", () => {
     await expect(page.getByTestId("new-game")).toBeVisible();
   });
 
-  test("a code for no open room says the room isn't open", async ({ page }) => {
+  test("a code for no open room says the room isn’t open", async ({ page }) => {
     await stubLookup(page, false);
     await page.goto("/?room=QQQQ");
     await page.getByRole("button", { name: "Join" }).click();
-    await expect(page.getByText(/isn't open/)).toBeVisible();
+    await expect(page.getByText(/isn’t open/)).toBeVisible();
     // The spinner stops: Join can be pressed again.
     await expect(page.getByRole("button", { name: "Join" })).toBeEnabled();
   });
@@ -42,7 +42,7 @@ test.describe("Share link join flow", () => {
     await page.route("**/room/**", (route) => route.abort("connectionrefused"));
     await page.goto("/?room=QQQQ");
     await page.getByRole("button", { name: "Join" }).click();
-    await expect(page.getByText(/Can't reach the game server/)).toBeVisible();
-    await expect(page.getByText(/isn't open/)).toHaveCount(0);
+    await expect(page.getByText(/Can’t reach the game server/)).toBeVisible();
+    await expect(page.getByText(/isn’t open/)).toHaveCount(0);
   });
 });

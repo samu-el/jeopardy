@@ -31,7 +31,7 @@ export function ShareLink({ url, updated }: { url: string; updated: boolean }) {
       setStatus("Link copied.");
     } catch {
       selectText();
-      setStatus("Couldn't copy automatically. The link is selected: copy it by hand.");
+      setStatus("Couldn’t copy automatically. The link is selected: copy it by hand.");
     }
   }
 

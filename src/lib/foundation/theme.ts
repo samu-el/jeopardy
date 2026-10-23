@@ -35,6 +35,9 @@ const focusRing = {
   outlineOffset: "2px",
 } as const;
 
+/** A panel that takes focus only to hold it (a dialog frame, a menu list): no ring of its own. */
+const panelTakesFocus = { outline: "none" } as const;
+
 export const appTheme = createTheme({
   cssVariables: true,
   palette: {
@@ -204,7 +207,11 @@ export const appTheme = createTheme({
           border: `1px solid ${ui.line}`,
           borderRadius: ui.radiusPanel,
           backgroundImage: "none",
+          "&:focus-visible": panelTakesFocus,
         },
+        // A dialog takes focus on its frame so the keyboard lands inside it;
+        // the ring belongs on the controls, not around the whole panel.
+        container: { "&:focus-visible": panelTakesFocus },
       },
     },
     MuiDialogTitle: {
@@ -219,13 +226,18 @@ export const appTheme = createTheme({
     },
     MuiPopover: {
       styleOverrides: {
-        paper: { backgroundColor: ui.surface, border: `1px solid ${ui.line}`, borderRadius: ui.radiusPanel },
+        paper: {
+          backgroundColor: ui.surface,
+          border: `1px solid ${ui.line}`,
+          borderRadius: ui.radiusPanel,
+          "&:focus-visible": panelTakesFocus,
+        },
       },
     },
     MuiMenu: {
       styleOverrides: {
         paper: { backgroundColor: ui.surface, border: `1px solid ${ui.line}` },
-        list: { padding: 4 },
+        list: { padding: 4, "&:focus-visible": panelTakesFocus },
       },
     },
     MuiMenuItem: {
@@ -264,7 +276,7 @@ export const appTheme = createTheme({
           "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: ui.goldBright, borderWidth: 1 },
           // The ring: the gold edge plus one more pixel outside it, as a
           // shadow so it follows the corners and never changes the border.
-          "&:has(input:focus-visible), &:has(textarea:focus-visible)": {
+          "&:focus-within": {
             boxShadow: `0 0 0 1px ${ui.focus}`,
           },
           "&.Mui-error .MuiOutlinedInput-notchedOutline": { borderColor: ui.red },

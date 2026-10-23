@@ -43,11 +43,11 @@ export function onboardingSteps(role: "host" | "guest", touch: boolean): StepCop
   if (role === "guest") {
     return [
       {
-        title: "You're in the room",
+        title: "You’re in the room",
         body: "The host deals the board and runs the game. Your lectern is under the board.",
       },
       {
-        title: "Pick when it's your turn",
+        title: "Pick when it’s your turn",
         body: "Whoever has control chooses a category and a value. Get one right and control is yours.",
       },
       ringIn,

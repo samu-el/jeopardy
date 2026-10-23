@@ -76,7 +76,7 @@ export async function publishGame(
   if (!base) {
     return {
       ok: false,
-      error: "Publishing needs the rooms service, which isn't configured here.",
+      error: "Publishing needs the rooms service, which isn’t configured here.",
     };
   }
 

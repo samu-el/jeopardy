@@ -139,7 +139,7 @@ export function MicAnswerField({
       setStatus((current) =>
         current?.error
           ? current
-          : { text: "Couldn't start the microphone.", error: true },
+          : { text: "Couldn’t start the microphone.", error: true },
       );
     }
   }, [supported, disabled, blocked, listening, onChange, onSubmit]);

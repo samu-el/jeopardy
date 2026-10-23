@@ -611,7 +611,7 @@ export const roundNames: Record<
   complete: {
     plain: "Complete",
     spoken: "the end of the game",
-    announced: "That's the game.",
+    announced: "That’s the game.",
   },
 };
 

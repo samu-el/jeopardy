@@ -217,7 +217,7 @@ function ClueRow({
         sx={{ gridColumn: { xs: "1 / -1", md: "auto" } }}
       />
       <FormControlLabel
-        sx={{ mr: 0, gridColumn: { xs: "1 / -1", md: "auto" } }}
+        sx={{ mr: 0, gridColumn: { xs: "1 / -1", md: "auto" }, minHeight: 40 }}
         control={
           <Checkbox
             checked={clue.dailyDouble}
@@ -227,7 +227,9 @@ function ClueRow({
         }
         label="Daily Double"
       />
-      <Box sx={{ display: { xs: "none", md: "block" } }}>
+      {/* The fields are 40px tall and their helpers hang below: centre the
+          key on the field, not on the whole row. */}
+      <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", height: 40 }}>
         <RemoveRow where={where} onRemove={onRemove} />
       </Box>
     </Box>

@@ -34,7 +34,7 @@ export class ArchiveError extends Error {
 }
 
 export const archiveUnavailableMessage =
-  "The episode archive isn't answering right now. Try again in a moment.";
+  "The episode archive isn’t answering right now. Try again in a moment.";
 export const archiveOfflineMessage =
   "Could not reach the episode archive. Check your connection and try again.";
 
@@ -113,7 +113,7 @@ export function fetchRandomEpisode(
 export async function fetchEpisodeById(id: string): Promise<ArchiveEpisodeResponse> {
   const response = await send(
     `/api/episodes/${encodeURIComponent(id)}`,
-    `There's no episode #${id} in the archive. Check the number, or browse instead.`,
+    `There’s no episode #${id} in the archive. Check the number, or browse instead.`,
   );
   return (await response.json()) as ArchiveEpisodeResponse;
 }

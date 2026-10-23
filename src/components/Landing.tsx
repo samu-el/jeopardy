@@ -51,9 +51,9 @@ const CustomGameBuilder = dynamic(
 );
 
 const notOpenMessage =
-  "That room isn't open. Check the code with the host, or start your own game.";
+  "That room isn’t open. Check the code with the host, or start your own game.";
 const unreachableMessage =
-  "Couldn't reach the room service. Check your connection and try again.";
+  "Couldn’t reach the room service. Check your connection and try again.";
 const slowMessage =
   "The room service is taking too long to answer. Try again in a moment.";
 const joinTimeoutMs = 12_000;
@@ -385,30 +385,29 @@ export function Landing() {
                 className="landing-panel"
                 sx={sectionSx}
               >
-                <Typography
-                  component="h2"
-                  id="join-card-title"
+                <Typography component="h2" id="join-card-title" sx={headSx}>
+                  Join a room
+                </Typography>
+                {/* The code as its own readout, the way the TV shows it. */}
+                <Box
+                  data-testid="join-card-code"
                   sx={{
-                    ...headSx,
+                    ...controls.readout,
                     display: "flex",
-                    alignItems: "baseline",
-                    flexWrap: "wrap",
-                    columnGap: 1.5,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    height: 56,
+                    fontFamily: jeopardyFonts.display,
+                    fontWeight: 700,
+                    fontSize: 28,
+                    color: ui.goldBright,
+                    letterSpacing: "0.3em",
+                    textIndent: "0.3em",
+                    fontVariantNumeric: "tabular-nums",
                   }}
                 >
-                  Join
-                  <Box
-                    component="span"
-                    sx={{
-                      color: ui.goldBright,
-                      fontSize: { xs: 36, sm: 40 },
-                      letterSpacing: "0.12em",
-                      fontVariantNumeric: "tabular-nums",
-                    }}
-                  >
-                    {pendingRoomId}
-                  </Box>
-                </Typography>
+                  {pendingRoomId}
+                </Box>
                 <LandingField label="Your name" htmlFor="join-card-name">
                   <InputBase
                     id="join-card-name"
@@ -648,9 +647,9 @@ const fieldSx = {
   outlineOffset: "1px",
   // No transition: the ring appears at once.
   "&:hover": { borderColor: ui.inkMuted },
-  // `:has` rather than MUI's focused class: CSS drops the ring the moment
-  // focus leaves, with no render in between.
-  "&:has(input:focus-visible)": { borderColor: ui.goldBright, outlineColor: ui.focus },
+  // `:focus-within` rather than MUI's focused class: CSS drops the ring the
+  // moment focus leaves, with no render in between.
+  "&:focus-within": { borderColor: ui.goldBright, outlineColor: ui.focus },
   "& input::placeholder": { color: ui.inkFaint, opacity: 1 },
 } as const;
 

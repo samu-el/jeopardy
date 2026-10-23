@@ -180,8 +180,10 @@ export function DisplayView() {
           bottom: 8,
           right: 8,
           zIndex: 20,
-          opacity: 0.35,
-          transition: "opacity 160ms",
+          // Quiet but findable across a room: inkMuted at half strength still
+          // clears 3:1 on the stage.
+          opacity: 0.5,
+          transition: "opacity 160ms ease-out",
           "&:hover, &:focus-within": { opacity: 1 },
         }}
       >
@@ -347,9 +349,11 @@ function RoomUnavailable({
           lineHeight: 1.05,
           fontSize: "clamp(24px, 5vh, 64px)",
           color: ui.ink,
+          textWrap: "balance",
+          maxWidth: "20ch",
         }}
       >
-        {closed ? `Room ${roomId ?? ""} isn't open` : `Can't reach room ${roomId ?? ""}`}
+        {closed ? `Room ${roomId ?? ""} isn’t open` : `Can’t reach room ${roomId ?? ""}`}
       </Typography>
       <Stack direction="row" spacing={2}>
         <Button variant="contained" size="large" onClick={onRetry} data-testid="display-retry">

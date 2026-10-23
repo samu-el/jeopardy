@@ -354,7 +354,7 @@ function labelFor(
     case "answering":
       return who.answeringIsMe ? "You rang in" : `${who.answeringPlayerName} rang in`;
     case "timed-out":
-      return "Time's up";
+      return "Time’s up";
     case "judging":
       return "Judging";
     case "ruled":

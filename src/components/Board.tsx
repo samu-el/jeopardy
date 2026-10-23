@@ -133,6 +133,7 @@ export function Board({ state, onPick, canPick = false, overlay, fill, returnFoc
       // on a phone it stays short enough to leave the lecterns in view.
       ratio={isFinal ? boardRatio(boardColumns, boardRows) : boardRatio(columns, rows)}
       tall={Boolean(overlay) && !isFinal}
+      short={Boolean(overlay) && isFinal && !fill}
       label={dealt ? `Board, ${state?.round.replace(/-/g, " ") ?? ""}` : "Board"}
       fill={fill}
     >

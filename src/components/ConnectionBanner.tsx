@@ -18,10 +18,10 @@ const banner: Partial<Record<RoomStatusView, { text: string; actions: BannerActi
     actions: [],
   },
   unreachable: {
-    text: "Can't reach the rooms service. Still trying…",
+    text: "Can’t reach the rooms service. Still trying…",
     actions: ["offline"],
   },
-  "not-found": { text: "This room isn't open.", actions: ["retry", "home"] },
+  "not-found": { text: "This room isn’t open.", actions: ["retry", "home"] },
   replaced: { text: "This room was opened in another tab.", actions: ["use-here", "home"] },
   kicked: { text: "The host removed you from this room.", actions: ["home"] },
   full: { text: "This room is full.", actions: ["home"] },
@@ -29,7 +29,7 @@ const banner: Partial<Record<RoomStatusView, { text: string; actions: BannerActi
     text: "That seat belongs to another device.",
     actions: ["home"],
   },
-  "code-taken": { text: "Couldn't open a room right now.", actions: ["retry", "home"] },
+  "code-taken": { text: "Couldn’t open a room right now.", actions: ["retry", "home"] },
   rejected: { text: "This room is no longer open.", actions: ["home"] },
 };
 

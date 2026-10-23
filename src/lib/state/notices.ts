@@ -54,10 +54,14 @@ export function hostChangeNotice(
   selfId: string,
 ): RoomNoticeDraft | undefined {
   if (!previous) return undefined;
+  // A snapshot from another room is a new game, not a hand-over: starting
+  // a solo board after an earlier room must not announce a new host.
+  if (previous.roomId !== next.roomId) return undefined;
   const before = previous.settings.hostId;
   const after = next.settings.hostId;
-  if (!after || before === after) return undefined;
-  if (after === selfId) return { kind: "host-changed", text: "You're the host now" };
+  // No earlier host means the chair is being filled for the first time.
+  if (!before || !after || before === after) return undefined;
+  if (after === selfId) return { kind: "host-changed", text: "You’re the host now" };
   const name = next.players.find((player) => player.id === after)?.displayName ?? "Someone";
   return { kind: "host-changed", text: `${name} is now hosting` };
 }

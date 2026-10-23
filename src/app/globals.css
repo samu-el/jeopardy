@@ -3,15 +3,31 @@
  * nav: kept (the room toolbar) · signature: the board, blue tiles and gold values, on the laptop and the TV · states: loading, empty, error, full where the app has logic
  * axes: dark/display-condensed/warm · posture: Committed (board blue is a declared surface; gold is the one signal) · contrast: pass (tests/unit/foundation/tokens.test.ts) · v2.0.0 */
 /* Hallmark · pre-emit critique: P4 H4 E4 S5 R4 V3 · weakest: V, a brand redesign keeps the show's board, so the variety is in the chrome; flattened the bevels and glows instead of inventing a new look */
-/* Hallmark · dismissed 26a · AnalyticsGate renders only the Vercel beacon script, nothing that takes focus */
-/* Hallmark · dismissed 26b · AnalyticsGate has no control to press or disable; the beacon is a script tag */
-/* Hallmark · kept 30a in AvatarPicker · the emoji there are the avatars a player picks and stores (data shown back as their face), not icons; the host avatar's faces became Material icons */
+/* Hallmark · dismissed 30a · AvatarPicker's emoji are the avatars a player chooses and stores as their face: player content shown back, not icons, and the stored avatar contract stays */
 /*
  * The system lives in TypeScript (src/lib/foundation/jeopardy-style.ts) and reaches the page through the MUI
  * theme (src/lib/foundation/theme.ts), which writes the design.md roles (--color-*, --font-*) on :root.
- * This file holds only what must exist before any script runs; the focus ring is the theme's
- * (MuiCssBaseline `:focus-visible`), so a field can draw it on its outline instead of its input.
+ * This file holds what must exist before any script runs: clipping, and the base ring and states from
+ * design.md. They sit in the `base` layer, declared below `mui`, so a component's own focus treatment (a
+ * field drawing its ring on its outline rather than on the bare input) still wins.
  */
+@layer base, mui;
+
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  :disabled {
+    cursor: not-allowed;
+  }
+
+  button:not(:disabled):active {
+    transform: translateY(1px);
+  }
+}
+
 html,
 body {
   overflow-x: clip;
@@ -23,6 +39,6 @@ body {
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition-duration: 0s !important;
   }
 }

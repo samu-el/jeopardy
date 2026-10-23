@@ -58,6 +58,9 @@ export function JudgeBench({ state, send }: JudgeBenchProps) {
   const judging = clue.phase ? clue.phase === "judging" : clue.correctResponse !== undefined;
   const pending = judging ? clue.currentJudgePlayerId : undefined;
   const ruling = lastRuling(clue);
+  // In Final the reveal list above already shows each name, response and
+  // wager; the bench adds only the ruling and its keys.
+  const named = clue.round !== "final-jeopardy";
 
   if (pending) {
     const answer = clue.answers[pending] ?? "";
@@ -67,6 +70,7 @@ export function JudgeBench({ state, send }: JudgeBenchProps) {
       <Box role="group" aria-label={`Judge ${nameOf(state, pending)}`} data-testid="judge-bench" sx={{ maxWidth: "100%" }}>
       <Housing sx={wrapHousingSx}>
         <Readout
+          named={named}
           name={nameOf(state, pending)}
           answer={answer}
           expected={clue.correctResponse}
@@ -106,6 +110,7 @@ export function JudgeBench({ state, send }: JudgeBenchProps) {
     <Box role="group" aria-label={`Ruling on ${name}`} data-testid="judge-override" sx={{ maxWidth: "100%" }}>
     <Housing sx={wrapHousingSx}>
       <Readout
+        named={named}
         name={name}
         answer={clue.answers[ruling.playerId]}
         note={
@@ -156,12 +161,15 @@ export function JudgeBench({ state, send }: JudgeBenchProps) {
 }
 
 function Readout({
+  named = true,
   name,
   answer,
   expected,
   wager,
   note,
 }: {
+  /** Print the name, response and wager (false where a list beside it already does). */
+  named?: boolean;
   name: string;
   answer?: string;
   /** The expected response, shown to the host alone while they rule. */
@@ -188,19 +196,23 @@ function Readout({
         color: ui.ink,
       }}
     >
-      <Box component="span" sx={{ color: ui.inkMuted }}>
-        {name}
-      </Box>
-      <Box component="span" sx={{ color: jeopardyPalette.goldBright, fontWeight: 700 }}>
-        {answer || "No answer"}
-      </Box>
+      {named ? (
+        <>
+          <Box component="span" sx={{ color: ui.inkMuted }}>
+            {name}
+          </Box>
+          <Box component="span" sx={{ color: jeopardyPalette.goldBright, fontWeight: 700 }}>
+            {answer || "No answer"}
+          </Box>
+        </>
+      ) : null}
       {expected ? (
         <Box component="span" sx={{ fontSize: 13, color: ui.inkMuted }}>
           (expected: {expected})
         </Box>
       ) : null}
       {note}
-      {wager !== undefined ? (
+      {named && wager !== undefined ? (
         <Box component="span" sx={{ fontSize: 13, color: ui.goldBright }}>
           wagered ${wager}
         </Box>

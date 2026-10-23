@@ -109,7 +109,7 @@ export class RoomSession {
     const resolved = await this.options.resolveRoom(roomId, frame.create === true);
     if (this.closed) return;
     if (!resolved) {
-      this.reject(frame.clientId, "room-not-found", `Room ${roomId} isn't open.`);
+      this.reject(frame.clientId, "room-not-found", `Room ${roomId} isn’t open.`);
       return;
     }
     const room = resolved.host;

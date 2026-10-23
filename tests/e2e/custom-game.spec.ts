@@ -85,7 +85,7 @@ test.describe("Custom games", () => {
       mimeType: "application/json",
       buffer: Buffer.from('{"categories":"x","clues":"y"}'),
     });
-    await expect(page.getByTestId("import-report")).toContainText("Couldn't import shape.json");
+    await expect(page.getByTestId("import-report")).toContainText("Couldn’t import shape.json");
     await expect(builder.getByLabel("Game title")).toBeVisible();
 
     // An empty board lists what's missing at the top instead of doing nothing.

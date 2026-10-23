@@ -72,8 +72,8 @@ export async function lookupRoom(
 
 export function lookupMessage(code: string, result: Exclude<RoomLookup, "open">): string {
   return result === "not-found"
-    ? `Room ${code} isn't open. Ask the host for a fresh code, or start your own game.`
-    : "Can't reach the game server. Check your connection and try again.";
+    ? `Room ${code} isn’t open. Ask the host for a fresh code, or start your own game.`
+    : "Can’t reach the game server. Check your connection and try again.";
 }
 
 /** The clue set the lobby currently has staged, from an episode or a build. */
@@ -215,7 +215,7 @@ export function watchForUnreachableRoom(set: StoreSet, get: StoreGet, roomId: st
       online: {
         ...online,
         problem: "unreachable",
-        error: "Can't reach the rooms service. Still trying…",
+        error: "Can’t reach the rooms service. Still trying…",
       },
     });
   }, roomConnectGraceMs);
@@ -430,7 +430,7 @@ function retryWithFreshCode(set: StoreSet, get: StoreGet, options: ConnectOption
             ...state.online,
             status: "rejected",
             problem: "code-taken",
-            error: "Couldn't find a free room code. Try again in a moment.",
+            error: "Couldn’t find a free room code. Try again in a moment.",
           }
         : null,
     }));
