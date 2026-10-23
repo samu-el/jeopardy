@@ -33,7 +33,7 @@
     "@mui/material": "^9.0.1",
     "@mui/material-nextjs": "^9.0.1",
     "@vercel/analytics": "^2.0.1",
-    "next": "^16.2.6",
+    "next": "^16.4.2",
     "openai": "^6.38.0",
     "papaparse": "^5.5.3",
     "qrcode": "^1.5.4",
@@ -43,7 +43,7 @@
   },
   "devDependencies": {
     "@aurelienbbn/agentlint": "^0.9.1",
-    "@cloudflare/workers-types": "^5.20260907.1",
+    "@cloudflare/workers-types": "^5.20261019.1",
     "@playwright/test": "^1.60.0",
     "@types/node": "^25.8.0",
     "@types/papaparse": "^5.5.2",
@@ -51,10 +51,10 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.4",
-    "eslint-config-next": "^16.2.6",
+    "eslint-config-next": "^16.4.2",
     "prettier": "^3.8.3",
     "typescript": "^5.9.3",
     "vitest": "^4.1.6",
-    "wrangler": "^4.129.1"
+    "wrangler": "^4.152.0"
   }
 }
