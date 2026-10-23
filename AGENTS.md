@@ -39,6 +39,7 @@ Before implementation work, read:
 5. Add API or realtime adapters after the pure logic passes.
 6. Build UI only after behavior and contracts are clear.
 7. Run `bun run verify` before handoff.
+8. Run `bun run agentlint check --all` before you finish; the work is complete only when it exits 0.
 
 ## Tooling
 

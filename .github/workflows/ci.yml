@@ -40,6 +40,10 @@ jobs:
         run: bun run typecheck:worker
       - name: Lint
         run: bun run lint
+      - name: agentlint rules
+        run: bun run agentlint rules test
+      - name: agentlint gate
+        run: bun run lint:agent
       - name: Unit & contract tests
         run: bun run test
       - name: Foundation verifier

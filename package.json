@@ -13,12 +13,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "lint:agent": "agentlint check --all",
+    "agentlint": "agentlint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "foundation:verify": "bun run scripts/verify-foundation.ts",
-    "verify": "bun run typecheck && bun run typecheck:worker && bun run lint && bun run test && bun run build && bun run foundation:verify",
+    "verify": "bun run typecheck && bun run typecheck:worker && bun run lint && bun run test && bun run build && bun run foundation:verify && bun run lint:agent",
     "typecheck:worker": "tsc --noEmit -p workers/rooms/tsconfig.json",
     "rooms:dev": "wrangler dev --config workers/rooms/wrangler.jsonc --port 8787",
     "rooms:deploy": "wrangler deploy --config workers/rooms/wrangler.jsonc"
@@ -40,6 +42,7 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
+    "@aurelienbbn/agentlint": "^0.9.1",
     "@cloudflare/workers-types": "^5.20261019.1",
     "@playwright/test": "^1.60.0",
     "@types/node": "^25.8.0",
