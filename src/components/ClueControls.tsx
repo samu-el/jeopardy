@@ -305,7 +305,7 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
                 }
               }}
             />
-            <Button variant="contained" onClick={handleSubmitWager} sx={benchKeySx}>
+            <Button variant="contained" onClick={handleSubmitWager} sx={{ ...controls.keyPrimary, ...benchKeySx }}>
               Wager
             </Button>
             <HousingDivider sx={{ display: { xs: "none", sm: "block" } }} />
@@ -332,7 +332,7 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
               id="wager-error"
               role="alert"
               variant="caption"
-              sx={{ color: ui.negativeInk, fontWeight: 600 }}
+              sx={{ color: "#FF8A93", fontWeight: 600 }}
             >
               {wagerError}
             </Typography>
@@ -356,7 +356,7 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
         <Typography
           variant="overline"
           data-testid="times-up"
-          sx={{ color: jeopardyPalette.goldBright, fontWeight: 700 }}
+          sx={{ color: jeopardyPalette.goldBright, fontWeight: 700, letterSpacing: "0.14em" }}
         >
           Time&rsquo;s up
         </Typography>

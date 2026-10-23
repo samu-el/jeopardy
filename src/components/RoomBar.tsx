@@ -96,6 +96,7 @@ export function RoomBar({ episode }: RoomBarProps) {
             height: 8,
             borderRadius: "50%",
             background: lamp.color,
+            boxShadow: `0 0 8px ${lamp.color}, inset 0 1px 0 rgba(255,255,255,0.5)`,
             flex: "0 0 auto",
           }}
         />
@@ -119,19 +120,20 @@ export function RoomBar({ episode }: RoomBarProps) {
             "@media (pointer: coarse)": { height: 44 },
             color: "inherit",
             "&:hover": { borderColor: ui.inkMuted },
-            "&:focus-visible": { outline: `2px solid ${ui.focus}`, outlineOffset: 2 },
+            "&:focus-visible": { outline: `2px solid ${ui.blue}`, outlineOffset: 1 },
           }}
         >
           <Typography
             // Tabular figures so revealing the code doesn't shift the strip.
             sx={{
               fontFamily: jeopardyFonts.display,
-              letterSpacing: "0.12em",
-              fontSize: 16,
+              letterSpacing: "0.18em",
+              fontSize: 15,
               fontWeight: 600,
               lineHeight: 1,
               fontVariantNumeric: "tabular-nums",
-              color: ui.goldBright,
+              color: ui.gold,
+              textShadow: `0 0 8px ${ui.goldTint}`,
             }}
           >
             {revealed ? online.roomId : "•".repeat(online.roomId.length)}

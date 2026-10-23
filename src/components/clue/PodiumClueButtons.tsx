@@ -7,10 +7,10 @@ import Stack from "@mui/material/Stack";
 import type { PublicGameState } from "@/lib/game";
 import { nameOf } from "@/lib/game/clue-turn";
 import { primeAudio, primeSpeech } from "@/lib/ai";
-import { controls, ui } from "@/lib/foundation/jeopardy-style";
+import { controls, jeopardyFonts, ui } from "@/lib/foundation/jeopardy-style";
 import { useClueTurn } from "../use-clue-turn";
 import { answerFocusProxyId, mayTakeFocus } from "./keyboard";
-import { barButtonSx, buzzerFaceSx, stackedButtonSx } from "./bench-style";
+import { barButtonSx, stackedButtonSx } from "./bench-style";
 
 interface PodiumClueButtonsProps {
   state: PublicGameState;
@@ -107,15 +107,14 @@ export function PodiumClueButtons({
       sx={{
         ...keySx,
         ...(canIBuzz ? controls.buzzer : controls.keyOff),
-        ...buzzerFaceSx,
-        ...(bar ? { flex: "1 1 auto", fontSize: 24 } : { fontSize: 17 }),
-        // Disabled either way, but never the same dead key: IN! is lit (you
-        // have the clue), LOCKED is red ink on a red hairline.
-        "&.Mui-disabled": turn.buzzedByMe
-          ? { ...controls.keyPrimary, color: ui.onGold }
-          : turn.isLockedOut
-            ? { ...controls.keyOff, color: ui.negativeInk, borderColor: ui.red }
-            : { ...controls.keyOff, color: ui.inkMuted },
+        ...(bar ? { flex: "1 1 auto", fontSize: 22 } : { fontSize: 13 }),
+        letterSpacing: "0.12em",
+        "&.Mui-disabled": {
+          ...controls.keyOff,
+          // The disabled label carries information (IN!, LOCKED), so it
+          // keeps readable contrast.
+          color: ui.inkMuted,
+        },
       }}
     >
       {turn.buzzedByMe ? "IN!" : turn.isLockedOut ? "LOCKED" : "BUZZ"}
@@ -143,7 +142,7 @@ export function PodiumClueButtons({
       {turn.autoAdvanceSeconds !== null ? (
         <Box
           component="span"
-          sx={{ ml: 1, pl: 1, borderLeft: `1px solid currentColor`, fontVariantNumeric: "tabular-nums" }}
+          sx={{ ml: 0.75, pl: 0.75, opacity: 0.8, borderLeft: "1px solid currentColor", fontVariantNumeric: "tabular-nums" }}
         >
           {turn.autoAdvanceSeconds}s
         </Box>
@@ -155,10 +154,12 @@ export function PodiumClueButtons({
     <Box
       role="status"
       sx={{
-        fontSize: bar ? 14 : 12,
-        fontWeight: 600,
+        fontFamily: jeopardyFonts.display,
+        fontSize: bar ? 12 : 10,
+        letterSpacing: "0.06em",
         color: ui.inkMuted,
         textAlign: "center",
+        textTransform: "uppercase",
       }}
     >
       {beaten} was first

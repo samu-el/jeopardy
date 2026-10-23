@@ -29,12 +29,11 @@ const tileSx = (selected: boolean) => ({
   justifyContent: "center",
   padding: 0,
   color: ui.ink,
-  background: selected ? ui.goldTint : "transparent",
-  border: `1px solid ${selected ? ui.goldBright : ui.line}`,
+  background: selected ? ui.blueTint : "transparent",
+  border: `1px solid ${selected ? ui.blue : "rgba(255,255,255,0.08)"}`,
   borderRadius: 1,
   cursor: "pointer",
-  "&:hover": { background: ui.hoverTint },
-  "&:active": { transform: "translateY(1px)" },
+  "&:hover": { background: "rgba(255,255,255,0.06)" },
 });
 
 export function AvatarPicker({ playerId, name, avatar, color, size = 36, label }: AvatarPickerProps) {

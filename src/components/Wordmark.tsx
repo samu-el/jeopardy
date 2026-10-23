@@ -5,8 +5,6 @@ import { jeopardyFonts, ui } from "@/lib/foundation/jeopardy-style";
 
 interface WordmarkProps {
   size?: "sm" | "md" | "lg" | "xl";
-  /** What it sits on: the stage (blue letters) or the board blue (white letters). */
-  tone?: "stage" | "board";
 }
 
 // The hero size steps down on a phone: at 112px the mark runs off a 390px
@@ -29,7 +27,7 @@ const sizeMap = {
  * reproduced. To drop in a licensed asset, place it at
  * `public/wordmark.svg` and edit this component to render an <img>.
  */
-export function Wordmark({ size = "md", tone = "stage" }: WordmarkProps) {
+export function Wordmark({ size = "md" }: WordmarkProps) {
   const { font, height } = sizeMap[size];
   return (
     <Box
@@ -55,7 +53,7 @@ export function Wordmark({ size = "md", tone = "stage" }: WordmarkProps) {
       <Box
         component="span"
         sx={{
-          color: tone === "board" ? ui.onBoard : ui.blue,
+          color: ui.blue,
           textShadow: "0.04em 0.04em 0 rgba(0,0,0,0.6)",
         }}
       >
@@ -64,7 +62,7 @@ export function Wordmark({ size = "md", tone = "stage" }: WordmarkProps) {
       <Box
         component="span"
         sx={{
-          color: ui.goldBright,
+          color: ui.gold,
           textShadow: "0.04em 0.04em 0 rgba(0,0,0,0.6)",
         }}
       >

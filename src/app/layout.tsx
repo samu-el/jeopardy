@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import "./globals.css";
 import { AppProviders } from "./providers";
 import { fontVariables } from "./fonts";
 import { AnalyticsGate } from "@/components/AnalyticsGate";

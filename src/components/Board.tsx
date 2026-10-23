@@ -258,7 +258,7 @@ function Cell({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: jeopardyPalette.ghostValue,
+          color: "rgba(214,159,76,0.16)",
         }}
       >
         {tile.kind === "ghost" ? tile.label : ""}
@@ -282,18 +282,17 @@ function Cell({
         textShadow: jeopardyTextShadow,
         opacity: tile.hidden ? 0 : 1,
         cursor: tile.pickable ? "pointer" : "default",
-        transition: reducedMotion ? "none" : "filter 120ms ease-out",
+        transition: reducedMotion ? "none" : "filter 140ms ease, transform 140ms ease",
         touchAction: "manipulation",
         WebkitTapHighlightColor: "transparent",
         // Only where there is a real hover: on a touch screen the tapped
         // square would keep its glow after the board comes back.
         "@media (hover: hover)": {
           "&:hover": tile.pickable
-            ? { filter: "brightness(1.35)" }
+            ? { filter: "brightness(1.35)", transform: reducedMotion ? "none" : "scale(1.02)" }
             : {},
         },
         "&.Mui-disabled": { color: jeopardyPalette.gold },
-        "&:active": { filter: "brightness(1.15)" },
         "&:focus-visible, &.Mui-focusVisible": {
           outline: `3px solid ${jeopardyPalette.goldBright}`,
           outlineOffset: "-3px",
