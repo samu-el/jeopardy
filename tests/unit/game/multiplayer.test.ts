@@ -7,6 +7,7 @@ import {
   type GameClue,
   type GameCommand,
   type GameState,
+  type PlayerAvatar,
 } from "@/lib/game";
 
 const clues: GameClue[] = [
@@ -195,12 +196,52 @@ describe("profiles", () => {
     state = run(state, {
       type: "set-player-profile",
       actorId: "ada",
-      emoji: "🦊",
+      avatar: "rocket",
       color: "#ff8800",
     }).state;
 
     const publicState = getPublicGameState(state, 0);
-    expect(publicState.players[0]).toMatchObject({ emoji: "🦊", color: "#ff8800" });
+    expect(publicState.players[0]).toMatchObject({ avatar: "rocket", color: "#ff8800" });
+  });
+
+  it("keeps only known avatar keys and hex colours", () => {
+    let state = run(emptyRoom(), {
+      type: "join-game",
+      actorId: "ada",
+      displayName: "Ada",
+      avatar: "not-an-icon" as PlayerAvatar,
+      color: "red; background: url(x)",
+    }).state;
+    expect(state.players.ada).toMatchObject({ avatar: undefined, color: undefined });
+
+    state = run(state, { type: "set-player-profile", actorId: "ada", avatar: "star" }).state;
+    state = run(state, {
+      type: "set-player-profile",
+      actorId: "ada",
+      avatar: "nope" as PlayerAvatar,
+    }).state;
+    expect(state.players.ada!.avatar).toBe("star");
+
+    state = run(state, { type: "set-player-profile", actorId: "ada", avatar: "initial" }).state;
+    expect(state.players.ada!.avatar).toBe("initial");
+  });
+
+  it("drops an emoji sent by an older client, so the face falls back to the initial", () => {
+    // Older clients sent `emoji`; the command shape no longer has it.
+    const legacy = { type: "join-game", actorId: "ada", displayName: "Ada", emoji: "\u{1F98A}" };
+    const state = run(emptyRoom(), legacy as unknown as GameCommand).state;
+    const [ada] = getPublicGameState(state, 0).players;
+    expect(ada).not.toHaveProperty("emoji");
+    expect(ada!.avatar).toBeUndefined();
+  });
+
+  it("never projects an emoji stored by a room saved before icon keys", () => {
+    const joined = run(emptyRoom(), { type: "join-game", actorId: "ada", displayName: "Ada" }).state;
+    const saved: GameState = {
+      ...joined,
+      players: { ada: { ...joined.players.ada!, emoji: "\u{1F98A}" } as GameState["players"][string] },
+    };
+    expect(getPublicGameState(saved, 0).players[0]).not.toHaveProperty("emoji");
   });
 
   it("stops a guest from editing another player", () => {

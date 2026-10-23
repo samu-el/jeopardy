@@ -40,8 +40,8 @@ interface BoardProps {
    */
   fill?: boolean;
   /**
-   * When a clue closes, put keyboard focus back on the board — on the next
-   * square in the same column, or the board itself — instead of letting it
+   * When a clue closes, put keyboard focus back on the board (on the next
+   * square in the same column, or the board itself) instead of letting it
    * fall to the top of the page.
    */
   returnFocus?: boolean;
@@ -52,7 +52,7 @@ interface BoardProps {
  *
  * A category strip, a value you can press, a square the archive never had,
  * and the ghost board that stands in before a game is dealt are all the same
- * blue rectangle with different text — so they are one component rather than
+ * blue rectangle with different text, so they are one component rather than
  * four near-copies of the same `sx` block.
  */
 type Tile =
@@ -133,6 +133,7 @@ export function Board({ state, onPick, canPick = false, overlay, fill, returnFoc
       // on a phone it stays short enough to leave the lecterns in view.
       ratio={isFinal ? boardRatio(boardColumns, boardRows) : boardRatio(columns, rows)}
       tall={Boolean(overlay) && !isFinal}
+      short={Boolean(overlay) && isFinal && !fill}
       label={dealt ? `Board, ${state?.round.replace(/-/g, " ") ?? ""}` : "Board"}
       fill={fill}
     >
@@ -257,7 +258,7 @@ function Cell({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: "rgba(214,159,76,0.16)",
+          color: jeopardyPalette.ghostValue,
         }}
       >
         {tile.kind === "ghost" ? tile.label : ""}
@@ -281,18 +282,19 @@ function Cell({
         textShadow: jeopardyTextShadow,
         opacity: tile.hidden ? 0 : 1,
         cursor: tile.pickable ? "pointer" : "default",
-        transition: reducedMotion ? "none" : "filter 140ms ease, transform 140ms ease",
+        transition: reducedMotion ? "none" : "filter 120ms ease-out",
         touchAction: "manipulation",
         WebkitTapHighlightColor: "transparent",
         // Only where there is a real hover: on a touch screen the tapped
         // square would keep its glow after the board comes back.
         "@media (hover: hover)": {
           "&:hover": tile.pickable
-            ? { filter: "brightness(1.35)", transform: reducedMotion ? "none" : "scale(1.02)" }
+            ? { filter: "brightness(1.35)" }
             : {},
         },
         "&.Mui-disabled": { color: jeopardyPalette.gold },
-        "&:focus-visible": {
+        "&:active": { filter: "brightness(1.15)" },
+        "&:focus-visible, &.Mui-focusVisible": {
           outline: `3px solid ${jeopardyPalette.goldBright}`,
           outlineOffset: "-3px",
         },

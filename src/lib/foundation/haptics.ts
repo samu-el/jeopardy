@@ -4,7 +4,7 @@
  *
  * `navigator.vibrate` exists on Android Chrome and is a no-op or missing
  * elsewhere (iOS Safari has none), so every call is a best-effort hint and
- * never throws. Callers pass `enabled` — wire it to the reduced-motion /
+ * never throws. Callers pass `enabled`; wire it to the reduced-motion /
  * haptics preference so a viewer who asked for less stimulation gets none.
  *
  *   haptic("buzz", { enabled: !preferences.reducedMotion });

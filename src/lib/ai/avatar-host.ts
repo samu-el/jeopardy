@@ -69,7 +69,7 @@ const cueScripts: Record<
     say: (context) =>
       (context.categories ?? []).length === 0
         ? "Here are your categories."
-        : `Today's categories are: ${formatCategoryList(context.categories ?? [])}.`,
+        : `Today’s categories are: ${formatCategoryList(context.categories ?? [])}.`,
     move: "lean-in",
   },
   "clue-selected": {
@@ -95,11 +95,11 @@ const cueScripts: Record<
   "final-prompt": { say: () => "Final Jeopardy. Make your wagers.", move: "lean-in" },
   "game-complete": {
     say: ({ playerName }) =>
-      playerName ? `That's the game. Congratulations, ${playerName}.` : "That's the game.",
+      playerName ? `That’s the game. Congratulations, ${playerName}.` : "That’s the game.",
     move: "applaud",
   },
   "pacing-reminder": {
-    say: () => "Make a selection when you're ready.",
+    say: () => "Make a selection when you’re ready.",
     needsReminders: true,
   },
 };

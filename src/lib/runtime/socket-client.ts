@@ -6,6 +6,7 @@ import {
   type ClientGameCommand,
   type ServerRealtimeMessage,
 } from "@/lib/realtime";
+import type { PlayerAvatar } from "@/lib/game";
 
 export interface SocketClientOptions {
   /**
@@ -18,7 +19,7 @@ export interface SocketClientOptions {
   roomId: string;
   clientId: string;
   displayName: string;
-  emoji?: string;
+  avatar?: PlayerAvatar;
   color?: string;
   spectator?: boolean;
   /** Create the room if it doesn't exist yet (host flow). */
@@ -122,7 +123,7 @@ export class SocketClient {
       this.reconnectDelayMs = 500;
       this.options.onStatus?.("connected");
       // The room only knows this connection once it has joined, so the join
-      // goes first — before anything the caller queued while we were down.
+      // goes first, before anything the caller queued while we were down.
       this.join();
       const pending = framesToReplay(this.queue, {
         everConnected: this.everOpened,
@@ -192,7 +193,7 @@ export class SocketClient {
     socket.send(encodeFrame(frame));
   }
 
-  /** Re-announces this client to the room — also used after a reconnect. */
+  /** Re-announces this client to the room, also used after a reconnect. */
   join() {
     const socket = this.socket;
     if (!socket || socket.readyState !== WebSocket.OPEN) return;
@@ -202,7 +203,7 @@ export class SocketClient {
         roomId: this.options.roomId,
         clientId: this.options.clientId,
         displayName: this.options.displayName,
-        emoji: this.options.emoji,
+        avatar: this.options.avatar,
         color: this.options.color,
         spectator: this.options.spectator,
         create: this.create,
@@ -247,7 +248,7 @@ export class SocketClient {
     this.write({ t: "ai-judge", targetPlayerId });
   }
 
-  addBot(bot: { id: string; displayName: string; profileId?: string; emoji?: string; color?: string }) {
+  addBot(bot: { id: string; displayName: string; profileId?: string; avatar?: PlayerAvatar; color?: string }) {
     this.write({ t: "add-bot", ...bot });
   }
 

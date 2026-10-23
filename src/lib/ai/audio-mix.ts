@@ -1,6 +1,6 @@
 /**
  * The audio mix: one level each for the host's voice, sound effects and
- * music, plus a master mute. Pure state with listeners — the Web Audio
+ * music, plus a master mute. Pure state with listeners: the Web Audio
  * graph (sfx.ts) and the speech adapter (voice.ts) read it, and the UI
  * writes it from the player's preferences.
  */

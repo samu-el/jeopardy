@@ -103,12 +103,12 @@ describe("deriveClueTurn", () => {
     });
     const mine = deriveClueTurn(state(dd), "me", 2_000);
     expect(mine.mayAnswer).toBe(false);
-    expect(mine.clockLabel).toBe("Daily Double · Sam");
+    expect(mine.clockLabel).toBe("Sam's Daily Double");
     expect(mine.canIBuzz).toBe(false);
 
     const theirs = deriveClueTurn(state(dd), "sam", 2_000);
     expect(theirs.mayAnswer).toBe(true);
-    expect(theirs.clockLabel).toBe("Daily Double · your answer");
+    expect(theirs.clockLabel).toBe("Your Daily Double");
   });
 
   it("does not say anyone rang in during Final Jeopardy", () => {
@@ -138,7 +138,7 @@ describe("deriveClueTurn", () => {
     });
     const view = deriveClueTurn(state(done), "me", 7_600);
     expect(view.phase).toBe("timed-out");
-    expect(view.clockLabel).toBe("Time's up");
+    expect(view.clockLabel).toBe("Time’s up");
     expect(view.autoAdvanceSeconds).toBe(3);
   });
 });
@@ -213,7 +213,7 @@ describe("announce", () => {
     const open = state(clue());
     const timedOut = state(clue({ correctResponse: "Four", timedOut: true }));
     expect(announce({ state: open, phase: "ring-in" }, { state: timedOut, phase: "timed-out" }, "me")).toEqual([
-      "Time's up.",
+      "Time’s up.",
       "The answer: Four.",
     ]);
     const board = state(undefined, { round: "double-jeopardy", pickerId: "sam" });

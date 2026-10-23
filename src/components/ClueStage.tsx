@@ -5,6 +5,7 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { PublicGameState } from "@/lib/game";
+import { joinNames } from "@/lib/game/results";
 import { useGameStore } from "@/lib/state/game-store";
 import { playSfx, startFinalTheme, stopFinalTheme } from "@/lib/ai";
 import {
@@ -13,7 +14,10 @@ import {
   clueType,
   displayType,
   jeopardyPalette,
+  jeopardyTextShadow,
+  ui,
 } from "@/lib/foundation/jeopardy-style";
+import { MetaParts } from "./MetaParts";
 import { DailyDoubleSplash } from "./DailyDoubleSplash";
 import { useReducedMotion } from "./use-reduced-motion";
 
@@ -24,7 +28,7 @@ interface ClueStageProps {
 /**
  * The clue itself, and nothing anyone presses.
  *
- * The category, the value, the clue, and the answer once it is revealed —
+ * The category, the value, the clue, and the answer once it is revealed:
  * what the whole room is reading. The clock, the buzzer, the answer field
  * and the host's controls sit under the board in `ClueControls`, so a long
  * clue has the panel to itself and the board stops being a control surface.
@@ -43,8 +47,8 @@ export function ClueStage({ state }: ClueStageProps) {
   const headline = clue.dailyDouble
     ? dailyDoubleHeadline(clue.wagers[clue.dailyDoublePlayerId ?? ""])
     : isFinal
-      ? "FINAL JEOPARDY!"
-      : `$${clue.value}`;
+      ? ["FINAL JEOPARDY!"]
+      : [`$${clue.value}`];
   const scale = clueScale(clue.clue?.length ?? 0);
 
   return (
@@ -73,7 +77,7 @@ export function ClueStage({ state }: ClueStageProps) {
       >
         <Typography
           component="h2"
-          sx={displayType({ color: "rgba(255,255,255,0.72)", fontSize: { xs: 12, sm: 14 } })}
+          sx={displayType({ color: ui.onBoardMuted, fontSize: { xs: 16, sm: 18 } })}
         >
           {clue.category}
         </Typography>
@@ -81,11 +85,11 @@ export function ClueStage({ state }: ClueStageProps) {
           sx={displayType({
             color: jeopardyPalette.gold,
             fontWeight: 700,
-            fontSize: { xs: 14, sm: 20 },
-            textShadow: "0.06em 0.06em 0 rgba(0,0,0,0.85)",
+            fontSize: { xs: 16, sm: 22 },
+            textShadow: jeopardyTextShadow,
           })}
         >
-          {headline}
+          <MetaParts parts={headline} data-testid="clue-headline" />
         </Typography>
       </Stack>
 
@@ -136,13 +140,14 @@ export function ClueStage({ state }: ClueStageProps) {
           ) : (
             <Typography
               sx={displayType({
-                color: "rgba(255,255,255,0.65)",
-                fontSize: { xs: 16, md: 24 },
-                letterSpacing: "0.1em",
+                color: ui.onBoardMuted,
+                fontSize: { xs: 18, md: 26 },
               })}
             >
               {clue.waitingForWager.length > 0
-                ? `Wager · ${clue.waitingForWager.map((id) => playerName(state, id)).join(", ")}`
+                ? `${joinNames(clue.waitingForWager.map((id) => playerName(state, id)))} ${
+                    clue.waitingForWager.length > 1 ? "are" : "is"
+                  } wagering`
                 : ""}
             </Typography>
           )}
@@ -171,8 +176,8 @@ export function ClueStage({ state }: ClueStageProps) {
   );
 }
 
-function dailyDoubleHeadline(wager: number | undefined): string {
-  return wager === undefined ? "DAILY DOUBLE" : `DAILY DOUBLE · $${wager}`;
+function dailyDoubleHeadline(wager: number | undefined): string[] {
+  return wager === undefined ? ["DAILY DOUBLE"] : ["DAILY DOUBLE", `$${wager}`];
 }
 
 /** Flashes the splash once per Daily Double, while its wager is open. */

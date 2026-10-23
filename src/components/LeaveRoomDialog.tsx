@@ -9,7 +9,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import { useGameStore } from "@/lib/state/game-store";
 import { selectCanHost } from "@/lib/state/selectors";
 
-/** "Leave this game?" — asked before Home walks out of a game in progress. */
+/** "Leave this game?", asked before Home walks out of a game in progress. */
 export function LeaveRoomDialog() {
   const open = useGameStore((s) => s.leaveConfirmOpen);
   const online = useGameStore((s) => s.online);
@@ -20,7 +20,7 @@ export function LeaveRoomDialog() {
   const detail = !online
     ? "This game only lives in this tab. Leaving ends it."
     : canHost
-      ? "You're hosting. Someone else in the room will take the chair, and your seat is given up."
+      ? "You’re hosting. Someone else in the room will take the chair, and your seat is given up."
       : "Your seat and score are given up. You can rejoin with the room code.";
 
   return (

@@ -1,7 +1,7 @@
 # Architecture
 
 > The picture: [`docs/diagrams/jeopardy-architecture.excalidraw`](diagrams/jeopardy-architecture.excalidraw)
-> — open it at [excalidraw.com](https://excalidraw.com) (File → Open) to pan, zoom and edit.
+> Open it at [excalidraw.com](https://excalidraw.com) (File → Open) to pan, zoom and edit.
 > A rendered copy sits next to it as [`jeopardy-architecture.svg`](diagrams/jeopardy-architecture.svg).
 
 ---
@@ -128,8 +128,8 @@ turns into an engine call.
 
 Two things run that host:
 
-- **`LocalRoomRuntime`** — solo and pass-and-play, in your own tab.
-- **`NetworkRoomRuntime`** — a WebSocket to a Durable Object.
+- **`LocalRoomRuntime`**: solo and pass-and-play, in your own tab.
+- **`NetworkRoomRuntime`**: a WebSocket to a Durable Object.
 
 Both satisfy `RoomRuntime`, so no component branches on transport.
 
@@ -137,8 +137,8 @@ Both satisfy `RoomRuntime`, so no component branches on transport.
 
 - A dropped socket keeps your seat and score until you come back.
 - Leaving on purpose hands the seat back (`leave-game`).
-- The host chair always belongs to somebody actually in the room — see
-  `ensureHost` in `room-flow.ts`. A room restored from storage comes back with
+- The host chair always belongs to somebody actually in the room (see
+  `ensureHost` in `room-flow.ts`). A room restored from storage comes back with
   its old host recorded and nobody connected; the next person through the door
   takes the chair rather than finding a board they cannot touch.
 - A contestant is preferred over a spectator: a television that joined to watch
@@ -153,7 +153,7 @@ type WithoutActor<T> = T extends unknown ? Omit<T, "actorId"> : never;
 export type ClientGameCommand = WithoutActor<Exclude<GameCommand, { type: "tick" }>>;
 ```
 
-and `commandFromClient` is `{ ...command, actorId: clientId }` — `actorId`
+and `commandFromClient` is `{ ...command, actorId: clientId }`, with `actorId`
 written last, so whatever a client claims to be, the room decides who it is
 speaking as.
 
@@ -166,41 +166,41 @@ published game    ────────────────────�
 ```
 
 Everything the app can play becomes `GameClue[]`, so the engine has exactly one
-shape to think about. Archived rounds are often short — a 1989 game that ran out
-of time is missing the bottom of a category — so `board-layout.ts` places a clue
+shape to think about. Archived rounds are often short (a 1989 game that ran out
+of time is missing the bottom of a category), so `board-layout.ts` places a clue
 in the row its *value* names and draws an empty blue cell where the archive has
 none. 2,408 of the archive's 18,824 rounds used to render with a hole in them.
 
 ## 6. The client
 
 `src/lib/state/game-store.ts` is the Zustand store: lobby, preferences, screen,
-and the live room. `room-session.ts` beside it owns the network plumbing —
+and the live room. `room-session.ts` beside it owns the network plumbing:
 opening a room, the local fallback when the rooms service can't be reached,
 and `dealBoard`, the one place that loads a board, applies the room's settings,
 seats the bots and starts.
 
 UI is `src/components`. Of note:
 
-- **`Board`** — a grid of one `Cell`. A category strip, a value you can press,
+- **`Board`**: a grid of one `Cell`. A category strip, a value you can press,
   a square the archive never had, and the ghost board before a game is dealt
   are the same blue rectangle with different text.
-- **`ClueStage`** / **`TvClue`** — the clue on a laptop panel and on a
+- **`ClueStage`** / **`TvClue`**: the clue on a laptop panel and on a
   television, both sized by `clueScale` so a long clue steps down the way the
   show sets one.
-- **`ClueControls`** — the clock housing, the answer field, the wager bench;
+- **`ClueControls`**: the clock housing, the answer field, the wager bench;
   `clue/PodiumClueButtons` puts BUZZ and REVEAL on your own lectern, and
   `clue/JudgeBench` is the host's ruling row.
-- **`DisplayView`** — TV mode: the same room, board only, no lecterns.
+- **`DisplayView`**: TV mode, showing the same room, board only, no lecterns.
 
 ## 7. The look
 
 `src/lib/foundation/jeopardy-style.ts` holds three things:
 
-- **the set** — `jeopardyPalette`, `jeopardyFonts`: the board's own blue, gold
+- **the set** (`jeopardyPalette`, `jeopardyFonts`): the board's own blue, gold
   and faces, which nothing else may touch;
-- **the studio** — `ui.*`: stage, surface, line, ink, blue, gold;
-- **the controls** — `controls.*`: housing, readout, key, keyPrimary, buzzer,
-  keyOff — the physical language every button and field outside the board uses.
+- **the studio** (`ui.*`): stage, surface, line, ink, blue, gold;
+- **the controls** (`controls.*`): housing, readout, key, keyPrimary, buzzer,
+  keyOff: the physical language every button and field outside the board uses.
 
 plus the recipes every screen shares: `displayType()`, `clueType()`,
 `clueScale()`. `theme.ts` is a thin MUI wrapper over the same tokens, so a MUI

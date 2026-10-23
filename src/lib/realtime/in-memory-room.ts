@@ -255,7 +255,7 @@ export class InMemoryRealtimeRoom {
       const wasHost = this.state.settings.hostId === connection.clientId;
       const wasPicker = this.state.pickerId === connection.clientId;
       if (this.state.round === "lobby") {
-        // Nothing to preserve before the game starts — free the seat so the
+        // Nothing to preserve before the game starts: free the seat so the
         // pre-game roster only lists people who are actually here.
         this.applyCommand(connection.clientId, { type: "leave-game" });
       } else {
@@ -269,7 +269,7 @@ export class InMemoryRealtimeRoom {
         this.hostClaim = {
           playerId: connection.clientId,
           until: this.clock.now() + hostReclaimGraceMs,
-          // If the board passed with the chair, it comes back with it too —
+          // If the board passed with the chair, it comes back with it too,
           // unless play has moved it on by then.
           pickerHandedTo: wasPicker ? this.state.pickerId : undefined,
         };
@@ -348,7 +348,7 @@ export class InMemoryRealtimeRoom {
   }
 
   /**
-   * Runs a command on behalf of a player without a connection — bots, the
+   * Runs a command on behalf of a player without a connection: bots, the
    * automation director, and server-side housekeeping all come through here.
    */
   dispatch(actorId: string, command: ClientGameCommand, commandId?: string) {
@@ -407,9 +407,7 @@ export class InMemoryRealtimeRoom {
     if (verdict.ambiguous && options.holdAmbiguous && this.hasHumanHostPresent()) {
       this.postChat({
         kind: "judge",
-        text: `? ${player?.displayName ?? targetPlayerId} · "${
-          answer.trim() || "—"
-        }" · too close to call — the host rules`,
+        text: `? ${player?.displayName ?? targetPlayerId} · ${quotedAnswer(answer)} · too close to call: the host rules`,
       });
       return { ...verdict, held: true as const };
     }
@@ -424,7 +422,7 @@ export class InMemoryRealtimeRoom {
       kind: "judge",
       text: `${verdict.correct ? "✓" : "✗"} ${
         player?.displayName ?? targetPlayerId
-      } · "${answer.trim() || "—"}" · ${(verdict.confidence * 100).toFixed(0)}%`,
+      } · ${quotedAnswer(answer)} · ${(verdict.confidence * 100).toFixed(0)}%`,
     });
     return { ...verdict, held: false as const };
   }
@@ -581,6 +579,12 @@ export class InMemoryRealtimeRoom {
       });
     }
   }
+}
+
+/** A player's answer as the chat log quotes it. */
+function quotedAnswer(answer: string): string {
+  const trimmed = answer.trim();
+  return trimmed ? `"${trimmed}"` : "no answer";
 }
 
 /** Unguessable: the token is what proves a returning client owns its seat. */

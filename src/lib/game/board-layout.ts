@@ -17,7 +17,7 @@ export interface BoardLayout {
  * value a row, and a clue sits in the row its value names.
  *
  * The archive is what was revealed on air, and a 1989 game that ran out of
- * time is missing the bottom of a category or two — sometimes a rung in the
+ * time is missing the bottom of a category or two, sometimes a rung in the
  * middle. Placing clues by their position in the list put the $1000 clue in
  * the $800 row whenever the $800 was missing, and left a hole in the board
  * below it. Here the row is the value, and a missing clue is an empty cell,

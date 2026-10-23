@@ -34,7 +34,7 @@ export class ArchiveError extends Error {
 }
 
 export const archiveUnavailableMessage =
-  "The episode archive isn't answering right now. Try again in a moment.";
+  "The episode archive isn’t answering right now. Try again in a moment.";
 export const archiveOfflineMessage =
   "Could not reach the episode archive. Check your connection and try again.";
 
@@ -42,7 +42,7 @@ function labelOf(options: { id: string; label: string }[], id: string | undefine
   return options.find((entry) => entry.id === id)?.label;
 }
 
-/** "No Kids episodes from the 80s" — what a filter combination found nothing for. */
+/** "No Kids episodes from the 80s": what a filter combination found nothing for. */
 export function describeEmptyFilter(theme?: string, decade?: string): string {
   const themeLabel = theme && theme !== "all" ? labelOf(themeOptions, theme) : undefined;
   const decadeLabel = decade && decade !== "all" ? labelOf(decadeOptions, decade) : undefined;
@@ -113,7 +113,7 @@ export function fetchRandomEpisode(
 export async function fetchEpisodeById(id: string): Promise<ArchiveEpisodeResponse> {
   const response = await send(
     `/api/episodes/${encodeURIComponent(id)}`,
-    `There's no episode #${id} in the archive. Check the number, or browse instead.`,
+    `There’s no episode #${id} in the archive. Check the number, or browse instead.`,
   );
   return (await response.json()) as ArchiveEpisodeResponse;
 }

@@ -81,7 +81,7 @@ describe("public game state privacy", () => {
 
     const publicAfterReveal = JSON.stringify(getPublicGameState(state, 150));
     expect(publicAfterReveal).toContain("classified response");
-    // A Daily Double wager is announced once made — clamped to the $200
+    // A Daily Double wager is announced once made, clamped to the $200
     // ceiling this one-clue board allows a player at $0.
     expect(getPublicGameState(state, 150).currentClue?.wagers).toEqual({ host: 200 });
   });

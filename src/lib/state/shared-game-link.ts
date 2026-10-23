@@ -21,7 +21,7 @@ export const useSharedGameLink = create<SharedGameLinkState>((set) => ({
 }));
 
 export const sharedGameUnreachable =
-  "Couldn't load that shared game. Check your connection, or ask for the link again.";
+  "Couldn’t load that shared game. Check your connection, or ask for the link again.";
 
 function dropGameParam() {
   if (typeof window === "undefined") return;

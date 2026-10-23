@@ -72,8 +72,8 @@ export async function lookupRoom(
 
 export function lookupMessage(code: string, result: Exclude<RoomLookup, "open">): string {
   return result === "not-found"
-    ? `Room ${code} isn't open. Ask the host for a fresh code, or start your own game.`
-    : "Can't reach the game server. Check your connection and try again.";
+    ? `Room ${code} isn’t open. Ask the host for a fresh code, or start your own game.`
+    : "Can’t reach the game server. Check your connection and try again.";
 }
 
 /** The clue set the lobby currently has staged, from an episode or a build. */
@@ -150,8 +150,8 @@ function storeListeners(set: StoreSet, get: StoreGet) {
  * Deal the board into a room that already exists: the clues, the settings
  * this lobby chose, the bots that aren't seated yet, then go.
  *
- * Both paths into a game run this — the one that opens a fresh room and the
- * one that reuses a room already on screen — and they used to be two copies
+ * Both paths into a game run this (the one that opens a fresh room and the
+ * one that reuses a room already on screen), and they used to be two copies
  * that drifted a setting apart.
  */
 export function dealBoard(
@@ -174,7 +174,7 @@ export function dealBoard(
 
   if (runtime instanceof NetworkRoomRuntime) {
     // `load-game` keeps the players it finds, so only bots the room has never
-    // seen need seating — a reconnect must not clone the whole roster.
+    // seen need seating: a reconnect must not clone the whole roster.
     const seated =
       options.seatBots === "missing"
         ? new Set((publicState?.players ?? []).map((player) => player.id))
@@ -184,7 +184,7 @@ export function dealBoard(
         id: bot.id,
         displayName: bot.name,
         profileId: bot.profile.id,
-        emoji: bot.emoji,
+        avatar: bot.avatar,
         color: bot.color,
       });
     }
@@ -202,8 +202,8 @@ export const roomConnectGraceMs = 6_000;
 
 /**
  * If a room has never connected once the grace runs out, say so and offer to
- * play offline. This used to swap the room for a local one on its own — on a
- * blip, or when a second tab took the seat — leaving guests with a host who
+ * play offline. This used to swap the room for a local one on its own (on a
+ * blip, or when a second tab took the seat), leaving guests with a host who
  * was OFFLINE for good.
  */
 export function watchForUnreachableRoom(set: StoreSet, get: StoreGet, roomId: string) {
@@ -215,7 +215,7 @@ export function watchForUnreachableRoom(set: StoreSet, get: StoreGet, roomId: st
       online: {
         ...online,
         problem: "unreachable",
-        error: "Can't reach the rooms service. Still trying…",
+        error: "Can’t reach the rooms service. Still trying…",
       },
     });
   }, roomConnectGraceMs);
@@ -239,7 +239,7 @@ export function startLocalGame(set: StoreSet, get: StoreGet) {
           id: lobby.hostId,
           name: resolvePlayerName(lobby.hostName, lobby.hostId),
           spectator: lobby.hostSpectator,
-          emoji: lobby.hostEmoji,
+          avatar: lobby.hostAvatar,
           color: lobby.hostColor,
         },
         ...lobby.extraHumans,
@@ -248,7 +248,7 @@ export function startLocalGame(set: StoreSet, get: StoreGet) {
         id: bot.id,
         name: bot.name,
         profile: bot.profile,
-        emoji: bot.emoji,
+        avatar: bot.avatar,
         color: bot.color,
       })),
       clues,
@@ -338,7 +338,7 @@ export function connectToRoom(
       roomId,
       clientId,
       displayName,
-      emoji: isDisplay ? undefined : lobby.hostEmoji,
+      avatar: isDisplay ? undefined : lobby.hostAvatar,
       color: isDisplay ? undefined : lobby.hostColor,
       spectator: options.spectator ?? (isDisplay ? true : lobby.hostSpectator),
       create: options.create,
@@ -430,7 +430,7 @@ function retryWithFreshCode(set: StoreSet, get: StoreGet, options: ConnectOption
             ...state.online,
             status: "rejected",
             problem: "code-taken",
-            error: "Couldn't find a free room code. Try again in a moment.",
+            error: "Couldn’t find a free room code. Try again in a moment.",
           }
         : null,
     }));

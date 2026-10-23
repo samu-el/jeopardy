@@ -1,27 +1,53 @@
 import { createTheme } from "@mui/material/styles";
-import { controls, jeopardyFonts, ui } from "./jeopardy-style";
+import { controls, cssRoles, jeopardyFonts, ui } from "./jeopardy-style";
 import { reducedMotionStyles } from "./motion";
 import { viewportRootStyles } from "./viewport";
 
 /**
- * The MUI theme is a thin wrapper over the tokens in `jeopardy-style.ts`:
- * every colour here is one of those, so a MUI component and a hand-drawn
- * one end up the same colour without either knowing about the other.
+ * The MUI theme is a thin wrapper over the tokens in `jeopardy-style.ts`
+ * (the system is written down in `design.md` at the repo root): every colour
+ * here is one of those, so a MUI component and a hand-drawn one end up the
+ * same colour without either knowing about the other.
  *
- * Type: the show's condensed face for anything that labels or commands —
- * headings, buttons, eyebrows, numbers — and a plain sans for reading.
+ * Type: capitals belong to the show. Headings are the condensed display face
+ * in uppercase; buttons, labels, chips, tabs and menus are the body face as
+ * written, untracked. The scale is fixed at a 1.2 ratio from a 16px body.
  */
 const bodyFont = jeopardyFonts.body;
+
+/** A display heading: the show's face, uppercase, one weight, barely tracked. */
+const displayHead = (fontSize: number) =>
+  ({
+    fontFamily: jeopardyFonts.display,
+    fontWeight: 700,
+    fontSize,
+    lineHeight: 1.05,
+    letterSpacing: "0.01em",
+    textTransform: "uppercase",
+    overflowWrap: "break-word",
+    minWidth: 0,
+    textWrap: "balance",
+  }) as const;
+
+/** The one focus ring: gold, 2px, instant. */
+const focusRing = {
+  outline: `2px solid ${ui.focus}`,
+  outlineOffset: "2px",
+} as const;
+
+/** A panel that takes focus only to hold it (a dialog frame, a menu list): no ring of its own. */
+const panelTakesFocus = { outline: "none" } as const;
 
 export const appTheme = createTheme({
   cssVariables: true,
   palette: {
     mode: "dark",
+    // Gold is the one signal: the primary action, what is selected, focus.
     primary: {
-      main: ui.blue,
-      dark: ui.blueDeep,
-      light: "#7B87FF",
-      contrastText: ui.ink,
+      main: ui.goldBright,
+      dark: ui.goldDeep,
+      light: ui.goldHover,
+      contrastText: ui.onGold,
     },
     secondary: {
       main: ui.goldBright,
@@ -33,7 +59,7 @@ export const appTheme = createTheme({
     // is 6.2:1, and the red itself still reads 5.1:1+ as text on every surface.
     error: { main: ui.red, contrastText: ui.onRed },
     warning: { main: ui.goldBright, contrastText: ui.onGold },
-    info: { main: ui.blue, contrastText: ui.ink },
+    info: { main: ui.blueText, contrastText: ui.stage },
     background: {
       default: ui.stage,
       paper: ui.surface,
@@ -45,9 +71,9 @@ export const appTheme = createTheme({
     },
     divider: ui.line,
     action: {
-      hover: "rgba(255,255,255,0.06)",
-      selected: ui.blueTint,
-      disabledBackground: "rgba(255,255,255,0.08)",
+      hover: ui.hoverTint,
+      selected: ui.goldTint,
+      disabledBackground: ui.keyOff,
       disabled: ui.inkFaint,
     },
   },
@@ -56,53 +82,63 @@ export const appTheme = createTheme({
   },
   typography: {
     fontFamily: bodyFont,
-    h1: { fontFamily: jeopardyFonts.display, fontWeight: 700, textTransform: "uppercase" },
-    h2: { fontFamily: jeopardyFonts.display, fontWeight: 700, textTransform: "uppercase" },
-    h3: { fontFamily: jeopardyFonts.display, fontWeight: 700, textTransform: "uppercase" },
-    h4: { fontFamily: jeopardyFonts.display, fontWeight: 600, textTransform: "uppercase" },
-    h5: {
-      fontFamily: jeopardyFonts.display,
-      fontWeight: 600,
-      textTransform: "uppercase",
-      letterSpacing: "0.02em",
-    },
-    h6: {
-      fontFamily: jeopardyFonts.display,
-      fontWeight: 600,
-      textTransform: "uppercase",
-      letterSpacing: "0.04em",
-    },
-    // The eyebrow over a panel: small, spaced, gold.
+    h1: displayHead(40),
+    h2: displayHead(33),
+    h3: displayHead(28),
+    h4: displayHead(23),
+    h5: displayHead(19),
+    h6: displayHead(16),
+    // A panel's own name, in the body face. Never an eyebrow over a heading.
     overline: {
-      fontFamily: jeopardyFonts.display,
+      fontFamily: bodyFont,
       fontWeight: 600,
-      fontSize: 11,
-      letterSpacing: "0.22em",
-      lineHeight: 1.6,
-      color: ui.goldBright,
+      fontSize: 14,
+      letterSpacing: 0,
+      lineHeight: 1.4,
+      textTransform: "none",
+      color: ui.inkMuted,
     },
     button: {
-      fontFamily: jeopardyFonts.display,
+      fontFamily: bodyFont,
       fontWeight: 600,
-      textTransform: "uppercase",
-      letterSpacing: "0.08em",
-      fontSize: 14,
+      textTransform: "none",
+      letterSpacing: 0,
+      fontSize: 15,
+      lineHeight: 1.2,
     },
-    body2: { color: ui.inkMuted },
-    caption: { color: ui.inkFaint },
+    body1: { fontSize: 16, lineHeight: 1.5 },
+    body2: { fontSize: 14, lineHeight: 1.45, color: ui.inkMuted },
+    caption: { fontSize: 13, color: ui.inkFaint },
+    subtitle1: { fontWeight: 600 },
+    subtitle2: { fontWeight: 600, color: ui.inkMuted },
   },
   components: {
     MuiCssBaseline: {
       styleOverrides: {
-        ":root": viewportRootStyles,
+        ":root": { ...viewportRootStyles, ...cssRoles },
         html: {
           colorScheme: "dark",
           backgroundColor: ui.stage,
           WebkitTextSizeAdjust: "100%",
+          overflowX: "clip",
+          scrollbarColor: `${ui.lineStrong} ${ui.stage}`,
         },
-        body: { backgroundColor: ui.stage, minHeight: "var(--app-svh, 100vh)" },
-        "::selection": { background: ui.blueTint },
+        body: {
+          backgroundColor: ui.stage,
+          color: ui.ink,
+          minHeight: "var(--app-svh, 100vh)",
+          overflowX: "clip",
+          caretColor: ui.goldBright,
+        },
+        "::selection": { background: ui.goldTint },
+        ":focus-visible": focusRing,
         ...reducedMotionStyles,
+      },
+    },
+    MuiButtonBase: {
+      defaultProps: { disableRipple: true },
+      styleOverrides: {
+        root: { "&.Mui-focusVisible": focusRing },
       },
     },
     MuiButton: {
@@ -111,18 +147,25 @@ export const appTheme = createTheme({
         root: {
           borderRadius: ui.radius,
           paddingInline: 16,
-          minHeight: 38,
-        },
-        sizeSmall: { minHeight: 30, fontSize: 12, paddingInline: 12 },
-        sizeLarge: { minHeight: 48, fontSize: 16, paddingInline: 24 },
-        // Every filled button is a key: a lit top edge and a dark underside.
-        contained: {
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.28), 0 1px 0 rgba(0,0,0,0.6)",
-          "&:hover": { boxShadow: "inset 0 1px 0 rgba(255,255,255,0.34), 0 1px 0 rgba(0,0,0,0.6)" },
+          minHeight: 40,
+          whiteSpace: "nowrap",
+          transition: "background-color 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out",
           "&:active": { transform: "translateY(1px)" },
+          
         },
-        outlined: controls.key,
-        text: { color: ui.inkMuted, "&:hover": { color: ui.ink } },
+        sizeSmall: { minHeight: 32, fontSize: 14, paddingInline: 12 },
+        sizeLarge: { minHeight: 48, fontSize: 16, paddingInline: 24 },
+        // One filled primary: gold, flat.
+        contained: {
+          border: `1px solid transparent`,
+          "&.Mui-disabled": { ...controls.keyOff },
+        },
+        // The secondary key: a flat raised fill and a hairline.
+        outlined: {
+          ...controls.key,
+          "&.Mui-disabled": { ...controls.keyOff },
+        },
+        text: { color: ui.inkMuted, "&:hover": { color: ui.ink, backgroundColor: ui.hoverTint } },
       },
     },
     MuiIconButton: {
@@ -130,7 +173,20 @@ export const appTheme = createTheme({
         root: {
           color: ui.inkMuted,
           borderRadius: ui.radius,
-          "&:hover": { color: ui.ink, backgroundColor: "rgba(255,255,255,0.06)" },
+          transition: "background-color 120ms ease-out, color 120ms ease-out",
+          "&:hover": { color: ui.ink, backgroundColor: ui.hoverTint },
+          "&.Mui-disabled": { color: ui.inkFaint, opacity: 0.55 },
+        },
+      },
+    },
+    MuiToggleButton: {
+      styleOverrides: {
+        root: {
+          textTransform: "none",
+          letterSpacing: 0,
+          fontWeight: 600,
+          "&.Mui-selected": { color: ui.onGold, backgroundColor: ui.goldBright },
+          "&.Mui-selected:hover": { backgroundColor: ui.goldHover },
         },
       },
     },
@@ -142,96 +198,115 @@ export const appTheme = createTheme({
     },
     MuiCard: {
       defaultProps: { variant: "outlined" },
-      styleOverrides: { root: { backgroundColor: "transparent", borderColor: ui.line } },
+      styleOverrides: { root: { backgroundColor: "transparent", borderColor: ui.line, borderRadius: ui.radiusPanel } },
     },
     MuiDialog: {
       styleOverrides: {
         paper: {
           backgroundColor: ui.surface,
           border: `1px solid ${ui.line}`,
+          borderRadius: ui.radiusPanel,
           backgroundImage: "none",
+          "&:focus-visible": panelTakesFocus,
         },
+        // A dialog takes focus on its frame so the keyboard lands inside it;
+        // the ring belongs on the controls, not around the whole panel.
+        container: { "&:focus-visible": panelTakesFocus },
       },
     },
     MuiDialogTitle: {
       styleOverrides: {
         root: {
-          fontFamily: jeopardyFonts.display,
-          fontWeight: 600,
-          textTransform: "uppercase",
-          letterSpacing: "0.06em",
-          fontSize: 18,
+          ...displayHead(23),
         },
       },
     },
+    MuiDialogContentText: {
+      styleOverrides: { root: { color: ui.inkMuted } },
+    },
     MuiPopover: {
       styleOverrides: {
-        paper: { backgroundColor: ui.surface, border: `1px solid ${ui.line}` },
+        paper: {
+          backgroundColor: ui.surface,
+          border: `1px solid ${ui.line}`,
+          borderRadius: ui.radiusPanel,
+          "&:focus-visible": panelTakesFocus,
+        },
       },
     },
     MuiMenu: {
       styleOverrides: {
         paper: { backgroundColor: ui.surface, border: `1px solid ${ui.line}` },
-        list: { padding: 4 },
+        list: { padding: 4, "&:focus-visible": panelTakesFocus },
       },
     },
     MuiMenuItem: {
       styleOverrides: {
-        root: { borderRadius: ui.radius - 2, fontSize: 14, minHeight: 36 },
+        root: { borderRadius: ui.radius - 2, fontSize: 15, minHeight: 40 },
       },
     },
     MuiChip: {
       styleOverrides: {
-        // Chips are small keys: the set's face, tracked, on the housing colour.
+        // Chips are small labels: the body face, as written, untracked.
         root: {
           borderRadius: 6,
-          fontFamily: jeopardyFonts.display,
+          fontFamily: bodyFont,
           fontWeight: 600,
-          textTransform: "uppercase",
-          letterSpacing: "0.06em",
+          textTransform: "none",
+          letterSpacing: 0,
           border: `1px solid ${ui.line}`,
         },
-        // Only the uncoloured chip sits on the housing colour. This used to
-        // be on `root`, which overrode every `color="secondary"` gold fill and
-        // left dark gold-text on navy (1.1:1) in the results chips.
         colorDefault: { backgroundColor: ui.surfaceRaised },
         outlined: { backgroundColor: "transparent", borderColor: ui.lineStrong, color: ui.inkMuted },
-        colorPrimary: { boxShadow: "inset 0 1px 0 rgba(255,255,255,0.24)", borderColor: "transparent" },
-        colorSecondary: { boxShadow: "inset 0 1px 0 rgba(255,255,255,0.3)", borderColor: "transparent" },
-        sizeSmall: { height: 24, fontSize: 11 },
+        colorPrimary: { borderColor: "transparent" },
+        colorSecondary: { borderColor: "transparent" },
+        sizeSmall: { height: 24, fontSize: 13 },
         label: { paddingInline: 10 },
       },
     },
     MuiOutlinedInput: {
       styleOverrides: {
-        // A field is a readout you can type into: the same black glass as a
-        // lectern's score display, set into the surface.
+        // A field: the stage colour set into the surface, a 3:1 edge, and a
+        // focus ring that never changes the border's width.
         root: {
           backgroundColor: controls.readout.background,
-          boxShadow: controls.readout.boxShadow,
           borderRadius: controls.readout.borderRadius,
-          "& .MuiOutlinedInput-notchedOutline": { borderColor: ui.lineStrong },
+          "& .MuiOutlinedInput-notchedOutline": { borderColor: ui.lineStrong, borderWidth: 1 },
           "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: ui.inkMuted },
-          "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-            borderColor: ui.blue,
-            boxShadow: `0 0 0 3px ${ui.blueTint}`,
+          "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: ui.goldBright, borderWidth: 1 },
+          // The ring: the gold edge plus one more pixel outside it, as a
+          // shadow so it follows the corners and never changes the border.
+          "&:focus-within": {
+            boxShadow: `0 0 0 1px ${ui.focus}`,
           },
+          "&.Mui-error .MuiOutlinedInput-notchedOutline": { borderColor: ui.red },
+          "&.Mui-disabled": { opacity: 0.55, cursor: "not-allowed" },
         },
       },
     },
+    MuiInputBase: {
+      styleOverrides: {
+        // The field's outline carries the ring, not the bare input inside it.
+        input: { "&:focus-visible": { outline: "none" } },
+      },
+    },
     MuiInputLabel: {
-      styleOverrides: { root: { color: ui.inkMuted } },
+      styleOverrides: { root: { color: ui.inkMuted, "&.Mui-focused": { color: ui.goldBright } } },
+    },
+    MuiFormLabel: {
+      styleOverrides: { root: { color: ui.inkMuted, "&.Mui-focused": { color: ui.goldBright } } },
     },
     MuiTab: {
       styleOverrides: {
         root: {
-          fontFamily: jeopardyFonts.display,
+          fontFamily: bodyFont,
           fontWeight: 600,
-          textTransform: "uppercase",
-          letterSpacing: "0.08em",
+          fontSize: 15,
+          textTransform: "none",
+          letterSpacing: 0,
           minHeight: 44,
-          // `ui.blue` as text on the surface is 3.8:1; the lighter text blue is 7:1.
-          "&.Mui-selected": { color: ui.blueText },
+          color: ui.inkMuted,
+          "&.Mui-selected": { color: ui.ink },
         },
       },
     },
@@ -241,15 +316,26 @@ export const appTheme = createTheme({
     MuiSwitch: {
       styleOverrides: {
         root: { padding: 8 },
-        track: { borderRadius: 11, backgroundColor: "rgba(255,255,255,0.18)", opacity: 1 },
+        track: { borderRadius: 11, backgroundColor: ui.lineStrong, opacity: 1 },
         thumb: { boxShadow: "none" },
         switchBase: {
-          "&.Mui-checked + .MuiSwitch-track": { backgroundColor: ui.blue, opacity: 1 },
+          "&.Mui-checked + .MuiSwitch-track": { backgroundColor: ui.goldBright, opacity: 1 },
+          "&.Mui-checked .MuiSwitch-thumb": { color: ui.onGold },
+          "&.Mui-focusVisible .MuiSwitch-thumb": focusRing,
         },
       },
     },
+    MuiCheckbox: {
+      styleOverrides: { root: { color: ui.lineStrong } },
+    },
+    MuiSlider: {
+      styleOverrides: {
+        thumb: { boxShadow: "none", "&.Mui-focusVisible": { ...focusRing, boxShadow: "none" } },
+        rail: { backgroundColor: ui.lineStrong, opacity: 1 },
+      },
+    },
     MuiFormControlLabel: {
-      styleOverrides: { label: { fontSize: 14 } },
+      styleOverrides: { label: { fontSize: 15 } },
     },
     MuiTooltip: {
       styleOverrides: {
@@ -257,10 +343,15 @@ export const appTheme = createTheme({
           backgroundColor: ui.surfaceRaised,
           border: `1px solid ${ui.line}`,
           color: ui.ink,
-          fontSize: 12,
+          fontSize: 13,
           fontWeight: 500,
         },
         arrow: { color: ui.surfaceRaised },
+      },
+    },
+    MuiAlert: {
+      styleOverrides: {
+        root: { borderRadius: ui.radius, fontSize: 15 },
       },
     },
     MuiDivider: {
@@ -268,7 +359,7 @@ export const appTheme = createTheme({
     },
     MuiLinearProgress: {
       styleOverrides: {
-        root: { borderRadius: 999, backgroundColor: "rgba(255,255,255,0.08)" },
+        root: { borderRadius: 999, backgroundColor: ui.line },
         bar: { borderRadius: 999 },
       },
     },

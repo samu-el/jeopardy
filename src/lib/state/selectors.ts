@@ -5,7 +5,7 @@ import type { GameStoreState } from "./game-store";
 /**
  * Read-only views of the store that the UI branches on. Components should ask
  * these rather than re-deriving "am I the host?" from `publicState` and
- * `lobby` in each place — that re-derivation is how guests ended up with
+ * `lobby` in each place. That re-derivation is how guests ended up with
  * controls that did nothing.
  *
  * Every selector is a plain function of the store, usable as
@@ -18,7 +18,7 @@ import type { GameStoreState } from "./game-store";
  *
  * Solo play is always yours. In a shared room the room's own state decides;
  * before the first snapshot arrives, only the browser that opened the room
- * gets the benefit of the doubt. The room enforces all of this anyway —
+ * gets the benefit of the doubt. The room enforces all of this anyway;
  * this is so the UI can hide or disable what would be refused.
  */
 export function selectCanHost(state: GameStoreState): boolean {

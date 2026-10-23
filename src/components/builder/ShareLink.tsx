@@ -11,7 +11,7 @@ import ShareIcon from "@mui/icons-material/IosShareOutlined";
 
 /**
  * The link a publish produced, said plainly: that it worked, what the link
- * is, and a button that copies it — or, when the clipboard says no, the text
+ * is, and a button that copies it or, when the clipboard says no, the text
  * selected so it can be copied by hand.
  */
 export function ShareLink({ url, updated }: { url: string; updated: boolean }) {
@@ -31,17 +31,14 @@ export function ShareLink({ url, updated }: { url: string; updated: boolean }) {
       setStatus("Link copied.");
     } catch {
       selectText();
-      setStatus("Couldn't copy automatically. The link is selected: copy it by hand.");
+      setStatus("Couldn’t copy automatically. The link is selected: copy it by hand.");
     }
   }
 
   return (
     <Alert severity="success" data-testid="publish-result">
       <AlertTitle>{updated ? "Link updated" : "Published"}</AlertTitle>
-      {updated
-        ? "Everyone with the link now gets this version."
-        : "Anyone with this link can play your game."}
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1.5 }}>
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1 }}>
         <TextField
           size="small"
           fullWidth

@@ -12,17 +12,18 @@ import { useGameStore } from "@/lib/state/game-store";
 import { controls, jeopardyFonts, ui } from "@/lib/foundation/jeopardy-style";
 import { Housing, HousingDivider, HousingLabel } from "./Housing";
 import { connectionState } from "./chat-style";
+import { MetaParts } from "./MetaParts";
 
 interface RoomBarProps {
-  /** Printed at the front of the housing: which episode is on the board. */
-  episode?: string;
+  /** Printed at the front of the housing: which episode is on the board, as its parts (number, air date). */
+  episode?: string[];
 }
 
 /**
  * The room housing: the code to read out, who is in, and the connection
  * state, mounted together with the episode label.
  *
- * Every board is a shared room, so the code is always here — there is no
+ * Every board is a shared room, so the code is always here. There is no
  * "make this shareable" step to find. It is masked until asked for, because
  * a code on screen is a code anyone watching can join with, and boards get
  * screen-shared.
@@ -37,7 +38,11 @@ export function RoomBar({ episode }: RoomBarProps) {
   // The episode label is a wide-screen luxury: on a phone the code matters
   // and the air date does not.
   const wideOnly = { display: { xs: "none", md: "inline-flex" } } as const;
-  const episodeLabel = episode ? <HousingLabel sx={wideOnly}>{episode}</HousingLabel> : null;
+  const episodeLabel = episode?.length ? (
+    <HousingLabel sx={wideOnly}>
+      <MetaParts parts={episode} />
+    </HousingLabel>
+  ) : null;
 
   if (!online) {
     if (!shareUnavailable) {
@@ -47,11 +52,10 @@ export function RoomBar({ episode }: RoomBarProps) {
       <Housing>
         {episodeLabel}
         {episodeLabel ? <HousingDivider sx={{ display: { xs: "none", md: "block" } }} /> : null}
-        <Tooltip title="The rooms service could not be reached, so this board is running in this browser only.">
-          <HousingLabel data-testid="share-unavailable" sx={{ color: ui.inkFaint }}>
-            Solo · not shareable
-          </HousingLabel>
-        </Tooltip>
+        {/* The rooms service could not be reached: this board runs in this browser only. */}
+        <HousingLabel data-testid="share-unavailable" sx={{ color: ui.inkFaint }}>
+          <MetaParts parts={["Solo", "not shareable"]} />
+        </HousingLabel>
       </Housing>
     );
   }
@@ -92,7 +96,6 @@ export function RoomBar({ episode }: RoomBarProps) {
             height: 8,
             borderRadius: "50%",
             background: lamp.color,
-            boxShadow: `0 0 8px ${lamp.color}, inset 0 1px 0 rgba(255,255,255,0.5)`,
             flex: "0 0 auto",
           }}
         />
@@ -116,20 +119,19 @@ export function RoomBar({ episode }: RoomBarProps) {
             "@media (pointer: coarse)": { height: 44 },
             color: "inherit",
             "&:hover": { borderColor: ui.inkMuted },
-            "&:focus-visible": { outline: `2px solid ${ui.blue}`, outlineOffset: 1 },
+            "&:focus-visible": { outline: `2px solid ${ui.focus}`, outlineOffset: 2 },
           }}
         >
           <Typography
             // Tabular figures so revealing the code doesn't shift the strip.
             sx={{
               fontFamily: jeopardyFonts.display,
-              letterSpacing: "0.18em",
-              fontSize: 15,
+              letterSpacing: "0.12em",
+              fontSize: 16,
               fontWeight: 600,
               lineHeight: 1,
               fontVariantNumeric: "tabular-nums",
-              color: ui.gold,
-              textShadow: `0 0 8px ${ui.goldTint}`,
+              color: ui.goldBright,
             }}
           >
             {revealed ? online.roomId : "•".repeat(online.roomId.length)}

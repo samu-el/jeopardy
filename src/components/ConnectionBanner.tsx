@@ -14,14 +14,14 @@ type BannerAction = "use-here" | "retry" | "offline" | "home";
 const banner: Partial<Record<RoomStatusView, { text: string; actions: BannerAction[] }>> = {
   connecting: { text: "Connecting to the room…", actions: [] },
   reconnecting: {
-    text: "Connection lost — reconnecting. Your seat and score are held.",
+    text: "Connection lost. Reconnecting. Your seat and score are held.",
     actions: [],
   },
   unreachable: {
-    text: "Can't reach the rooms service. Still trying…",
+    text: "Can’t reach the rooms service. Still trying…",
     actions: ["offline"],
   },
-  "not-found": { text: "This room isn't open.", actions: ["retry", "home"] },
+  "not-found": { text: "This room isn’t open.", actions: ["retry", "home"] },
   replaced: { text: "This room was opened in another tab.", actions: ["use-here", "home"] },
   kicked: { text: "The host removed you from this room.", actions: ["home"] },
   full: { text: "This room is full.", actions: ["home"] },
@@ -29,7 +29,7 @@ const banner: Partial<Record<RoomStatusView, { text: string; actions: BannerActi
     text: "That seat belongs to another device.",
     actions: ["home"],
   },
-  "code-taken": { text: "Couldn't open a room right now.", actions: ["retry", "home"] },
+  "code-taken": { text: "Couldn’t open a room right now.", actions: ["retry", "home"] },
   rejected: { text: "This room is no longer open.", actions: ["home"] },
 };
 
@@ -42,7 +42,7 @@ const actionLabel: Record<BannerAction, string> = {
 
 /**
  * Tells a player, in the one place they will look, that the room is not
- * live — why, and what they can do about it. Each reason gets its own way
+ * live: why, and what they can do about it. Each reason gets its own way
  * out; a tab replaced by another used to be offered "Play solo", which led
  * to an empty board.
  */
@@ -100,7 +100,7 @@ export function ConnectionBanner() {
         right: 0,
         zIndex: 20,
         pointerEvents: "none",
-        background: rejected ? "rgba(140,20,32,0.96)" : ui.surface,
+        background: rejected ? ui.incorrectFill : ui.surface,
         borderTop: `1px solid ${ui.lineStrong}`,
         px: 2,
         py: 1,

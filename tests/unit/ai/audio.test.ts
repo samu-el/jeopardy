@@ -62,7 +62,7 @@ describe("speech recognition errors", () => {
   it("explains each failure in plain words", () => {
     expect(describeSpeechRecognitionError("not-allowed")).toMatchObject({ blocked: true });
     expect(describeSpeechRecognitionError("not-allowed")?.message).toMatch(/blocked/i);
-    expect(describeSpeechRecognitionError("no-speech")?.message).toMatch(/didn't catch/i);
+    expect(describeSpeechRecognitionError("no-speech")?.message).toMatch(/didn’t catch/i);
     expect(describeSpeechRecognitionError("network")?.blocked).toBe(false);
     expect(describeSpeechRecognitionError("audio-capture")?.message).toMatch(/microphone/i);
     expect(describeSpeechRecognitionError("something-new")?.message).toBeTruthy();

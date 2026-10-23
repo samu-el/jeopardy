@@ -1,0 +1,27 @@
+[
+ {
+  "mode": "redesign",
+  "depth": "full",
+  "scope": "app",
+  "shape": "app screen (landing: Stage split)",
+  "theme": "brand",
+  "axes": "dark/display-condensed/warm",
+  "hero": "Stage: the board itself, wordmark across the category row, values under it; the two ways in beside it",
+  "nav": "kept: the room toolbar (wordmark, room housing, key housing)",
+  "footer": "none (app)",
+  "imagery": "none: the board built from the product own values",
+  "photos": [],
+  "entry": "landing",
+  "fingerprint": "stage-split/board-field/forms-right/tables-results/no-footer/gold-signal",
+  "sections": [
+   "landing: board field + host and join forms",
+   "play: board, clue stage, lecterns, clock housing",
+   "results: winner band + standings, final, stats tables",
+   "tv: board, clue, results"
+  ],
+  "signature": "the board: blue tiles, gold values, the wordmark as the category row",
+  "waived": [],
+  "prompt": "Jeopardy party game: host a room or join one, play the board on a laptop, phone and TV",
+  "date": "2026-10-22"
+ }
+]

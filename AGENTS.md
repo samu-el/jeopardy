@@ -16,6 +16,9 @@ This repo is a Jeopardy web app rebuild. The upstream reference is `https://gith
 - Realtime clients send intent only; server-side adapters stamp `actorId` from authenticated sessions.
 - Preserve accessibility and responsiveness as first-class requirements.
 - Do not implement broad UI surfaces without a scoped feature request.
+- Cut taglines, helper text and secondary labels. If a screen needs them to make sense, fix the layout.
+- Make the best decision that will elevate all three: the user experience (UX), developer experience (DX), and agent experience (AX) always, without breaking anything.
+- Never use em dashes (U+2014) anywhere: UI copy, docs, comments, tests, commit messages. Rewrite with a period, comma, colon or parentheses.
 
 ## First Read
 

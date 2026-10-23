@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Box from "@mui/material/Box";
-import { createEmptyStats, type PublicGameState } from "@/lib/game";
+import { createEmptyStats, type PlayerAvatar as PlayerAvatarKey, type PublicGameState } from "@/lib/game";
 import { buzzOrder, seatOrder } from "@/lib/game/clue-turn";
 import { useGameStore } from "@/lib/state/game-store";
 import { selectCanHost, selectRoomInteractive } from "@/lib/state/selectors";
-import { jeopardyPalette } from "@/lib/foundation/jeopardy-style";
+import { jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
 import { Board } from "./Board";
 import { ClueStage } from "./ClueStage";
 import { ClueControls, PodiumClueButtons } from "./ClueControls";
@@ -21,13 +21,13 @@ import { useCompactPlay } from "./use-compact-play";
 interface GameSurfaceProps {
   /**
    * Whether this screen offers the controls at all. The server still decides
-   * who may actually pick — this only stops a screen from showing a button
+   * who may actually pick. This only stops a screen from showing a button
    * it knows would be refused.
    */
   interactive?: boolean;
   /**
    * Television layout: the board fills the screen, and the clue becomes a
-   * card you click through — question, answer, board — with no timer, buzzer
+   * card you click through (question, answer, board) with no timer, buzzer
    * or judging on it.
    */
   tv?: boolean;
@@ -39,7 +39,7 @@ interface GameSurfaceProps {
  *
  * Room wraps it in a toolbar and chat; a display shows it alone on a
  * television. It lives here so those two are the same thing rather than two
- * drawings of it — a board that looks different on the TV to the one in your
+ * drawings of it. A board that looks different on the TV to the one in your
  * hand is a board people argue about.
  */
 export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps) {
@@ -63,7 +63,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
   }, [introEndsAt]);
   const introVisible = Boolean(introEndsAt && now < introEndsAt);
 
-  // Contestants only. A spectator — a display on a TV, or someone watching —
+  // Contestants only. A spectator (a display on a TV, or someone watching)
   // has no score to show and no buzzer to light, so a lectern for them is
   // just an empty seat on the set.
   const unordered = useMemo(
@@ -78,7 +78,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
               connected: true,
               kind: "human" as const,
               spectator: false,
-              emoji: lobby.hostEmoji,
+              avatar: lobby.hostAvatar,
               color: lobby.hostColor,
             },
             ...lobby.extraHumans.map((human) => ({
@@ -88,7 +88,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
               connected: true,
               kind: "human" as const,
               spectator: false,
-              emoji: human.emoji,
+              avatar: human.avatar,
               color: human.color,
             })),
             ...lobby.bots.map((bot) => ({
@@ -98,7 +98,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
               connected: true,
               kind: "ai-bot" as const,
               spectator: false,
-              emoji: bot.emoji,
+              avatar: bot.avatar,
               color: bot.color,
             })),
           ],
@@ -137,7 +137,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
   );
 
   // Only whoever has the board picks. The host may stand in for a picker who
-  // has dropped off — never for a bot, whose pick is already on its way.
+  // has dropped off, never for a bot, whose pick is already on its way.
   const picker = publicState?.players.find((player) => player.id === publicState.pickerId);
   const hostMayPick =
     canHost &&
@@ -167,7 +167,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
     if (!openClueId || !interactive || tv) return;
     if (mayTakeFocus()) clueRegionRef.current?.focus({ preventScroll: true });
     // On a phone the clue, its clock and the buzz bar are sized to fit one
-    // screen together — so make sure that screen is the one showing.
+    // screen together, so make sure that screen is the one showing.
     if (compact) {
       const board = document.querySelector('[data-testid="board"]');
       const strip = document.querySelector('[data-testid="clue-controls"]');
@@ -231,7 +231,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
                   display: "flex",
                   background: jeopardyPalette.board,
                   outline: "none",
-                  "&:focus-visible": { boxShadow: `inset 0 0 0 3px ${jeopardyPalette.goldBright}` },
+                  "&:focus-visible": { outline: `3px solid ${ui.focus}`, outlineOffset: "-3px" },
                 }}
               >
                 {tv ? (
@@ -260,7 +260,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
       <Box>
       {/* Over the lecterns, under the board: the board carries the clue,
           this strip carries the clock and everything anyone presses. A
-          television has neither — it is only ever the clue. */}
+          television has neither: it is only ever the clue. */}
       {publicState && interactive ? <GameAnnouncer state={publicState} selfId={selfId} /> : null}
       {publicState ? (
         <ClueControls state={publicState} currentClientId={selfId} />
@@ -290,7 +290,7 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
               player={player}
               state={publicState ?? previewState}
               isYou={player.id === selfId}
-              emoji={player.emoji ?? avatarFor(lobby, player.id)?.emoji}
+              avatar={player.avatar ?? avatarFor(lobby, player.id)?.avatar}
               color={player.color ?? avatarFor(lobby, player.id)?.color}
               controls={
                 interactive && publicState && player.id === selfId && !compact ? (
@@ -318,8 +318,8 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
               px: "max(12px, env(safe-area-inset-left, 0px))",
               pt: 1,
               pb: "max(10px, env(safe-area-inset-bottom, 0px))",
-              background: "linear-gradient(180deg, rgba(3,4,20,0.6) 0%, rgba(3,4,20,0.96) 30%)",
-              borderTop: "1px solid rgba(255,255,255,0.08)",
+              background: ui.stage,
+              borderTop: `1px solid ${ui.line}`,
               // The keyboard is up and the answer is being typed: the bar
               // would only float over the field.
               "html[data-keyboard-open] &": { display: "none" },
@@ -339,13 +339,13 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
 function avatarFor(
   lobby: ReturnType<typeof useGameStore.getState>["lobby"],
   playerId: string,
-): { emoji?: string; color?: string } | undefined {
+): { avatar?: PlayerAvatarKey; color?: string } | undefined {
   if (playerId === lobby.hostId) {
-    return { emoji: lobby.hostEmoji, color: lobby.hostColor };
+    return { avatar: lobby.hostAvatar, color: lobby.hostColor };
   }
   const bot = lobby.bots.find((candidate) => candidate.id === playerId);
-  if (bot) return { emoji: bot.emoji, color: bot.color };
+  if (bot) return { avatar: bot.avatar, color: bot.color };
   const human = lobby.extraHumans.find((candidate) => candidate.id === playerId);
-  if (human) return { emoji: human.emoji, color: human.color };
+  if (human) return { avatar: human.avatar, color: human.color };
   return undefined;
 }

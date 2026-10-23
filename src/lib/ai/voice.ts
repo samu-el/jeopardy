@@ -10,12 +10,12 @@ export interface SpeakRequest {
   rate?: number;
   pitch?: number;
   volume?: number;
-  /** Fires when this utterance actually begins — it may have been queued. */
+  /** Fires when this utterance actually begins (it may have been queued). */
   onStart?: () => void;
   onEnd?: () => void;
   /**
    * When true, this utterance interrupts whatever is currently speaking.
-   * Default false — utterances queue behind any in-flight speech.
+   * Default false: utterances queue behind any in-flight speech.
    */
   interrupt?: boolean;
 }
@@ -231,7 +231,7 @@ export function createVoiceAdapter(): VoiceAdapter {
   return new BrowserVoiceAdapter();
 }
 
-/** Stops whatever is being spoken — used when the microphone opens. */
+/** Stops whatever is being spoken, used when the microphone opens. */
 export function cancelSpeech() {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
   window.speechSynthesis.cancel();
@@ -353,7 +353,7 @@ export const browserDefaultVoiceId = "browser-default";
 
 /**
  * The voice a stored id speaks with. When a persona has no voice of its own
- * here, it falls back to the best voice of the right gender — never to a
+ * here, it falls back to the best voice of the right gender, never to a
  * voice of the other gender while one of the right gender exists.
  */
 export function resolveVoice(
@@ -390,7 +390,7 @@ export interface VoiceOption {
 
 /**
  * The voice menu. Always starts with "Browser default", names the voice each
- * choice actually uses, and always contains the selected id — a stored
+ * choice actually uses, and always contains the selected id: a stored
  * persona this machine can't voice shows as "Aria (unavailable)" with the
  * voice it falls back to, instead of an out-of-range select value.
  */
@@ -437,7 +437,7 @@ export const speechRateRange = { min: 0.8, max: 1.2 } as const;
 
 /**
  * The utterance rate for a player's reading-speed setting (1 = normal).
- * Everything that speaks for the game — readout, host, preview — uses this,
+ * Everything that speaks for the game (readout, host, preview) uses this,
  * so the preview sounds like the game.
  */
 export function readoutRate(speechRate: number | undefined = 1): number {

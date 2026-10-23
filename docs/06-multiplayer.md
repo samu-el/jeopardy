@@ -12,14 +12,14 @@ five.
 | --- | --- |
 | `src/lib/game` | Pure rules, including `tickGame()` for every time-driven transition |
 | `src/lib/realtime/in-memory-room.ts` | The authoritative room: stamps the actor, applies commands, fans out public state and chat |
-| `src/lib/realtime/room-director.ts` | Bots and the AI judge — reacts to published state, never to a transport |
+| `src/lib/realtime/room-director.ts` | Bots and the AI judge; reacts to published state, never to a transport |
 | `src/lib/realtime/room-host.ts` | Room + director + the tick loop, plus show-paced timings |
-| `src/lib/realtime/room-session.ts` | One connected client: join, commands, chat — no transport in it |
+| `src/lib/realtime/room-session.ts` | One connected client: join, commands, chat; no transport in it |
 | `src/lib/realtime/ws-protocol.ts` | The JSON frames on the wire, and how to parse them safely |
 | `src/lib/realtime/room-code.ts` | Room codes, shared by the browser and the Worker |
 | `src/lib/realtime/room-store.ts` | The snapshot shape a room is rebuilt from |
 | `workers/rooms/index.ts` | The Worker: turns a room code into its Durable Object |
-| `workers/rooms/room-object.ts` | `RoomDurableObject` — the room itself, plus its storage |
+| `workers/rooms/room-object.ts` | `RoomDurableObject`: the room itself, plus its storage |
 | `src/lib/runtime/local-room.ts` | Solo/pass-and-play: a `RoomHost` in the tab |
 | `src/lib/runtime/network-room.ts` | Shared room: the same surface over a socket |
 
@@ -60,7 +60,7 @@ room costs one comparison per tick and broadcasts nothing.
   reveals on request: a code on screen is a code anyone watching can join
   with, and boards get screen-shared.
 - If the rooms service can't be reached within `roomConnectGraceMs`, the same
-  board reopens locally and the strip says "Solo — not shareable". An outage
+  board reopens locally and the strip says "Solo · not shareable". An outage
   costs sharing, not the game.
 - Taking a seat is the `join-game` command, so the roster lives in the engine
   and reaches everyone through the normal state broadcast.
@@ -74,7 +74,7 @@ room costs one comparison per tick and broadcasts nothing.
 
 ## Display mode
 
-The TV button puts **this tab** on the television — it does not open a
+The TV button puts **this tab** on the television; it does not open a
 second one. A new tab is a new client with no seat and no host chair, and a
 board nobody standing at the screen can run is not much of a television.
 Same client, same seat, same authority: plug the machine into the TV, or
@@ -92,7 +92,7 @@ for the clues. Those go on the phones, which is where the buzzers are.
 
 **It fills the screen.** The board is normally capped near 660px, which is
 right on a desk and leaves a postage stamp marooned in black on a
-television; on a TV it takes the whole height instead — 1056px of a 1080p
+television; on a TV it takes the whole height instead: 1056px of a 1080p
 screen, against 660 before. Cell and clue type are sized in container units
 against the board, so growing the board is what makes a clue readable from a
 sofa; nothing else has to be told about the television. The grid keeps the
@@ -100,17 +100,17 @@ set's proportions rather than stretching to the last pixel.
 
 **The clue is the button.** Click a tile and the clue fills the frame; click
 again for the answer; click again for the board. No timer, no buzzer, no
-judging — and no caption explaining the click either. Someone is running the
+judging, and no caption explaining the click either. Someone is running the
 game from across a room with a mouse or a fingertip, and everything that
 isn't the clue is something they have to look past.
 
 Whether a click is obeyed is the server's call, not the screen's: the TV
 offers the controls only when the same test the engine applies says it is
 the host (or that the room has no host at all). `?room=CODE&display=1` still
-opens a second screen for a genuine spectator — it joins with no seat and no
+opens a second screen for a genuine spectator: it joins with no seat and no
 buzzer, and is never offered a control it would be refused.
 
-The join panel — code, URL and a QR that joins in one scan — sits in the
+The join panel (code, URL and a QR that joins in one scan) sits in the
 black beside the lecterns and hides completely on one click, giving the
 board the whole screen. The choice is kept per television, so a TV set up
 once stays set up. While it is shown the code is plain, the opposite of the
@@ -118,13 +118,13 @@ player view, which masks it: a display exists to be read by the room it is
 standing in.
 
 Spectators are filtered out of the podium row. A lectern for someone with no
-score and no buzzer is an empty seat on the set — which is what a display
+score and no buzzer is an empty seat on the set, which is what a display
 would otherwise look like.
 
 ## Custom games
 
 Games people write are stored in the same Worker as the rooms, in a
-`CustomGameObject` keyed by the game's own id — so a share link resolves
+`CustomGameObject` keyed by the game's own id, so a share link resolves
 straight to the object that holds it, with no index to keep in step.
 
 | Route | Does |
@@ -143,7 +143,7 @@ Two things follow from a game being someone's typing rather than our data:
   kept in the publisher's browser. Without it a `PUT` is a 403, so anyone
   holding the link can play a game but not rewrite it under everyone else.
 
-Ids are ten characters of an unambiguous alphabet — roughly 50 bits, because
+Ids are ten characters of an unambiguous alphabet, roughly 50 bits, because
 the link is the only thing protecting a game.
 
 `?game=<id>` opens one: the app fetches it and deals it, exactly like New
@@ -159,7 +159,7 @@ window open while it speaks.
 
 - Cues queue. "Math, for 200" is still being spoken when the estimate would
   have opened the buzzer, so both that cue and the clue itself push the
-  deadline out through `extend-readout` — from the moment they are handed to
+  deadline out through `extend-readout`, from the moment they are handed to
   the voice, not from when it reaches them. A queued cue is held for a short
   grace only, because a browser with no installed voices accepts `speak()`
   and then says nothing at all; the full estimate goes on once it starts.
@@ -169,7 +169,7 @@ window open while it speaks.
   about to speak: the UI replays the same event batch on every published
   state, and cancelling on a replay would cut the clue off mid-sentence.
 - `readout-complete` brings it forward the moment the clue's own utterance
-  ends — the buzzer opens on the voice stopping, not on a guess.
+  ends: the buzzer opens on the voice stopping, not on a guess.
 - `extend-readout` only ever moves the deadline later and is capped at
   `maxReadoutHoldMs` (60s), so a broken or hostile client cannot freeze the
   buzzer.
@@ -182,7 +182,7 @@ window open while it speaks.
 
 A room is a **Cloudflare Durable Object**, one per room code.
 
-That is not a deployment detail — it is the reason shared rooms work at all.
+That is not a deployment detail; it is the reason shared rooms work at all.
 A room needs a process that stays alive between requests: it holds the board,
 it owns the clock, and it keeps a socket open per player. A serverless
 function has none of those, so the app's own host (Vercel) can serve the UI
@@ -220,7 +220,7 @@ bun run rooms:dev   # the rooms Worker, on :8787
 ```
 
 Point the app at the Worker with `NEXT_PUBLIC_ROOMS_URL` (`.env.example` has
-both the local and deployed shapes). Solo play needs neither — it runs the
+both the local and deployed shapes). Solo play needs neither: it runs the
 same `RoomHost` inside the browser tab.
 
 Deploying the rooms:
@@ -240,7 +240,7 @@ on every push to `main`.
 Set `ALLOWED_ORIGINS` on the Worker to the app's origin so only it can open
 rooms. It lives in the dashboard rather than in this file because it differs
 per deployment; `keep_vars` is what stops the next deploy wiping it. Losing
-it is worse than an outage — the check falls open and nothing looks wrong.
+it is worse than an outage: the check falls open and nothing looks wrong.
 
 Durable Objects are on the Workers free plan (SQLite-backed ones, which is
 what this uses), so none of this needs a paid plan or a card on file.
@@ -251,6 +251,6 @@ what this uses), so none of this needs a paid plan or a card on file.
   snapshot round-trip.
 - `tests/unit/game/tick.test.ts` covers every time-driven transition.
 - `tests/e2e/multiplayer.spec.ts` drives two real browser contexts against a
-  **real Durable Object** — Playwright starts `wrangler dev` alongside Next,
+  **real Durable Object**: Playwright starts `wrangler dev` alongside Next,
   so join-by-code, roster sync, chat and a cross-client buzz are exercised
   against the same runtime that serves production.

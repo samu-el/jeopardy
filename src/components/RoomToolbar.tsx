@@ -30,7 +30,7 @@ import ShuffleIcon from "@mui/icons-material/ShuffleOutlined";
 import { useGameStore } from "@/lib/state/game-store";
 import { selectCanHost } from "@/lib/state/selectors";
 import { primeAudio, primeSpeech } from "@/lib/ai";
-import { controls, ui } from "@/lib/foundation/jeopardy-style";
+import { ui } from "@/lib/foundation/jeopardy-style";
 import { Wordmark } from "./Wordmark";
 import { RoomBar } from "./RoomBar";
 import { Housing, HousingDivider } from "./Housing";
@@ -73,7 +73,7 @@ export function RoomToolbar({
   const inGame = Boolean(runtime && publicState && publicState.round !== "lobby");
 
   // Leaving for real: hand the seat back rather than holding a socket open
-  // behind the landing page — asked first while a game is on. The wordmark
+  // behind the landing page, asked first while a game is on. The wordmark
   // and the Leave key do the same.
   const leave = goHome;
 
@@ -109,7 +109,7 @@ export function RoomToolbar({
   }
 
   return (
-    // Three columns on a wide screen — mark, room, keys — so the room
+    // Three columns on a wide screen (mark, room, keys) so the room
     // housing sits on the board's centre line rather than trailing the
     // mark. A phone stacks it: the mark centred on top, the two housings
     // side by side and centred beneath it. Nothing hangs off one edge.
@@ -138,10 +138,11 @@ export function RoomToolbar({
               display: "inline-flex",
               alignItems: "center",
               minHeight: 44,
-              transition: "opacity 0.15s ease",
+              transition: "opacity 120ms ease-out",
               "&:hover": { opacity: 0.8 },
+              "&:active": { transform: "translateY(1px)" },
               "&:focus-visible": {
-                outline: "2px solid rgba(91,140,255,0.6)",
+                outline: `2px solid ${ui.focus}`,
                 outlineOffset: 4,
                 borderRadius: 4,
               },
@@ -156,7 +157,7 @@ export function RoomToolbar({
         <RoomBar
           episode={
             lobby.loadedEpisode
-              ? `#${lobby.loadedEpisode.id}${lobby.loadedEpisode.airDate ? ` · ${lobby.loadedEpisode.airDate}` : ""}`
+              ? [`#${lobby.loadedEpisode.id}`, lobby.loadedEpisode.airDate ?? ""]
               : undefined
           }
         />
@@ -189,17 +190,15 @@ export function RoomToolbar({
                 startGame();
               }}
               sx={{
-                ...controls.keyPrimary,
-                minHeight: 42,
+                minHeight: 40,
                 px: 2.5,
                 borderRadius: "999px",
-                "&.Mui-disabled": controls.keyOff,
               }}
             >
               Begin
             </Button>
           ) : (
-            <Typography variant="overline" sx={{ whiteSpace: "nowrap", color: ui.inkMuted }}>
+            <Typography variant="body2" sx={{ whiteSpace: "nowrap" }}>
               Waiting for the host
             </Typography>
           )
@@ -232,7 +231,7 @@ export function RoomToolbar({
             title={online ? "Leave room" : "Home"}
             aria-label={online ? "Leave room" : "Home"}
             onClick={leave}
-            sx={{ color: ui.red, "&:hover": { color: "#FF7A84", background: "rgba(255,78,91,0.12)" } }}
+            sx={{ color: ui.red, "&:hover": { color: ui.redHover } }}
           >
             <LogoutIcon />
           </ToolKey>
@@ -306,7 +305,7 @@ export function RoomToolbar({
  *
  * It deliberately does not open a second one. A new tab is a new client with
  * no seat and no host chair, which makes for a board nobody standing at the
- * screen can actually run — and running it from the screen is the point.
+ * screen can actually run, and running it from the screen is the point.
  * Same client, same seat, same authority: plug this machine into the TV, or
  * cast the tab, and click the board where everyone can see it.
  *
@@ -334,7 +333,7 @@ function DisplayButton() {
 
 /**
  * One key in the toolbar housing: a round well that lights when the pointer
- * is over it. Flat on purpose — five raised keys in a row is a keyboard,
+ * is over it. Flat on purpose: five raised keys in a row is a keyboard,
  * and this is a strip of switches.
  */
 function ToolKey({ title, sx, children, ...props }: IconButtonProps & { title: string }) {
@@ -350,7 +349,8 @@ function ToolKey({ title, sx, children, ...props }: IconButtonProps & { title: s
             "@media (pointer: coarse)": { width: 44, height: 44 },
             borderRadius: "50%",
             color: ui.inkMuted,
-            "&:hover": { color: ui.ink, background: "rgba(255,255,255,0.08)" },
+            "&:hover": { color: ui.ink, background: ui.hoverTint },
+            "&:active": { transform: "translateY(1px)" },
             "& svg": { fontSize: 20 },
           },
           ...(Array.isArray(sx) ? sx : [sx ?? false]),

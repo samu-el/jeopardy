@@ -79,7 +79,7 @@ export default worker;
 /**
  * `POST /games` publishes a new game under a fresh id; `GET|PUT /games/<id>`
  * reads or replaces one. The id is minted here rather than accepted from the
- * client, so nobody can choose where their game lands — or overwrite
+ * client, so nobody can choose where their game lands, or overwrite
  * somebody else's by guessing.
  */
 async function routeGame(request: Request, env: Env, id: string): Promise<Response> {

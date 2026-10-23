@@ -1,4 +1,4 @@
-import type { PublicGameState } from "@/lib/game";
+import type { PlayerAvatar, PublicGameState } from "@/lib/game";
 import {
   isTerminalRejectReason,
   type ChatMessage,
@@ -18,7 +18,7 @@ export interface NetworkRoomConfig {
   roomId: string;
   clientId: string;
   displayName: string;
-  emoji?: string;
+  avatar?: PlayerAvatar;
   color?: string;
   spectator?: boolean;
   /** Host flow: bring the room into existence if the server doesn't have it. */
@@ -30,7 +30,7 @@ export interface NetworkRoomConfig {
 
 /**
  * A shared room. The server owns the state; this client sends intent and
- * renders whatever comes back. Commands carry no actor id — the bridge stamps
+ * renders whatever comes back. Commands carry no actor id: the bridge stamps
  * it from the socket session, so a client can only ever act as itself.
  */
 export class NetworkRoomRuntime implements RoomRuntime {
@@ -59,7 +59,7 @@ export class NetworkRoomRuntime implements RoomRuntime {
       roomId: config.roomId,
       clientId: config.clientId,
       displayName: config.displayName,
-      emoji: config.emoji,
+      avatar: config.avatar,
       color: config.color,
       spectator: config.spectator,
       create: config.create,
@@ -168,7 +168,7 @@ export class NetworkRoomRuntime implements RoomRuntime {
     this.client.requestAiJudge(targetPlayerId);
   }
 
-  addBot(bot: { id: string; displayName: string; profileId?: string; emoji?: string; color?: string }) {
+  addBot(bot: { id: string; displayName: string; profileId?: string; avatar?: PlayerAvatar; color?: string }) {
     if (this.destroyed || this.halted) return;
     this.client.addBot(bot);
   }

@@ -12,7 +12,10 @@ import {
   clueType,
   displayType,
   jeopardyPalette,
+  jeopardyTextShadow,
+  ui,
 } from "@/lib/foundation/jeopardy-style";
+import { MetaParts } from "./MetaParts";
 
 interface TvResultsProps {
   state: PublicGameState;
@@ -23,15 +26,15 @@ interface TvResultsProps {
  * The end of the game, on the television.
  *
  * The climax the whole room is watching: the winner (or winners) large, a
- * podium of the top three, the full standings, and — when this screen saw
- * Final Jeopardy — what each contestant wrote and wagered. Contestants only:
+ * podium of the top three, the full standings, and (when this screen saw
+ * Final Jeopardy) what each contestant wrote and wagered. Contestants only:
  * a television is never a player.
  */
 export function TvResults({ state, reducedMotion }: TvResultsProps) {
   const { standings, winners, tie } = computeResults(state);
   const final = getFinalRecord(state);
   const podium = standings.slice(0, 3);
-  // Silver, gold, bronze — the winner in the middle, the way a podium stands.
+  // Silver, gold, bronze: the winner in the middle, the way a podium stands.
   const podiumOrder = podium.length === 3 ? [podium[1], podium[0], podium[2]] : podium;
   const rise = reducedMotion
     ? {}
@@ -78,8 +81,8 @@ export function TvResults({ state, reducedMotion }: TvResultsProps) {
           fontWeight: 700,
           fontSize: "clamp(28px, 8vh, 110px)",
           lineHeight: 1,
-          color: "#fff",
-          textShadow: "0.05em 0.05em 0 rgba(0,0,0,0.8)",
+          color: ui.onBoard,
+          textShadow: jeopardyTextShadow,
           overflowWrap: "anywhere",
           ...rise,
         })}
@@ -135,9 +138,18 @@ export function TvResults({ state, reducedMotion }: TvResultsProps) {
             <Box
               component="li"
               key={entry.player.id}
-              sx={displayType({ fontSize: "clamp(14px, 2.6vh, 34px)", color: "rgba(255,255,255,0.85)" })}
+              sx={displayType({ fontSize: "clamp(16px, 2.6vh, 34px)", color: ui.onBoardMuted })}
             >
-              {ordinal(entry.rank)} · {entry.player.displayName} · {formatMoney(entry.player.score)}
+              <MetaParts
+                gap="0.8em"
+                parts={[
+                  ordinal(entry.rank),
+                  entry.player.displayName,
+                  <Box key="score" component="span" sx={{ color: ui.goldBright, fontVariantNumeric: "tabular-nums" }}>
+                    {formatMoney(entry.player.score)}
+                  </Box>,
+                ]}
+              />
             </Box>
           ))}
         </Box>
@@ -148,13 +160,20 @@ export function TvResults({ state, reducedMotion }: TvResultsProps) {
           <Typography
             component="h2"
             sx={displayType({
-              fontSize: "clamp(12px, 2.2vh, 28px)",
-              letterSpacing: "0.14em",
-              color: "rgba(255,255,255,0.82)",
+              fontSize: "clamp(16px, 2.4vh, 30px)",
+              color: ui.onBoardMuted,
               mb: "1vh",
             })}
           >
-            Final Jeopardy · {final.correctResponse ?? final.category}
+            <MetaParts
+              gap="0.8em"
+              parts={[
+                "Final Jeopardy",
+                <Box key="response" component="span" sx={{ color: jeopardyPalette.goldBright }}>
+                  {final.correctResponse ?? final.category}
+                </Box>,
+              ]}
+            />
           </Typography>
           <Box
             sx={{
@@ -172,31 +191,36 @@ export function TvResults({ state, reducedMotion }: TvResultsProps) {
                       ? jeopardyPalette.correct
                       : row.verdict === false
                         ? jeopardyPalette.incorrect
-                        : "rgba(255,255,255,0.25)"
+                        : ui.onBoardMuted
                   }`,
                   borderRadius: 1,
                   p: "1vh",
-                  background: "rgba(0,0,0,0.25)",
+                  background: ui.boardScrim,
                   minWidth: 0,
                 }}
               >
-                <Typography sx={displayType({ fontSize: "clamp(12px, 2.2vh, 28px)", color: "#fff" })}>
+                <Typography sx={displayType({ fontSize: "clamp(16px, 2.2vh, 28px)", color: ui.onBoard })}>
                   {row.displayName}
                 </Typography>
                 <Typography
-                  sx={clueType({ fontSize: "clamp(12px, 2.4vh, 30px)", overflowWrap: "anywhere" })}
+                  sx={clueType({ fontSize: "clamp(16px, 2.4vh, 30px)", overflowWrap: "anywhere" })}
                 >
                   {row.answer?.trim() ? row.answer : "(no response)"}
                 </Typography>
                 <Typography
                   sx={displayType({
-                    fontSize: "clamp(11px, 1.9vh, 24px)",
-                    color: "rgba(255,255,255,0.85)",
+                    fontSize: "clamp(16px, 1.9vh, 24px)",
+                    color: ui.onBoardMuted,
                     fontVariantNumeric: "tabular-nums",
                   })}
                 >
-                  {row.wager !== undefined ? `Wagered ${formatMoney(row.wager)} · ` : ""}
-                  {formatMoney(row.scoreBefore)} → {formatMoney(row.scoreAfter)}
+                  <MetaParts
+                    gap="0.8em"
+                    parts={[
+                      row.wager !== undefined ? `Wagered ${formatMoney(row.wager)}` : null,
+                      `${formatMoney(row.scoreBefore)} → ${formatMoney(row.scoreAfter)}`,
+                    ]}
+                  />
                 </Typography>
               </Box>
             ))}
@@ -219,7 +243,7 @@ function PodiumStep({ entry }: { entry: Standing }) {
       <Typography
         sx={displayType({
           fontSize: "clamp(16px, 3.4vh, 44px)",
-          color: "#fff",
+          color: ui.onBoard,
           maxWidth: "100%",
           overflow: "hidden",
           textOverflow: "ellipsis",
@@ -232,7 +256,7 @@ function PodiumStep({ entry }: { entry: Standing }) {
         sx={displayType({
           fontSize: "clamp(16px, 3.4vh, 44px)",
           fontWeight: 700,
-          color: entry.player.score < 0 ? "#FFB4B4" : jeopardyPalette.goldBright,
+          color: entry.player.score < 0 ? ui.negativeInk : jeopardyPalette.goldBright,
           fontVariantNumeric: "tabular-nums",
         })}
       >
@@ -244,8 +268,8 @@ function PodiumStep({ entry }: { entry: Standing }) {
           mt: "0.6vh",
           width: "100%",
           height,
-          background: entry.winner ? jeopardyPalette.goldBright : "rgba(0,0,0,0.35)",
-          color: entry.winner ? "#1A1200" : "#fff",
+          background: entry.winner ? jeopardyPalette.goldBright : ui.boardScrim,
+          color: entry.winner ? ui.onGold : ui.onBoard,
           borderRadius: "6px 6px 0 0",
           display: "flex",
           alignItems: "flex-start",

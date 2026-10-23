@@ -16,7 +16,7 @@ interface GameAnnouncerProps {
  * The game, read aloud to a screen reader.
  *
  * One live region, mounted for as long as the game is, so a screen reader
- * has it registered before anything is said into it — a status box that
+ * has it registered before anything is said into it. A status box that
  * mounts already holding its text is often never read. What to say is
  * worked out by `announce`, from what changed.
  */

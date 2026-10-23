@@ -6,6 +6,7 @@ import {
   type GameEvent,
   type GamePlayer,
   type GameSettings,
+  type PlayerAvatar,
   type GameState,
 } from "@/lib/game";
 import { InMemoryRealtimeRoom } from "./in-memory-room";
@@ -31,7 +32,7 @@ export const showTimings: Pick<
   // Baseline readout padding; the per-char term below carries most of the
   // timing so short clues don't wait forever.
   buzzUnlockDelayMs: 1_500,
-  // 70ms/char ≈ 140 wpm — a comfortable host pace that lines up with the
+  // 70ms/char ≈ 140 wpm, a comfortable host pace that lines up with the
   // TTS rate used for the readout.
   readoutPerCharMs: 70,
   buzzWindowMs: 6_000,
@@ -151,7 +152,7 @@ export class RoomHost {
     (this.persistTimer as unknown as { unref?: () => void }).unref?.();
   }
 
-  /** Reports any pending change immediately — used before dropping a room. */
+  /** Reports any pending change immediately, used before dropping a room. */
   flush() {
     if (!this.persistTimer) return;
     clearTimeout(this.persistTimer);
@@ -191,14 +192,14 @@ export class RoomHost {
   }
 
   /** Seats a bot and registers its difficulty profile with the director. */
-  addBot(input: { id: string; displayName: string; profileId?: string; emoji?: string; color?: string }) {
+  addBot(input: { id: string; displayName: string; profileId?: string; avatar?: PlayerAvatar; color?: string }) {
     const profile =
       baselineBotProfiles.find((candidate) => candidate.id === input.profileId) ??
       baselineBotProfiles[1];
     const hostId = this.room.getState().settings.hostId;
     this.room.dispatch(hostId ?? input.id, {
       type: "add-bot",
-      bot: { id: input.id, displayName: input.displayName, emoji: input.emoji, color: input.color },
+      bot: { id: input.id, displayName: input.displayName, avatar: input.avatar, color: input.color },
     });
     this.botProfiles[input.id] = profile;
     this.director.addBot(input.id, profile);
@@ -230,7 +231,7 @@ export class RoomHost {
                 ? `${name} +$${event.delta}`
                 : event.correct === false
                   ? `${name} $${event.delta}`
-                  : `${name} —`,
+                  : `${name} skipped`,
           });
           break;
         }

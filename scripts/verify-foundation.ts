@@ -4,7 +4,7 @@
  * The rules of Jeopardy, the archive parser and the room are pure: given the
  * same input they give the same answer, on a server, in a browser tab, or in
  * a test with a fake clock. That is only true while they import nothing that
- * drags a React tree, a store, a socket or a speech engine behind them — so
+ * drags a React tree, a store, a socket or a speech engine behind them, so
  * this checks, on every `bun run verify`, that they still don't.
  */
 import { readFileSync } from "node:fs";
@@ -22,6 +22,7 @@ const pureModules = [
   "src/lib/game/projection.ts",
   "src/lib/game/rules.ts",
   "src/lib/game/board-layout.ts",
+  "src/lib/game/avatars.ts",
   "src/lib/data/normalize.ts",
   "src/lib/realtime/in-memory-room.ts",
 ];

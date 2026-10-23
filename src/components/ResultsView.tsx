@@ -1,12 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
 import LinearProgress from "@mui/material/LinearProgress";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEventsOutlined";
@@ -17,7 +14,13 @@ import { getFinalRecord } from "@/lib/game/final-reveal";
 import { computeResults, joinNames, ordinal } from "@/lib/game/results";
 import { useGameStore } from "@/lib/state/game-store";
 import { formatMoney } from "@/lib/foundation/money";
-import { jeopardyFonts, jeopardyPalette, ui } from "@/lib/foundation/jeopardy-style";
+import {
+  boardGradient,
+  jeopardyFonts,
+  jeopardyPalette,
+  jeopardyTextShadow,
+  ui,
+} from "@/lib/foundation/jeopardy-style";
 import { GamePicker } from "./GamePicker";
 
 interface ResultsViewProps {
@@ -26,16 +29,15 @@ interface ResultsViewProps {
   onPlayAgain: () => void;
 }
 
-/** Readable on the dark surfaces: ≥4.5:1 against `ui.surface`. */
-const negativeInk = "#FF9C9C";
-const winnerInk = "#1A1200";
-
 /**
  * The end of the game: who won, the standings, and how everyone played.
  *
- * Contestants only — a television or a watcher is never listed or crowned.
+ * Contestants only: a television or a watcher is never listed or crowned.
  * Only the host can start the next game; everyone else is told they are
  * waiting for them, rather than shown buttons that do nothing.
+ *
+ * One band for the winner on the board blue, then the record as tables:
+ * the standings, Final Jeopardy, and the numbers behind each score.
  */
 export function ResultsView({ state, onPlayAgain }: ResultsViewProps) {
   const selfId = useGameStore((s) => s.selfId)();
@@ -61,20 +63,36 @@ export function ResultsView({ state, onPlayAgain }: ResultsViewProps) {
         : winners[0].displayName;
 
   return (
-    <Stack spacing={3} component="section" aria-labelledby="results-heading" data-testid="results">
-      <Card
-        elevation={6}
+    <Stack
+      spacing={5}
+      component="section"
+      aria-labelledby="results-heading"
+      data-testid="results"
+      sx={{ pb: 6 }}
+    >
+      <Box
         sx={{
-          background: `linear-gradient(180deg, ${jeopardyPalette.board} 0%, ${jeopardyPalette.boardShade} 100%)`,
-          border: `1px solid ${ui.line}`,
-          textAlign: "center",
+          display: "grid",
+          gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "auto minmax(0, 1fr) auto" },
+          alignItems: "center",
+          columnGap: 4,
+          rowGap: 2,
+          px: { xs: 3, md: 5 },
+          py: { xs: 4, md: 5 },
+          borderRadius: `${ui.radiusPanel}px`,
+          background: boardGradient,
+          textAlign: { xs: "center", md: "left" },
         }}
       >
-        <CardContent sx={{ py: { xs: 4, md: 6 } }}>
-          <EmojiEventsIcon
-            aria-hidden
-            sx={{ fontSize: { xs: 56, md: 84 }, color: jeopardyPalette.goldBright }}
-          />
+        <EmojiEventsIcon
+          aria-hidden
+          sx={{
+            fontSize: { xs: 56, md: 88 },
+            color: jeopardyPalette.goldBright,
+            justifySelf: "center",
+          }}
+        />
+        <Box sx={{ minWidth: 0 }}>
           <Typography
             component="h1"
             id="results-heading"
@@ -82,15 +100,16 @@ export function ResultsView({ state, onPlayAgain }: ResultsViewProps) {
             ref={headingRef}
             tabIndex={-1}
             sx={{
-              mt: 1,
               fontFamily: jeopardyFonts.display,
               fontWeight: 700,
-              letterSpacing: "0.02em",
+              letterSpacing: "0.01em",
               textTransform: "uppercase",
-              fontSize: { xs: 32, md: 60 },
-              lineHeight: 1.1,
-              textShadow: "0.04em 0.04em 0 rgba(0,0,0,0.7)",
-              wordBreak: "break-word",
+              fontSize: { xs: 36, md: 64 },
+              lineHeight: 1.02,
+              color: ui.onBoard,
+              textShadow: jeopardyTextShadow,
+              overflowWrap: "break-word",
+              minWidth: 0,
               outline: "none",
             }}
           >
@@ -99,11 +118,7 @@ export function ResultsView({ state, onPlayAgain }: ResultsViewProps) {
             </Box>
             {headline}
           </Typography>
-          {winners.length === 0 ? (
-            <Typography sx={{ mt: 1, color: "rgba(255,255,255,0.85)" }}>
-              Nobody finished in the black, so nobody takes the game.
-            </Typography>
-          ) : (
+          {winners.length > 0 ? (
             <Typography
               data-testid="results-winner-score"
               sx={{
@@ -111,244 +126,265 @@ export function ResultsView({ state, onPlayAgain }: ResultsViewProps) {
                 fontFamily: jeopardyFonts.display,
                 color: jeopardyPalette.goldBright,
                 fontWeight: 700,
-                fontSize: { xs: 26, md: 40 },
-                textShadow: "0.04em 0.04em 0 rgba(0,0,0,0.7)",
+                fontSize: { xs: 28, md: 40 },
+                lineHeight: 1,
+                fontVariantNumeric: "tabular-nums",
+                textShadow: jeopardyTextShadow,
               }}
             >
               {formatMoney(winners[0].score)}
             </Typography>
-          )}
-          {isHost ? (
-            <Stack
-              direction="row"
-              spacing={2}
-              useFlexGap
-              sx={{ mt: 4, flexWrap: "wrap", justifyContent: "center" }}
+          ) : null}
+        </Box>
+        {isHost ? (
+          <Stack
+            direction={{ xs: "column", sm: "row", md: "column" }}
+            spacing={1.5}
+            useFlexGap
+            sx={{ justifyContent: "center", alignItems: "stretch" }}
+          >
+            <Button
+              variant="contained"
+              size="large"
+              data-testid="results-again"
+              startIcon={<ReplayIcon />}
+              onClick={onPlayAgain}
             >
-              <Button
-                variant="contained"
-                size="large"
-                data-testid="results-again"
-                startIcon={<ReplayIcon />}
-                onClick={onPlayAgain}
-              >
-                Play again
-              </Button>
-              <Button
-                variant="outlined"
-                size="large"
-                data-testid="results-new-game"
-                startIcon={<ShuffleIcon />}
-                onClick={() => {
-                  episodeWhenOpened.current = useGameStore.getState().lobby.loadedEpisode?.id;
-                  setPickerOpen(true);
-                }}
-                sx={{ color: "#fff", borderColor: "rgba(255,255,255,0.6)" }}
-              >
-                New game
-              </Button>
-            </Stack>
-          ) : (
-            <Typography
-              role="status"
-              data-testid="results-waiting"
-              sx={{
-                mt: 4,
-                fontFamily: jeopardyFonts.display,
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "rgba(255,255,255,0.85)",
+              Play again
+            </Button>
+            <Button
+              variant="outlined"
+              size="large"
+              data-testid="results-new-game"
+              startIcon={<ShuffleIcon />}
+              onClick={() => {
+                episodeWhenOpened.current =
+                  useGameStore.getState().lobby.loadedEpisode?.id;
+                setPickerOpen(true);
               }}
             >
-              Waiting for the host to start the next game…
-            </Typography>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card variant="outlined">
-        <CardContent>
-          <Typography component="h2" variant="h6" sx={{ mb: 1.5 }}>
-            Standings
-          </Typography>
-          <Stack spacing={1} component="ol" sx={{ listStyle: "none", m: 0, p: 0 }}>
-            {standings.map((entry) => (
-              <Paper
-                key={entry.player.id}
-                component="li"
-                variant="outlined"
-                data-testid={`results-row-${entry.player.id}`}
-                sx={{
-                  p: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 2,
-                  borderColor: entry.winner ? ui.gold : "divider",
-                  backgroundColor: entry.winner ? ui.goldTint : undefined,
-                }}
-              >
-                <Box
-                  aria-hidden
-                  data-testid={`results-rank-${entry.player.id}`}
-                  sx={{
-                    width: 36,
-                    height: 36,
-                    flexShrink: 0,
-                    borderRadius: "50%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    bgcolor: entry.winner ? ui.gold : ui.surfaceRaised,
-                    color: entry.winner ? winnerInk : ui.ink,
-                    border: entry.winner ? "none" : `1px solid ${ui.lineStrong}`,
-                    fontWeight: 800,
-                  }}
-                >
-                  {entry.rank}
-                </Box>
-                <Box component="span" sx={visuallyHidden}>
-                  {ordinal(entry.rank)}
-                  {entry.winner ? ", winner" : ""}:
-                </Box>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>
-                    {entry.player.displayName}
-                    {entry.tied ? (
-                      <Typography component="span" sx={{ ml: 1, color: ui.inkMuted, fontSize: 13 }}>
-                        tied
-                      </Typography>
-                    ) : null}
-                  </Typography>
-                </Box>
-                <Typography
-                  variant="h5"
-                  component="span"
-                  sx={{
-                    fontWeight: 800,
-                    color: entry.player.score < 0 ? negativeInk : ui.gold,
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {formatMoney(entry.player.score)}
-                </Typography>
-              </Paper>
-            ))}
+              New game
+            </Button>
           </Stack>
-        </CardContent>
-      </Card>
-
-      {final && final.rows.length > 0 ? (
-        <Card variant="outlined" data-testid="results-final">
-          <CardContent>
-            <Typography component="h2" variant="h6">
-              Final Jeopardy
-            </Typography>
-            <Typography sx={{ color: ui.inkMuted, mb: 1.5 }}>
-              {final.category}
-              {final.correctResponse ? ` · ${final.correctResponse}` : ""}
-            </Typography>
-            <Stack spacing={1}>
-              {final.rows.map((row) => (
-                <Stack
-                  key={row.playerId}
-                  direction={{ xs: "column", sm: "row" }}
-                  spacing={{ xs: 0.25, sm: 2 }}
-                  sx={{ alignItems: { sm: "baseline" } }}
-                >
-                  <Typography sx={{ fontWeight: 700, minWidth: 140 }}>{row.displayName}</Typography>
-                  <Typography sx={{ flex: 1, overflowWrap: "anywhere" }}>
-                    {row.answer?.trim() ? `“${row.answer}”` : "(no response)"}
-                    {row.verdict === true ? " · Correct" : row.verdict === false ? " · Incorrect" : ""}
-                  </Typography>
-                  <Typography sx={{ color: ui.inkMuted, fontVariantNumeric: "tabular-nums" }}>
-                    {row.wager !== undefined ? `Wagered ${formatMoney(row.wager)} · ` : ""}
-                    {formatMoney(row.scoreBefore)} → {formatMoney(row.scoreAfter)}
-                  </Typography>
-                </Stack>
-              ))}
-            </Stack>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      <Card variant="outlined">
-        <CardContent>
-          <Typography component="h2" variant="h6" sx={{ mb: 1.5 }}>
-            How everyone played
-          </Typography>
-          <Box
+        ) : (
+          <Typography
+            role="status"
+            data-testid="results-waiting"
             sx={{
-              display: "grid",
-              gap: 2,
-              // Cards keep a readable width: one player is one card, centred,
-              // not a strip across the whole screen.
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 320px))",
-              justifyContent: "center",
+              color: ui.onBoardMuted,
+              fontWeight: 600,
+              maxWidth: "28ch",
+              justifySelf: "center",
             }}
           >
-            {standings.map(({ player }) => {
-              const answered = stats.answeredByPlayer[player.id] ?? 0;
-              const correct = stats.correctByPlayer[player.id] ?? 0;
-              const incorrect = stats.incorrectByPlayer[player.id] ?? 0;
-              const firstBuzzes = stats.firstBuzzByPlayer[player.id] ?? 0;
-              const dailyDoubles = stats.dailyDoublesByPlayer[player.id] ?? 0;
-              const accuracy = answered > 0 ? (correct / answered) * 100 : 0;
-              const reactions = stats.reactionTimesByPlayer[player.id] ?? [];
-              const avgReaction =
-                reactions.length > 0
-                  ? Math.round(
-                      reactions.reduce((sum, value) => sum + value, 0) / reactions.length,
-                    )
-                  : null;
-              return (
-                <Paper
-                  key={player.id}
-                  variant="outlined"
-                  sx={{ p: 2 }}
-                  data-testid={`results-stats-${player.id}`}
+            Waiting for the host to start the next game…
+          </Typography>
+        )}
+      </Box>
+
+      <ResultsSection title="Standings">
+        <ResultsTable head={["", "Player", "Score"]} align={["left", "left", "right"]}>
+          {standings.map((entry) => {
+            const { player } = entry;
+            return (
+              <Box
+                component="tr"
+                key={player.id}
+                data-testid={`results-row-${entry.player.id}`}
+              >
+                <Box component="td" sx={{ ...cellSx, width: 56 }}>
+                  <Box
+                    aria-hidden
+                    data-testid={`results-rank-${entry.player.id}`}
+                    sx={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: "50%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      bgcolor: entry.winner ? ui.goldBright : "transparent",
+                      color: entry.winner ? ui.onGold : ui.inkMuted,
+                      border: entry.winner ? "none" : `1px solid ${ui.lineStrong}`,
+                      fontWeight: 700,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    {entry.rank}
+                  </Box>
+                  <Box component="span" sx={visuallyHidden}>
+                    {ordinal(entry.rank)}
+                    {entry.winner ? ", winner" : ""}
+                  </Box>
+                </Box>
+                <Box
+                  component="td"
+                  sx={{ ...cellSx, fontWeight: 700, overflowWrap: "anywhere" }}
                 >
-                  <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1 }}>
-                    <Typography component="h3" sx={{ fontWeight: 700, flex: 1, minWidth: 0 }}>
-                      {player.displayName}
-                    </Typography>
+                  {entry.player.displayName}
+                  {entry.tied ? (
                     <Box
                       component="span"
-                      data-testid={`results-chip-${player.id}`}
-                      sx={{
-                        px: 1,
-                        py: 0.25,
-                        borderRadius: 99,
-                        fontSize: 13,
-                        fontWeight: 700,
-                        fontVariantNumeric: "tabular-nums",
-                        bgcolor: player.score < 0 ? "transparent" : ui.gold,
-                        color: player.score < 0 ? negativeInk : winnerInk,
-                        border: player.score < 0 ? `1px solid ${negativeInk}` : "none",
-                      }}
+                      sx={{ ml: 1, color: ui.inkMuted, fontWeight: 400, fontSize: 14 }}
                     >
-                      {formatMoney(player.score)}
+                      tied
                     </Box>
+                  ) : null}
+                </Box>
+                <Box component="td" sx={{ ...cellSx, textAlign: "right" }}>
+                  <Box
+                    component="span"
+                    data-testid={`results-chip-${player.id}`}
+                    sx={{
+                      fontFamily: jeopardyFonts.display,
+                      fontWeight: 700,
+                      fontSize: 23,
+                      fontVariantNumeric: "tabular-nums",
+                      color:
+                        entry.player.score < 0
+                          ? ui.negativeInk
+                          : entry.winner
+                            ? ui.goldBright
+                            : ui.ink,
+                    }}
+                  >
+                    {formatMoney(entry.player.score)}
+                  </Box>
+                </Box>
+              </Box>
+            );
+          })}
+        </ResultsTable>
+      </ResultsSection>
+
+      {final && final.rows.length > 0 ? (
+        <ResultsSection
+          title="Final Jeopardy"
+          data-testid="results-final"
+          meta={[final.category, final.correctResponse ?? null]}
+        >
+          <ResultsTable
+            head={["Player", "Response", "Ruling", "Wager", "Before", "After"]}
+            align={["left", "left", "left", "right", "right", "right"]}
+            phoneHidden={[3, 4]}
+          >
+            {final.rows.map((row) => (
+              <Box component="tr" key={row.playerId}>
+                <Box component="td" sx={{ ...cellSx, fontWeight: 700 }}>
+                  {row.displayName}
+                </Box>
+                <Box component="td" sx={{ ...cellSx, overflowWrap: "anywhere" }}>
+                  {row.answer?.trim() ? `“${row.answer}”` : "(no response)"}
+                </Box>
+                <Box
+                  component="td"
+                  sx={{
+                    ...cellSx,
+                    color:
+                      row.verdict === true
+                        ? ui.green
+                        : row.verdict === false
+                          ? ui.negativeInk
+                          : ui.inkMuted,
+                  }}
+                >
+                  {row.verdict === true
+                    ? "Correct"
+                    : row.verdict === false
+                      ? "Incorrect"
+                      : "No ruling"}
+                </Box>
+                <Box component="td" sx={numCellSx}>
+                  {row.wager !== undefined ? formatMoney(row.wager) : ""}
+                </Box>
+                <Box component="td" sx={{ ...numCellSx, color: ui.inkMuted }}>
+                  {formatMoney(row.scoreBefore)}
+                </Box>
+                <Box component="td" sx={{ ...numCellSx, fontWeight: 700 }}>
+                  {formatMoney(row.scoreAfter)}
+                </Box>
+              </Box>
+            ))}
+          </ResultsTable>
+        </ResultsSection>
+      ) : null}
+
+      <ResultsSection title="How everyone played">
+        <ResultsTable
+          head={[
+            "Player",
+            "Accuracy",
+            "Correct",
+            "Incorrect",
+            "First to buzz",
+            "Daily Doubles",
+            "Avg reaction",
+          ]}
+          align={["left", "left", "right", "right", "right", "right", "right"]}
+        >
+          {standings.map(({ player }) => {
+            const answered = stats.answeredByPlayer[player.id] ?? 0;
+            const correct = stats.correctByPlayer[player.id] ?? 0;
+            const incorrect = stats.incorrectByPlayer[player.id] ?? 0;
+            const firstBuzzes = stats.firstBuzzByPlayer[player.id] ?? 0;
+            const dailyDoubles = stats.dailyDoublesByPlayer[player.id] ?? 0;
+            const accuracy = answered > 0 ? (correct / answered) * 100 : 0;
+            const reactions = stats.reactionTimesByPlayer[player.id] ?? [];
+            const avgReaction =
+              reactions.length > 0
+                ? Math.round(
+                    reactions.reduce((sum, value) => sum + value, 0) / reactions.length,
+                  )
+                : null;
+            return (
+              <Box
+                component="tr"
+                key={player.id}
+                data-testid={`results-stats-${player.id}`}
+              >
+                <Box
+                  component="th"
+                  scope="row"
+                  sx={{ ...cellSx, fontWeight: 700, textAlign: "left" }}
+                >
+                  {player.displayName}
+                </Box>
+                <Box component="td" sx={{ ...cellSx, minWidth: 140 }}>
+                  <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+                    <Box
+                      component="span"
+                      sx={{ fontVariantNumeric: "tabular-nums", minWidth: "4ch" }}
+                    >
+                      {accuracy.toFixed(0)}%
+                    </Box>
+                    <LinearProgress
+                      variant="determinate"
+                      aria-label={`${player.displayName} accuracy`}
+                      value={Math.max(0, Math.min(100, accuracy))}
+                      sx={{ flex: 1, height: 4, borderRadius: 2 }}
+                    />
                   </Stack>
-                  <StatLine
-                    label="Accuracy"
-                    value={`${accuracy.toFixed(0)}%`}
-                    progress={accuracy}
-                    progressLabel={`${player.displayName} accuracy`}
-                  />
-                  <StatLine label="Correct" value={`${correct}`} />
-                  <StatLine label="Incorrect" value={`${incorrect}`} />
-                  <StatLine label="First to buzz" value={`${firstBuzzes}`} />
-                  <StatLine label="Daily Doubles" value={`${dailyDoubles}`} />
-                  <StatLine
-                    label="Avg reaction"
-                    value={avgReaction !== null ? `${avgReaction} ms` : "—"}
-                  />
-                </Paper>
-              );
-            })}
-          </Box>
-        </CardContent>
-      </Card>
+                </Box>
+                <Box component="td" sx={numCellSx}>
+                  {correct}
+                </Box>
+                <Box component="td" sx={numCellSx}>
+                  {incorrect}
+                </Box>
+                <Box component="td" sx={numCellSx}>
+                  {firstBuzzes}
+                </Box>
+                <Box component="td" sx={numCellSx}>
+                  {dailyDoubles}
+                </Box>
+                <Box component="td" sx={numCellSx}>
+                  {avgReaction !== null ? `${avgReaction}\u00a0ms` : "None"}
+                </Box>
+              </Box>
+            );
+          })}
+        </ResultsTable>
+      </ResultsSection>
 
       <GamePicker
         open={pickerOpen}
@@ -376,35 +412,121 @@ const visuallyHidden = {
   whiteSpace: "nowrap",
 } as const;
 
-function StatLine({
-  label,
-  value,
-  progress,
-  progressLabel,
+const cellSx = {
+  py: 1.5,
+  px: 1.5,
+  borderBottom: `1px solid ${ui.line}`,
+  verticalAlign: "middle",
+  fontSize: 16,
+  color: ui.ink,
+  "&:first-of-type": { pl: 0 },
+  "&:last-of-type": { pr: 0 },
+} as const;
+
+const numCellSx = {
+  ...cellSx,
+  textAlign: "right",
+  fontVariantNumeric: "tabular-nums",
+  whiteSpace: "nowrap",
+} as const;
+
+/** A section of the record: its heading, an optional line of facts, then its table. */
+function ResultsSection({
+  title,
+  "data-testid": testId,
+  meta,
+  children,
 }: {
-  label: string;
-  value: string;
-  progress?: number;
-  progressLabel?: string;
+  title: string;
+  "data-testid"?: string;
+  meta?: (string | null)[];
+  children: ReactNode;
 }) {
+  const facts = (meta ?? []).filter((fact): fact is string => Boolean(fact));
   return (
-    <Box sx={{ mt: 1 }}>
-      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-        <Typography variant="body2" sx={{ color: ui.inkMuted }}>
-          {label}
-        </Typography>
-        <Typography variant="body2" sx={{ fontWeight: 700 }}>
-          {value}
-        </Typography>
-      </Stack>
-      {progress !== undefined ? (
-        <LinearProgress
-          variant="determinate"
-          aria-label={progressLabel ?? label}
-          value={Math.max(0, Math.min(100, progress))}
-          sx={{ mt: 0.5, height: 4, borderRadius: 2 }}
-        />
+    <Box component="section" data-testid={testId} aria-label={title}>
+      <Typography component="h2" variant="h4">
+        {title}
+      </Typography>
+      {facts.length > 0 ? (
+        <Box
+          component="ul"
+          sx={{
+            listStyle: "none",
+            m: 0,
+            mt: 1,
+            p: 0,
+            display: "flex",
+            flexWrap: "wrap",
+            columnGap: 3,
+            rowGap: 0.5,
+          }}
+        >
+          {facts.map((fact) => (
+            <Box component="li" key={fact} sx={{ color: ui.inkMuted }}>
+              {fact}
+            </Box>
+          ))}
+        </Box>
       ) : null}
+      {children}
+    </Box>
+  );
+}
+
+/** A full-width table with hairline rows; it scrolls sideways inside itself on a phone. */
+function ResultsTable({
+  head,
+  align,
+  phoneHidden = [],
+  children,
+}: {
+  head: string[];
+  align: ("left" | "right")[];
+  /** Columns (by index) a phone leaves out, so the ones that matter stay in view. */
+  phoneHidden?: number[];
+  children: ReactNode;
+}) {
+  // Each hidden column is dropped from the head and every row with one rule.
+  const hideRules = Object.fromEntries(
+    phoneHidden.map((index) => [
+      `& tr > :nth-of-type(${index + 1})`,
+      { display: { xs: "none", sm: "table-cell" } },
+    ]),
+  );
+  return (
+    <Box sx={{ mt: 2, overflowX: "auto", maxWidth: "100%", ...hideRules }}>
+      <Box component="table" sx={{ width: "100%", borderCollapse: "collapse" }}>
+        <Box component="thead">
+          <Box component="tr">
+            {head.map((label, index) => (
+              <Box
+                component="th"
+                scope="col"
+                key={`${label}-${index}`}
+                sx={{
+                  ...cellSx,
+                  py: 1,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: ui.inkMuted,
+                  whiteSpace: "nowrap",
+                  textAlign: align[index] ?? "left",
+                }}
+              >
+                {label ? (
+                  label
+                ) : (
+                  <Box component="span" sx={visuallyHidden}>
+                    Rank
+                  </Box>
+                )}
+              </Box>
+            ))}
+          </Box>
+        </Box>
+        <Box component="tbody">{children}</Box>
+      </Box>
     </Box>
   );
 }

@@ -142,16 +142,16 @@ export function describeSpeechRecognitionError(
         blocked: true,
       };
     case "audio-capture":
-      return { message: "No microphone found. Check it's plugged in.", blocked: false };
+      return { message: "No microphone found. Check it’s plugged in.", blocked: false };
     case "no-speech":
-      return { message: "Didn't catch that. Tap the mic and try again.", blocked: false };
+      return { message: "Didn’t catch that. Tap the mic and try again.", blocked: false };
     case "network":
       return {
         message: "Voice answers need a connection. Type your answer instead.",
         blocked: false,
       };
     case "language-not-supported":
-      return { message: "Voice answers aren't available in this language.", blocked: true };
+      return { message: "Voice answers aren’t available in this language.", blocked: true };
     default:
       return { message: "Voice input stopped. Type your answer or try again.", blocked: false };
   }

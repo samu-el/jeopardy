@@ -15,20 +15,20 @@ test.describe("Onboarding", () => {
     await page.getByTestId("new-game").click();
 
     // The card comes up over the board New Game just dealt.
-    await expect(page.getByText("Three steps and")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { name: "How to play" })).toBeVisible({ timeout: 30_000 });
     await page.getByRole("button", { name: "Let’s play" }).click();
-    await expect(page.getByText("Three steps and")).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "How to play" })).toHaveCount(0);
 
-    // Reload — should not show again
+    // Reload: should not show again
     await page.reload();
-    await expect(page.getByText("Three steps and")).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "How to play" })).toHaveCount(0);
   });
 
   test("is a named dialog that takes focus and closes on Escape", async ({ page }) => {
     await routeFixtureEpisodes(page);
     await page.goto("/");
     await page.getByTestId("new-game").click();
-    const dialog = page.getByRole("dialog", { name: /Three steps/ });
+    const dialog = page.getByRole("dialog", { name: "How to play" });
     await expect(dialog).toBeVisible({ timeout: 30_000 });
     await expect(page.getByRole("button", { name: "Let’s play" })).toBeFocused();
     // Tab stays inside the card rather than wandering onto the board behind it.
@@ -46,7 +46,7 @@ test.describe("Onboarding", () => {
       await routeFixtureEpisodes(page);
       await page.goto("/");
       await page.getByTestId("new-game").click();
-      const dialog = page.getByRole("dialog", { name: /Three steps/ });
+      const dialog = page.getByRole("dialog", { name: "How to play" });
       await expect(dialog).toContainText("Tap the buzzer", { timeout: 30_000 });
       await expect(dialog).not.toContainText("Press Space");
     } finally {

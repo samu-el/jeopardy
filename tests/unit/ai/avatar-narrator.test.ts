@@ -205,7 +205,7 @@ describe("AvatarNarrator", () => {
   it("interrupts the queue once, not on every replay of the same cue", () => {
     // The room republishes state constantly and the UI replays the same
     // event batch with it. A repeat of a cue must not cut the voice off
-    // mid-sentence — least of all the clue it just queued.
+    // mid-sentence, least of all the clue it just queued.
     const cancel = vi.fn();
     const narrator = new AvatarNarrator({
       voice: {

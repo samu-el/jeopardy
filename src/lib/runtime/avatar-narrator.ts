@@ -30,7 +30,7 @@ export interface AvatarNarratorConfig {
   onCueSpoken?: (cue: AvatarHostCue) => void;
   /**
    * Fires when a cue actually starts speaking. Cues queue, so this can be a
-   * long way after `emit` — which is exactly why the buzzer can't be timed
+   * long way after `emit`, which is exactly why the buzzer can't be timed
    * from the moment the clue was picked.
    */
   onCueStarted?: (cue: AvatarHostCue) => void;
@@ -50,7 +50,7 @@ export interface EmitOptions {
   interruptQueue?: boolean;
   /**
    * Identity of the game event behind this cue. A cue whose event was
-   * already narrated is not spoken again — so replaying an event batch never
+   * already narrated is not spoken again, so replaying an event batch never
    * doubles the voice, while a real repeat ("Incorrect." for a second
    * player) always speaks.
    */
@@ -58,8 +58,8 @@ export interface EmitOptions {
 }
 
 /**
- * The clue's own lines. These are read whenever sound is on — they are the
- * game, not the host's personality — so "Host: Off" silences commentary but
+ * The clue's own lines. These are read whenever sound is on (they are the
+ * game, not the host's personality), so "Host: Off" silences commentary but
  * still reads the board aloud, as the landing page promises.
  */
 const readoutCues = new Set<AvatarHostCueType>(["clue-selected", "clue-readout"]);
@@ -74,7 +74,7 @@ export class AvatarNarrator {
   private outstanding = new Set<AvatarHostCueType>();
   /**
    * Bumped by `cancel()`. A cancelled utterance still fires `onend`, and a
-   * dropped clue readout must not be reported as read — least of all against
+   * dropped clue readout must not be reported as read, least of all against
    * whichever clue is on screen by then.
    */
   private generation = 0;
@@ -158,7 +158,7 @@ export class AvatarNarrator {
 
   /**
    * Stops the voice only if one of these cues is still being said or waiting
-   * — e.g. the clue's readout once the clue has closed. Returns whether it
+   * (e.g. the clue's readout once the clue has closed). Returns whether it
    * cancelled anything.
    */
   cancelIfSpeaking(types: AvatarHostCueType[]): boolean {
@@ -173,7 +173,7 @@ export class AvatarNarrator {
     return types.some((type) => this.outstanding.has(type));
   }
 
-  /** Forget narrated events — a new game starts from a clean slate. */
+  /** Forget narrated events: a new game starts from a clean slate. */
   resetEvents() {
     this.narratedEvents.clear();
   }
@@ -190,7 +190,7 @@ export class AvatarNarrator {
 /**
  * A stable identity for a game event, for de-duplication. Events carry no id
  * of their own, but every field that tells two real events apart (clue,
- * player, verdict, round) is part of the event — so the same event replayed
+ * player, verdict, round) is part of the event, so the same event replayed
  * gives the same key, and two different events give different keys.
  */
 export function gameEventKey(event: GameEvent): string {
@@ -203,7 +203,7 @@ export function gameEventKey(event: GameEvent): string {
 
 /**
  * A ceiling on how long this utterance can run, used to hold the buzzer while
- * it plays. Generous on purpose — `onend` trims it to the real moment, and a
+ * it plays. Generous on purpose: `onend` trims it to the real moment, and a
  * buzzer that opens a beat late is far better than one that opens mid-clue.
  */
 export function spokenDurationEstimateMs(text: string, speechRate = 1): number {

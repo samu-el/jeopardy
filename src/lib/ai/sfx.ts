@@ -111,7 +111,7 @@ function tone({
   osc.stop(stop + 0.02);
 }
 
-/** Short filtered-noise burst — used for the applause swell. */
+/** Short filtered-noise burst, used for the applause swell. */
 function noise({
   duration,
   gain = 0.12,
@@ -152,7 +152,7 @@ function noise({
 
 /**
  * Every cue here is synthesized from scratch. The show's own stings and its
- * think music are copyrighted recordings and are not reproduced — these are
+ * think music are copyrighted recordings and are not reproduced. These are
  * original tones written to sit in the same register and pacing.
  */
 export function playSfx(kind: SfxKind) {
@@ -231,7 +231,7 @@ export function setSfxVolume(volume: number) {
   setAudioMix({ effects: volume });
 }
 
-// The Final Jeopardy countdown. Original composition — the show's "Think!"
+// The Final Jeopardy countdown. Original composition: the show's "Think!"
 // theme is copyrighted and is not reproduced. Same job: 30 seconds of
 // steady, ticking tension that runs out with the clock.
 let finalBus: GainNode | undefined;

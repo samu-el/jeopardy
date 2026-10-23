@@ -7,10 +7,10 @@ import Stack from "@mui/material/Stack";
 import type { PublicGameState } from "@/lib/game";
 import { nameOf } from "@/lib/game/clue-turn";
 import { primeAudio, primeSpeech } from "@/lib/ai";
-import { controls, jeopardyFonts, ui } from "@/lib/foundation/jeopardy-style";
+import { controls, ui } from "@/lib/foundation/jeopardy-style";
 import { useClueTurn } from "../use-clue-turn";
 import { answerFocusProxyId, mayTakeFocus } from "./keyboard";
-import { barButtonSx, stackedButtonSx } from "./bench-style";
+import { barButtonSx, buzzerFaceSx, stackedButtonSx } from "./bench-style";
 
 interface PodiumClueButtonsProps {
   state: PublicGameState;
@@ -27,7 +27,7 @@ interface PodiumClueButtonsProps {
  * The buttons you press: BUZZ, and the host's Reveal and Next.
  *
  * The buzzer rings in on pointer-down, not on release, so a tap is timed
- * when the finger lands — the same moment a keyboard player's Space is.
+ * when the finger lands: the same moment a keyboard player's Space is.
  */
 export function PodiumClueButtons({
   state,
@@ -39,7 +39,7 @@ export function PodiumClueButtons({
   const { clue, send, canIBuzz } = turn;
   const [attempt, setAttempt] = useState<{ clueId: string; at: number } | null>(null);
 
-  // Take focus when the buzzer opens — unless you are busy elsewhere (typing
+  // Take focus when the buzzer opens, unless you are busy elsewhere (typing
   // in chat, in a settings panel). Driven by the client's own view of the
   // clock: the snapshot's `canBuzz` was worked out before the readout ended.
   useEffect(() => {
@@ -107,14 +107,15 @@ export function PodiumClueButtons({
       sx={{
         ...keySx,
         ...(canIBuzz ? controls.buzzer : controls.keyOff),
-        ...(bar ? { flex: "1 1 auto", fontSize: 22 } : { fontSize: 13 }),
-        letterSpacing: "0.12em",
-        "&.Mui-disabled": {
-          ...controls.keyOff,
-          // The disabled label carries information (IN!, LOCKED), so it
-          // keeps readable contrast.
-          color: ui.inkMuted,
-        },
+        ...buzzerFaceSx,
+        ...(bar ? { flex: "1 1 auto", fontSize: 24 } : { fontSize: 17 }),
+        // Disabled either way, but never the same dead key: IN! is lit (you
+        // have the clue), LOCKED is red ink on a red hairline.
+        "&.Mui-disabled": turn.buzzedByMe
+          ? { ...controls.keyPrimary, color: ui.onGold }
+          : turn.isLockedOut
+            ? { ...controls.keyOff, color: ui.negativeInk, borderColor: ui.red }
+            : { ...controls.keyOff, color: ui.inkMuted },
       }}
     >
       {turn.buzzedByMe ? "IN!" : turn.isLockedOut ? "LOCKED" : "BUZZ"}
@@ -138,10 +139,13 @@ export function PodiumClueButtons({
       onClick={() => send({ type: "skip" })}
       sx={{ ...keySx, ...controls.keyPrimary, ...(bar ? { flex: "1 1 auto", px: 2 } : null) }}
     >
-      Next clue
+      Next clue{" "}
       {turn.autoAdvanceSeconds !== null ? (
-        <Box component="span" sx={{ ml: 0.75, opacity: 0.8, fontVariantNumeric: "tabular-nums" }}>
-          · {turn.autoAdvanceSeconds}s
+        <Box
+          component="span"
+          sx={{ ml: 1, pl: 1, borderLeft: `1px solid currentColor`, fontVariantNumeric: "tabular-nums" }}
+        >
+          {turn.autoAdvanceSeconds}s
         </Box>
       ) : null}
     </Button>
@@ -151,12 +155,10 @@ export function PodiumClueButtons({
     <Box
       role="status"
       sx={{
-        fontFamily: jeopardyFonts.display,
-        fontSize: bar ? 12 : 10,
-        letterSpacing: "0.06em",
+        fontSize: bar ? 14 : 12,
+        fontWeight: 600,
         color: ui.inkMuted,
         textAlign: "center",
-        textTransform: "uppercase",
       }}
     >
       {beaten} was first

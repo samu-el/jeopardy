@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import "./globals.css";
 import { AppProviders } from "./providers";
 import { fontVariables } from "./fonts";
 import { AnalyticsGate } from "@/components/AnalyticsGate";
@@ -36,7 +37,7 @@ export const metadata: Metadata = {
     description,
     url: "/",
     locale: "en_US",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Jeopardy! — a game board of dollar values" }],
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Jeopardy! game board of dollar values" }],
   },
   twitter: {
     card: "summary_large_image",

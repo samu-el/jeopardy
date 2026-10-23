@@ -10,7 +10,7 @@ const createdKey = "created";
 /**
  * One Durable Object per room code: the room *is* the object.
  *
- * That replaces three things the Node build needed — the process-wide room
+ * That replaces three things the Node build needed: the process-wide room
  * registry, the Redis store, and the idle-eviction sweep. Cloudflare routes
  * every client with the same code to the same instance, storage travels with
  * it, and an object nobody is connected to is evicted for free.
@@ -118,7 +118,7 @@ export class RoomDurableObject implements DurableObject {
     session.close();
     if (this.sessions.size > 0) return;
 
-    // Nobody left. Write the room down and let the object go idle — an
+    // Nobody left. Write the room down and let the object go idle. An
     // evicted object costs nothing, and the next join restores it.
     const host = this.host;
     if (!host) return;

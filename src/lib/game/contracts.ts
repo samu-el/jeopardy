@@ -1,3 +1,5 @@
+import type { PlayerAvatar } from "./avatars";
+
 export const gameRoundOrder = [
   "lobby",
   "jeopardy",
@@ -19,11 +21,15 @@ export interface GamePlayer {
   kind: PlayerKind;
   connected: boolean;
   spectator: boolean;
-  /** Avatar emoji shown on the podium. Shared so every client sees it. */
-  emoji?: string;
+  /**
+   * The player's face: an icon key or their initial, on `color`. Unset, or a
+   * key this build does not know, shows the initial. Rooms and clients from
+   * before icon keys sent an `emoji` field instead; it is never stored.
+   */
+  avatar?: PlayerAvatar;
   /** Podium accent colour. */
   color?: string;
-  /** When the player first joined — used for deterministic host migration. */
+  /** When the player first joined, used for deterministic host migration. */
   joinedAt?: number;
 }
 
@@ -149,8 +155,8 @@ export interface WagerLimits {
   min: number;
   max: number;
   /**
-   * True when the ceiling is the player's own score — "making it a true
-   * Daily Double" — rather than the house maximum they get when trailing it.
+   * True when the ceiling is the player's own score ("making it a true
+   * Daily Double") rather than the house maximum they get when trailing it.
    */
   maxIsScore: boolean;
 }
@@ -222,7 +228,7 @@ export type PublicActiveClueState = Omit<
   /** True while the buzzer is open again after a wrong answer. */
   rebound: boolean;
   /**
-   * True once the clue is settled and nobody can ring in on it any more —
+   * True once the clue is settled and nobody can ring in on it any more:
    * the only time `correctResponse` is sent to the table.
    */
   responseFinal: boolean;
@@ -268,7 +274,7 @@ export interface PublicGameState {
   serverTime: number;
   pickerId?: string;
   /**
-   * Everyone in the room — spectators and displays included — in seat order,
+   * Everyone in the room (spectators and displays included) in seat order,
    * which never changes with the score. Use `standings` to rank.
    */
   players: PublicPlayerState[];
@@ -344,7 +350,7 @@ export type GameCommand =
     }
   | {
       /**
-       * Marks the clue readout (TTS) as finished — opens the buzz window
+       * Marks the clue readout (TTS) as finished: opens the buzz window
        * immediately rather than waiting for the time-based fallback.
        */
       type: "readout-complete";
@@ -387,7 +393,7 @@ export type GameCommand =
       actorId: string;
       displayName: string;
       spectator?: boolean;
-      emoji?: string;
+      avatar?: PlayerAvatar;
       color?: string;
     }
   | {
@@ -400,7 +406,7 @@ export type GameCommand =
       actorId: string;
       targetPlayerId?: string;
       displayName?: string;
-      emoji?: string;
+      avatar?: PlayerAvatar;
       color?: string;
       spectator?: boolean;
     }
@@ -583,8 +589,8 @@ export interface GameEngineResult {
 /**
  * What each round is called out loud.
  *
- * Three modules used to keep their own spelling of this — one for the avatar
- * host, one for the room's chat log, one for the game builder — and they
+ * Three modules used to keep their own spelling of this (one for the avatar
+ * host, one for the room's chat log, one for the game builder), and they
  * disagreed about whether Double Jeopardy took an exclamation mark.
  */
 export const roundNames: Record<
@@ -611,7 +617,7 @@ export const roundNames: Record<
   complete: {
     plain: "Complete",
     spoken: "the end of the game",
-    announced: "That's the game.",
+    announced: "That’s the game.",
   },
 };
 

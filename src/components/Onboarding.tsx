@@ -43,11 +43,11 @@ export function onboardingSteps(role: "host" | "guest", touch: boolean): StepCop
   if (role === "guest") {
     return [
       {
-        title: "You're in the room",
+        title: "You’re in the room",
         body: "The host deals the board and runs the game. Your lectern is under the board.",
       },
       {
-        title: "Pick when it's your turn",
+        title: "Pick when it’s your turn",
         body: "Whoever has control chooses a category and a value. Get one right and control is yours.",
       },
       ringIn,
@@ -102,9 +102,8 @@ export function Onboarding() {
       }}
     >
       <DialogContent sx={{ pb: 1 }}>
-        <Typography variant="overline">Welcome</Typography>
-        <Typography id={titleId} variant="h4" component="h2" sx={{ mt: 0.5, mb: 2, fontSize: 26 }}>
-          Three steps and you&rsquo;re playing
+        <Typography id={titleId} variant="h4" component="h2" sx={{ mb: 2, fontSize: 26 }}>
+          How to play
         </Typography>
         <Stack spacing={1.25} component="ol" sx={{ m: 0, p: 0, listStyle: "none" }}>
           {steps.map((step, index) => (
@@ -131,8 +130,8 @@ function Step({ num, title, body }: { num: number; title: string; body: string }
           height: 22,
           flex: "0 0 22px",
           borderRadius: "50%",
-          background: ui.gold,
-          color: "#1A1200",
+          background: ui.goldBright,
+          color: ui.onGold,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",

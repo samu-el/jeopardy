@@ -153,7 +153,7 @@ export function deriveClueTurn(
   const isFinal = clue.round === "final-jeopardy";
   const isDailyDouble = clue.kind ? clue.kind === "daily-double" : Boolean(clue.dailyDouble) && !isFinal;
   const clueRevealed = clue.clue !== undefined;
-  // Answers are in once the room is judging or has settled the clue — even
+  // Answers are in once the room is judging or has settled the clue, even
   // while the response itself is withheld from the table for a rebound.
   const answerRevealed = clue.phase
     ? clue.phase === "judging" || clue.phase === "resolved"
@@ -347,12 +347,14 @@ function labelFor(
       return "Final answer";
     case "daily-double-answer":
       return who.answeringIsMe
-        ? "Daily Double · your answer"
-        : `Daily Double · ${who.answeringPlayerName ?? "answering"}`;
+        ? "Your Daily Double"
+        : who.answeringPlayerName
+          ? `${who.answeringPlayerName}'s Daily Double`
+          : "Daily Double";
     case "answering":
       return who.answeringIsMe ? "You rang in" : `${who.answeringPlayerName} rang in`;
     case "timed-out":
-      return "Time's up";
+      return "Time’s up";
     case "judging":
       return "Judging";
     case "ruled":
@@ -364,7 +366,7 @@ function labelFor(
 
 /**
  * Who pressed first, and who else pressed, in the order the room took them.
- * Players ruled wrong on this clue come first — they rang in earlier.
+ * Players ruled wrong on this clue come first: they rang in earlier.
  */
 export function buzzOrder(clue: PublicActiveClueState | undefined): string[] {
   if (!clue) return [];
@@ -377,7 +379,7 @@ export function buzzOrder(clue: PublicActiveClueState | undefined): string[] {
 
 /**
  * The lecterns in seat order: join order where the room knows it, and
- * otherwise the order this client first saw them. Never by score — a podium
+ * otherwise the order this client first saw them. Never by score: a podium
  * that jumps sideways when a ruling lands is one nobody can find.
  */
 export function seatOrder<T extends { id: string; joinedAt?: number }>(

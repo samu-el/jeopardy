@@ -11,7 +11,7 @@ import type { GameDataIssue } from "@/lib/data";
 const collapsedCount = 5;
 
 /**
- * Problems listed where they'll be seen — at the top, not 2,800 pixels down —
+ * Problems listed where they'll be seen (at the top, not 2,800 pixels down),
  * each one a link to the field it's about.
  */
 export function IssueList({

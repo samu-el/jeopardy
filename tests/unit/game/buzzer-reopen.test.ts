@@ -112,7 +112,7 @@ describe("Buzzer reopen on wrong", () => {
       260,
     ).state;
 
-    // No one else to buzz — clue should be able to advance
+    // No one else to buzz: clue should be able to advance
     expect(s.activeClue?.canAdvance).toBe(true);
   });
 

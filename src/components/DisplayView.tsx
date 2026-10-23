@@ -70,14 +70,14 @@ function useJoinPanelVisible(): boolean {
 /**
  * The room on a television.
  *
- * It shows the same board the browser shows — the identical `GameSurface`,
- * not a second drawing of it — with the toolbar, chat and panels left off,
+ * It shows the same board the browser shows (the identical `GameSurface`,
+ * not a second drawing of it) with the toolbar, chat and panels left off,
  * and sized to the screen it is standing on rather than to a desk.
  *
  * It is also a control surface, not a poster. Someone is at the screen with
  * a mouse or a fingertip: they click a tile, the clue fills the frame, a
  * click reveals the answer and a click puts the board back. Whether those
- * clicks are obeyed is the server's call — a screen that only came to watch
+ * clicks are obeyed is the server's call. A screen that only came to watch
  * simply never gets offered them.
  */
 export function DisplayView() {
@@ -101,7 +101,7 @@ export function DisplayView() {
   const showJoin = showJoinPreference && !unreachable && Boolean(online?.roomId);
   const complete = publicState?.round === "complete";
 
-  // A closed room might just not be open yet — the host may still be on
+  // A closed room might just not be open yet. The host may still be on
   // their way. Keep checking rather than leaving a TV with no keyboard stuck.
   // Each refusal is a fresh `online` object, so this re-arms after every try.
   const closedAttempt = roomClosed ? online : null;
@@ -137,14 +137,14 @@ export function DisplayView() {
       sx={{
         position: "fixed",
         inset: 0,
-        background: "#000",
+        background: ui.stage,
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
         justifyContent: showJoin ? "flex-start" : "center",
         px: { xs: 1, md: 2 },
         py: { xs: 1, md: 1.5 },
-        // The whole screen, less the gutter — and less the strip the join
+        // The whole screen, less the gutter, and less the strip the join
         // panel stands in, so it never sits across a tile. There are no
         // lecterns to leave room for; the board reads this and grows into
         // it, which is the whole of "fits the television".
@@ -180,8 +180,10 @@ export function DisplayView() {
           bottom: 8,
           right: 8,
           zIndex: 20,
-          opacity: 0.35,
-          transition: "opacity 160ms",
+          // Quiet but findable across a room: inkMuted at half strength still
+          // clears 3:1 on the stage.
+          opacity: 0.5,
+          transition: "opacity 160ms ease-out",
           "&:hover, &:focus-within": { opacity: 1 },
         }}
       >
@@ -192,7 +194,7 @@ export function DisplayView() {
               data-testid="exit-display"
               aria-label="Leave TV mode"
               onClick={() => setDisplayMode(false)}
-              sx={{ color: "rgba(255,255,255,0.8)" }}
+              sx={{ color: ui.inkMuted }}
             >
               <ExitIcon fontSize="small" />
             </IconButton>
@@ -212,7 +214,7 @@ export function DisplayView() {
               }
               setPreference("soundEnabled", !soundEnabled);
             }}
-            sx={{ color: "rgba(255,255,255,0.8)" }}
+            sx={{ color: ui.inkMuted }}
           >
             {soundEnabled ? <VolumeUpIcon fontSize="small" /> : <VolumeOffIcon fontSize="small" />}
           </IconButton>
@@ -224,7 +226,7 @@ export function DisplayView() {
               data-testid="show-join-panel"
               aria-label="Show the join code"
               onClick={() => writeJoinPanel(true)}
-              sx={{ color: "rgba(255,255,255,0.8)" }}
+              sx={{ color: ui.inkMuted }}
             >
               <QrCodeIcon fontSize="small" />
             </IconButton>
@@ -242,7 +244,7 @@ export function DisplayView() {
                 void document.documentElement.requestFullscreen().catch(() => {});
               }
             }}
-            sx={{ color: "rgba(255,255,255,0.8)" }}
+            sx={{ color: ui.inkMuted }}
           >
             {fullscreen ? (
               <FullscreenExitIcon fontSize="small" />
@@ -275,9 +277,10 @@ export function DisplayView() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "rgba(255,255,255,0.7)",
+            color: ui.inkMuted,
             fontFamily: jeopardyFonts.display,
-            letterSpacing: "0.2em",
+            fontSize: "clamp(18px, 3vh, 40px)",
+            letterSpacing: "0.02em",
             pointerEvents: "none",
           }}
         >
@@ -289,7 +292,7 @@ export function DisplayView() {
 }
 
 /**
- * True once `waiting` has held for `connectPatienceMs` — a connection that
+ * True once `waiting` has held for `connectPatienceMs`: a connection that
  * never produced a first snapshot. Clears as soon as `waiting` goes false.
  */
 function useStalledConnection(waiting: boolean): boolean {
@@ -307,7 +310,7 @@ function useStalledConnection(waiting: boolean): boolean {
 
 /**
  * What a television says when the room behind its link is not there: the
- * code it was given, that it keeps checking, and a way out.
+ * code it was given and a way out. It keeps checking on its own.
  */
 function RoomUnavailable({
   roomId,
@@ -324,7 +327,7 @@ function RoomUnavailable({
     <Stack
       role="alert"
       data-testid="display-room-unavailable"
-      spacing={2}
+      spacing={4}
       sx={{
         position: "fixed",
         inset: 0,
@@ -332,7 +335,7 @@ function RoomUnavailable({
         alignItems: "center",
         justifyContent: "center",
         textAlign: "center",
-        background: "#000",
+        background: ui.stage,
         px: 3,
       }}
     >
@@ -341,23 +344,22 @@ function RoomUnavailable({
         sx={{
           fontFamily: jeopardyFonts.display,
           textTransform: "uppercase",
-          letterSpacing: "0.12em",
+          fontWeight: 700,
+          letterSpacing: "0.01em",
+          lineHeight: 1.05,
           fontSize: "clamp(24px, 5vh, 64px)",
           color: ui.ink,
+          textWrap: "balance",
+          maxWidth: "20ch",
         }}
       >
-        {closed ? `Room ${roomId ?? ""} isn't open` : `Can't reach room ${roomId ?? ""}`}
-      </Typography>
-      <Typography sx={{ color: ui.inkMuted, fontSize: "clamp(16px, 2.6vh, 28px)", maxWidth: 820 }}>
-        {closed
-          ? "The game may have ended, or the host hasn't opened it yet. This screen keeps checking and shows the board as soon as the room opens."
-          : "The connection isn't answering. This screen keeps trying."}
+        {closed ? `Room ${roomId ?? ""} isn’t open` : `Can’t reach room ${roomId ?? ""}`}
       </Typography>
       <Stack direction="row" spacing={2}>
-        <Button variant="contained" onClick={onRetry} data-testid="display-retry">
+        <Button variant="contained" size="large" onClick={onRetry} data-testid="display-retry">
           Try again
         </Button>
-        <Button variant="outlined" onClick={onLeave} data-testid="display-leave">
+        <Button variant="outlined" size="large" onClick={onLeave} data-testid="display-leave">
           Leave
         </Button>
       </Stack>
@@ -384,7 +386,7 @@ function JoinPanel({ roomId, onHide }: { roomId: string | null; onHide: () => vo
     QRCode.toDataURL(joinUrl, {
       margin: 1,
       width: 320,
-      color: { dark: "#000000ff", light: "#ffffffff" },
+      color: { dark: `${ui.qrDark}ff`, light: `${ui.qrLight}ff` },
     })
       .then((url) => {
         if (!cancelled) setQr(url);
@@ -419,34 +421,25 @@ function JoinPanel({ roomId, onHide }: { roomId: string | null; onHide: () => vo
           src={qr}
           alt={`QR code to join room ${roomId}`}
           data-testid="display-qr"
-          style={{ width: 80, height: 80, borderRadius: 6, background: "#fff" }}
+          style={{ width: 96, height: 96, borderRadius: 6, background: ui.qrLight }}
         />
       ) : null}
       <Box>
         <Typography
-          sx={{
-            fontFamily: jeopardyFonts.display,
-            fontSize: 13,
-            letterSpacing: "0.22em",
-            textTransform: "uppercase",
-            color: ui.gold,
-          }}
-        >
-          Play along
-        </Typography>
-        <Typography
           data-testid="display-room-code"
           sx={{
             fontFamily: jeopardyFonts.display,
-            letterSpacing: "0.3em",
-            fontSize: "clamp(24px, 2.6vw, 44px)",
-            color: ui.ink,
+            letterSpacing: "0.12em",
+            fontSize: "clamp(28px, 2.8vw, 52px)",
+            fontWeight: 700,
+            fontVariantNumeric: "tabular-nums",
+            color: ui.goldBright,
             lineHeight: 1.15,
           }}
         >
-          {roomId ?? "—"}
+          {roomId ?? ""}
         </Typography>
-        <Typography sx={{ fontSize: 13, color: ui.inkMuted }}>
+        <Typography sx={{ fontSize: "clamp(14px, 1vw, 18px)", color: ui.inkMuted }}>
           {joinUrl.replace(/^https?:\/\//, "")}
         </Typography>
       </Box>

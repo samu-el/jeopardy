@@ -86,7 +86,7 @@ export interface BotAnswerOptions {
 
 /**
  * What the bot says once it has the floor. A bot that rang in always says
- * something: a wrong answer is a real, wrong answer — never a blank, and never
+ * something: a wrong answer is a real, wrong answer, never a blank, and never
  * a typo the judge would wave through.
  */
 export function decideBotAnswer(
@@ -225,7 +225,7 @@ export interface BotWagerInput {
   currentScore: number;
   /**
    * The highest score in the room. Kept for older callers; it includes the
-   * bot itself, so it can't tell a lead from a tie — prefer
+   * bot itself, so it can't tell a lead from a tie. Prefer
    * `bestOpponentScore`.
    */
   leaderScore: number;

@@ -7,16 +7,13 @@ import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
 import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
-import FormHelperText from "@mui/material/FormHelperText";
 import IconButton from "@mui/material/IconButton";
 import InputLabel from "@mui/material/InputLabel";
-import ListItemText from "@mui/material/ListItemText";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import Tooltip from "@mui/material/Tooltip";
-import Typography from "@mui/material/Typography";
 import PlayCircleIcon from "@mui/icons-material/PlayCircleOutlined";
 import { baselineAvatarHostProfiles } from "@/lib/ai/profiles";
 import {
@@ -35,23 +32,23 @@ const voiceAdapter = typeof window === "undefined" ? null : createVoiceAdapter()
 type ToggleKey = "soundEnabled" | "subtitlesEnabled" | "chatEnabled" | "reducedMotion";
 
 const buzzWindows = [
-  { value: 5, label: "5 seconds — show pace" },
+  { value: 5, label: "5 seconds" },
   { value: 6, label: "6 seconds" },
   { value: 10, label: "10 seconds" },
-  { value: 20, label: "20 seconds — relaxed" },
+  { value: 20, label: "20 seconds" },
 ];
 
 const hostModes: { value: UiPreferences["avatarHostMode"]; label: string }[] = [
-  { value: "off", label: "Off (clues still read)" },
+  { value: "off", label: "Off" },
   { value: "voice-only", label: "Voice" },
   { value: "avatar-and-voice", label: "Avatar" },
 ];
 
 /**
- * What each control does, and what it depends on, said next to it: the old
- * panel showed "Host: Voice" over a host that couldn't speak because Sound
- * was off, and nothing said why. Choosing a speaking host now turns Sound
- * on, and a muted board says so with a switch to fix it.
+ * Labels only: what a control depends on shows as state, not prose. Choosing
+ * a speaking host turns Sound on, a muted board says so with a key to fix it,
+ * controls that can't apply are disabled, and a guest isn't shown the host's
+ * room settings at all.
  */
 export function SettingsPanel() {
   const preferences = useGameStore((s) => s.preferences);
@@ -77,37 +74,20 @@ export function SettingsPanel() {
     if (mode !== "off" && muted) setPreference("soundEnabled", true);
   }
 
-  const hostHelp = hostOff
-    ? "No host lines or avatar. Clues are still read aloud when Sound is on."
-    : preferences.avatarHostMode === "avatar-and-voice"
-      ? "An animated host on screen who reads the clues and calls the game."
-      : "Reads each clue aloud and calls the game.";
-
   const toggles: {
     key: ToggleKey;
     label: string;
-    help: string;
     disabled?: boolean;
     checked?: boolean;
   }[] = [
-    {
-      key: "soundEnabled",
-      label: "Sound",
-      help: "Clue readouts, the host's voice and the game's effects.",
-    },
-    {
-      key: "subtitlesEnabled",
-      label: "Subtitles",
-      help: hostOff ? "Needs the host on: it prints the host's lines." : "Prints what the host says.",
-      disabled: hostOff,
-    },
-    { key: "chatEnabled", label: "Chat", help: "A chat box under the lecterns." },
+    { key: "soundEnabled", label: "Sound" },
+    // Subtitles print the host's lines, so there are none without a host.
+    { key: "subtitlesEnabled", label: "Subtitles", disabled: hostOff },
+    { key: "chatEnabled", label: "Chat" },
     {
       key: "reducedMotion",
       label: "Reduced motion",
-      help: osReducedMotion
-        ? "On because your device asks for reduced motion."
-        : "Skips the board and clue animations.",
+      // The device asked for it: shown on, and not ours to turn off.
       disabled: osReducedMotion,
       checked: osReducedMotion || preferences.reducedMotion,
     },
@@ -132,7 +112,7 @@ export function SettingsPanel() {
             </Button>
           }
         >
-          Sound is off: clues aren&rsquo;t read aloud and the host is silent.
+          Sound is off
         </Alert>
       ) : null}
 
@@ -141,7 +121,6 @@ export function SettingsPanel() {
           id="host-mode"
           label="Host"
           value={preferences.avatarHostMode}
-          helper={hostHelp}
           onChange={(value) => chooseHostMode(value as UiPreferences["avatarHostMode"])}
         >
           {hostModes.map((option) => (
@@ -156,7 +135,6 @@ export function SettingsPanel() {
             id="voice-profile"
             label="Voice"
             value={preferences.voiceProfileId}
-            helper="Reads the clues, with or without the host."
             onChange={(value) => setPreference("voiceProfileId", value)}
             renderValue={(value) =>
               voiceOptions.find((option) => option.id === value)?.label ?? "Browser default"
@@ -164,7 +142,7 @@ export function SettingsPanel() {
           >
             {voiceOptions.map((option) => (
               <MenuItem key={option.id} value={option.id}>
-                <ListItemText primary={option.label} secondary={option.sub} />
+                {option.label}
                 {option.quality === "premium" ? (
                   <Chip size="small" label="HD" color="secondary" sx={{ ml: 1 }} />
                 ) : null}
@@ -188,9 +166,6 @@ export function SettingsPanel() {
           label="Persona"
           value={preferences.avatarHostProfileId}
           disabled={hostOff}
-          helper={
-            hostOff ? "Turn the host on to choose a persona." : "How the host talks between clues."
-          }
           onChange={(value) => setPreference("avatarHostProfileId", value)}
         >
           {baselineAvatarHostProfiles.map((profile) => (
@@ -204,21 +179,12 @@ export function SettingsPanel() {
       <Divider />
 
       <Stack spacing={0.5}>
-        {toggles.map(({ key, label, help, disabled, checked }) => (
+        {toggles.map(({ key, label, disabled, checked }) => (
           <FormControlLabel
             key={key}
             disabled={disabled}
-            sx={{ alignItems: "flex-start", ml: -1, "& .MuiSwitch-root": { mt: -0.5 } }}
-            label={
-              <Stack spacing={0}>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {label}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {help}
-                </Typography>
-              </Stack>
-            }
+            sx={{ ml: -1 }}
+            label={label}
             control={
               <Switch
                 checked={checked ?? Boolean(preferences[key])}
@@ -232,45 +198,35 @@ export function SettingsPanel() {
 
       <AudioMixControls />
 
-      <Divider />
-
+      {/* A guest's choice would change nothing: the room keeps the host's. */}
       {isRoomHost ? (
-        <Choice
-          id="buzz-window"
-          label="Buzz window"
-          value={buzzValue}
-          helper="How long the buzzer stays open after the clue is read."
-          onChange={(value) => setPreference("buzzWindowSeconds", Number(value))}
-        >
-          {buzzOptions.map((option) => (
-            <MenuItem key={option.value} value={option.value}>
-              {option.label}
-            </MenuItem>
-          ))}
-        </Choice>
-      ) : (
-        // A guest's choice would change nothing: the room keeps the host's.
-        <Stack spacing={0.25}>
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            Buzz window
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Set by the host for everyone in the room.
-          </Typography>
-        </Stack>
-      )}
+        <>
+          <Divider />
+          <Choice
+            id="buzz-window"
+            label="Buzz window"
+            value={buzzValue}
+            onChange={(value) => setPreference("buzzWindowSeconds", Number(value))}
+          >
+            {buzzOptions.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </Choice>
+        </>
+      ) : null}
     </Stack>
   );
 }
 
-/** A labelled menu, with a line under it saying what it does. */
+/** A labelled menu. */
 function Choice({
   id,
   label,
   value,
   onChange,
   renderValue,
-  helper,
   disabled,
   children,
 }: {
@@ -279,11 +235,9 @@ function Choice({
   value: string | number;
   onChange: (value: string) => void;
   renderValue?: (value: string) => ReactNode;
-  helper?: string;
   disabled?: boolean;
   children: ReactNode;
 }) {
-  const helperId = `${id}-help`;
   return (
     <FormControl fullWidth size="small" disabled={disabled}>
       <InputLabel id={id}>{label}</InputLabel>
@@ -293,11 +247,9 @@ function Choice({
         value={value}
         onChange={(event) => onChange(String(event.target.value))}
         renderValue={renderValue ? (raw) => renderValue(String(raw)) : undefined}
-        aria-describedby={helper ? helperId : undefined}
       >
         {children}
       </Select>
-      {helper ? <FormHelperText id={helperId}>{helper}</FormHelperText> : null}
     </FormControl>
   );
 }

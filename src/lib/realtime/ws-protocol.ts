@@ -5,7 +5,7 @@ import type { ClientGameCommand, ServerRealtimeMessage } from "./contracts";
  *
  * Deliberately not Socket.IO. The room runs inside a Cloudflare Durable
  * Object in production, which speaks the standard WebSocket API and cannot
- * host Socket.IO's Node server — and the same frames work unchanged against
+ * host Socket.IO's Node server, and the same frames work unchanged against
  * the local Node bridge used in development and the e2e suite.
  */
 
@@ -14,7 +14,12 @@ export interface ClientJoinFrame {
   roomId: string;
   clientId: string;
   displayName?: string;
-  emoji?: string;
+  /**
+   * An avatar key (see `avatarIcons`). The room keeps only keys it knows.
+   * Clients from before icon keys send `emoji` instead, which is dropped, so
+   * they show their initial.
+   */
+  avatar?: string;
   color?: string;
   spectator?: boolean;
   /** Only an explicit create request may bring a room into existence. */
@@ -36,7 +41,7 @@ export type ClientFrame =
       id: string;
       displayName?: string;
       profileId?: string;
-      emoji?: string;
+      avatar?: string;
       color?: string;
     }
   | { t: "ping"; sentAt: number };
@@ -56,8 +61,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /**
  * Parses a frame from the network. Anything that isn't a shape we recognise
- * comes back as undefined rather than throwing: a client — or something
- * pretending to be one — can send whatever it likes, and a room must not
+ * comes back as undefined rather than throwing: a client (or something
+ * pretending to be one) can send whatever it likes, and a room must not
  * fall over because of it.
  *
  * Only the envelope is checked here. The command inside a `command` frame is
@@ -83,7 +88,7 @@ export function decodeClientFrame(raw: string): ClientFrame | undefined {
         roomId: parsed.roomId,
         clientId: parsed.clientId,
         displayName: asString(parsed.displayName),
-        emoji: asString(parsed.emoji),
+        avatar: asString(parsed.avatar),
         color: asString(parsed.color),
         spectator: parsed.spectator === true,
         create: parsed.create === true,
@@ -111,7 +116,7 @@ export function decodeClientFrame(raw: string): ClientFrame | undefined {
         id: parsed.id,
         displayName: asString(parsed.displayName),
         profileId: asString(parsed.profileId),
-        emoji: asString(parsed.emoji),
+        avatar: asString(parsed.avatar),
         color: asString(parsed.color),
       };
     case "ping":

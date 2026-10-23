@@ -19,7 +19,7 @@ export function speakerColor(kind: string): string {
 
 /** The connection lamp, and what it means when someone hovers it. */
 const connectionStates: Record<string, { color: string; label: string }> = {
-  connected: { color: ui.green, label: "Connected — share the code to let people in" },
+  connected: { color: ui.green, label: "Connected. Share the code to let people in" },
   connecting: { color: ui.gold, label: "Connecting…" },
   reconnecting: { color: ui.gold, label: "Reconnecting…" },
   rejected: { color: ui.red, label: "Room unavailable" },
@@ -36,7 +36,7 @@ const speakerNames: Record<string, string> = {
   player: "Player",
 };
 
-/** Who said it, in words — for the screen reader the coloured dot can't reach. */
+/** Who said it, in words, for the screen reader the coloured dot can't reach. */
 export function speakerLabel(kind: string): string {
   return speakerNames[kind] ?? kind;
 }

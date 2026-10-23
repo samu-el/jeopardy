@@ -65,7 +65,7 @@ export function shareUrlFor(id: string): string {
 
 /**
  * Publishes a game, or replaces one this browser published before. The id is
- * minted by the Worker on a first publish — a client choosing its own id
+ * minted by the Worker on a first publish. A client choosing its own id
  * could land on, or overwrite, someone else's.
  */
 export async function publishGame(
@@ -76,7 +76,7 @@ export async function publishGame(
   if (!base) {
     return {
       ok: false,
-      error: "Publishing needs the rooms service, which isn't configured here.",
+      error: "Publishing needs the rooms service, which isn’t configured here.",
     };
   }
 

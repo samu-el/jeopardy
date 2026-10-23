@@ -25,7 +25,7 @@ const accent: Record<RoomNotice["kind"], string> = {
 };
 
 /**
- * Small toasts for room news — arrivals, departures, the chair changing
+ * Small toasts for room news: arrivals, departures, the chair changing
  * hands, a refusal. Independent of chat, which is off by default.
  */
 export function RoomNotices() {
@@ -37,14 +37,16 @@ export function RoomNotices() {
       aria-live="polite"
       data-testid="room-notices"
       sx={{
+        // Bottom-left, clear of the room toolbar on top; on a phone it rides
+        // above the buzz bar.
         position: "fixed",
-        top: { xs: 8, md: 16 },
-        right: { xs: 8, md: 16 },
-        left: { xs: 8, sm: "auto" },
+        bottom: { xs: "calc(96px + env(safe-area-inset-bottom, 0px))", md: 24 },
+        left: { xs: 8, md: 24 },
+        right: { xs: 8, sm: "auto" },
         zIndex: 30,
         pointerEvents: "none",
         display: "flex",
-        justifyContent: { xs: "center", sm: "flex-end" },
+        justifyContent: { xs: "center", sm: "flex-start" },
       }}
     >
       <Stack spacing={1} sx={{ width: { xs: "100%", sm: 320 } }}>
@@ -77,10 +79,8 @@ function NoticeToast({ notice }: { notice: RoomNotice }) {
         pr: 0.5,
         py: 0.5,
         background: ui.surfaceRaised,
-        border: `1px solid ${ui.lineStrong}`,
-        borderLeft: `4px solid ${accent[notice.kind]}`,
+        border: `1px solid ${accent[notice.kind]}`,
         borderRadius: `${ui.radius}px`,
-        boxShadow: "0 6px 20px rgba(0,0,0,0.45)",
       }}
     >
       <Typography sx={{ flex: 1, fontSize: 14, color: ui.ink }}>{notice.text}</Typography>

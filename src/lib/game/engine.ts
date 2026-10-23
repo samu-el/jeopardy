@@ -1,7 +1,7 @@
 /**
  * The engine: one function in, one new position out.
  *
- * Nothing here knows about React, a socket, a database or a speech engine —
+ * Nothing here knows about React, a socket, a database or a speech engine:
  * give it the same state, command and clock and it gives the same answer
  * every time, which is why the whole of it can be exercised in a unit test.
  *

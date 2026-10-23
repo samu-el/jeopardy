@@ -14,9 +14,9 @@ Scripts and screenshots are in `scratchpad/ux/multi/` (s1–s8). Every item belo
 **[P0] The 6s "offline fallback" silently abandons a live room (on a blip, or when a second tab opens)**
 
 - Where: `src/lib/state/room-session.ts` `watchForRoomFallback`.
-- What's wrong: The timer checks `status !== "connected"` once, 6s after start. It fires if a working room is momentarily `reconnecting`, or if the tab is `rejected` because another tab replaced it. The host tab then throws the room away and starts a local game labelled "Solo · not shareable — the rooms service could not be reached", which is false. Guests are left with an OFFLINE host forever.
+- What's wrong: The timer checks `status !== "connected"` once, 6s after start. It fires if a working room is momentarily `reconnecting`, or if the tab is `rejected` because another tab replaced it. The host tab then throws the room away and starts a local game labelled "Solo · not shareable: the rooms service could not be reached", which is false. Guests are left with an OFFLINE host forever.
 - Repro (s7): host starts, a guest joins, and the host's socket drops about 5s in (WS proxied and closed). The host now sees only itself, with no banner. Alice sees `PLAYER D4C OFFLINE` and never recovers. s8: opening the display link in the same browser within 6s produces the same "Solo · not shareable" screen on the host.
-- Suggested fix: Fall back only if the socket never reached `connected` (track a `everConnected` flag), and never after `rejected`. Show an explicit "Couldn't reach rooms — play offline?" choice instead of switching silently.
+- Suggested fix: Fall back only if the socket never reached `connected` (track a `everConnected` flag), and never after `rejected`. Show an explicit "Couldn't reach rooms. Play offline?" choice instead of switching silently.
 
 **[P0] A same-browser TV display takes over the host's seat and permanently renames the browser to "Display"**
 
@@ -37,7 +37,7 @@ Scripts and screenshots are in `scratchpad/ux/multi/` (s1–s8). Every item belo
 - Where: `Landing.tsx` `joinRoom` (overwrites any failure with the not-open text); `game-store.ts` `joinOnlineRoom` (no timeout on the lookup fetch).
 - What's wrong: A network or worker failure on the `/room/CODE` lookup shows "That room is not open. Ask the host for a fresh code…", which sends people to chase a new code during an outage. There is also no timeout, so a hung worker leaves the Join spinner running forever.
 - Repro (s4): route `**/room/**` aborted → the join card says "That room is not open…".
-- Suggested fix: Tell apart `{exists:false}` and a fetch error or timeout ("Can't reach the game server — try again"), add an AbortController timeout, and add a Retry button.
+- Suggested fix: Tell apart `{exists:false}` and a fetch error or timeout ("Can't reach the game server. Try again"), add an AbortController timeout, and add a Retry button.
 
 **[P1] TV display for a dead or unknown code shows "Connecting…" forever, with a QR code for it**
 

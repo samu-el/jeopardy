@@ -3,7 +3,7 @@
 import Box from "@mui/material/Box";
 import type { SxProps, Theme } from "@mui/material/styles";
 import type { ReactNode } from "react";
-import { controls, jeopardyFonts, ui } from "@/lib/foundation/jeopardy-style";
+import { controls, ui } from "@/lib/foundation/jeopardy-style";
 
 interface HousingProps {
   children?: ReactNode;
@@ -16,7 +16,7 @@ function merge(base: SxProps<Theme>, sx?: SxProps<Theme>): SxProps<Theme> {
 }
 
 /**
- * Several controls mounted in one dark pill — the strip of keys on a
+ * Several controls mounted in one dark pill: the strip of keys on a
  * lectern, the room readout, the toolbar. One housing reads as one
  * instrument; the same buttons loose on the page read as clutter.
  */
@@ -33,7 +33,7 @@ export function HousingDivider({ sx }: { sx?: SxProps<Theme> }) {
   return <Box aria-hidden sx={merge(controls.divider, sx)} />;
 }
 
-/** A printed label on the housing: the set's face, small and spaced. */
+/** A printed label on the housing: the body face, a step smaller, as written. */
 export function HousingLabel({ children, sx, ...rest }: HousingProps) {
   return (
     <Box
@@ -44,11 +44,8 @@ export function HousingLabel({ children, sx, ...rest }: HousingProps) {
           alignItems: "center",
           height: 36,
           px: 1.5,
-          fontFamily: jeopardyFonts.display,
           fontWeight: 600,
-          fontSize: 11,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
+          fontSize: 13,
           color: ui.inkMuted,
           whiteSpace: "nowrap",
           fontVariantNumeric: "tabular-nums",

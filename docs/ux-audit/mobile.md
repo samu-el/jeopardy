@@ -79,7 +79,7 @@ Method: Playwright + Chromium device emulation (isMobile/hasTouch) against the r
 
 - Where: `public/` has no `sw.js`, and nothing registers one.
 - What's wrong: once installed, launching with a flaky connection shows Chrome's dino page (`run4.mjs` → `ERR_INTERNET_DISCONNECTED`). Some browsers also want a SW for the richer install prompt, and there's no `beforeinstallprompt` UX.
-- Suggested fix: add a minimal SW (Serwist or next-pwa-style) that precaches the app shell and serves an offline page saying "You're offline — rooms need a connection". Solo boards could run from the cached fixture.
+- Suggested fix: add a minimal SW (Serwist or next-pwa-style) that precaches the app shell and serves an offline page saying "You're offline. Rooms need a connection". Solo boards could run from the cached fixture.
 
 **[P2] The screen can sleep mid-game (no Wake Lock), and there's no haptic feedback**
 

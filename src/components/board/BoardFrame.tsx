@@ -50,6 +50,11 @@ interface BoardFrameProps {
   ratio: number;
   /** A clue panel needs more vertical room than the grid does on a phone. */
   tall?: boolean;
+  /**
+   * Final Jeopardy on a desk: the reveal list, the bench and the lecterns sit
+   * under the clue, so the clue gives up height to keep them on the screen.
+   */
+  short?: boolean;
   /** Take the height the screen offers rather than the desk-sized cap. */
   fill?: boolean;
   /** The board's name, for the focus that lands on it when a clue closes. */
@@ -61,7 +66,7 @@ interface BoardFrameProps {
  * has: width is capped by both the column count and the height budget, so it
  * stays fully on screen with the lecterns below it.
  */
-export function BoardFrame({ children, ref, ratio, tall, fill, label }: BoardFrameProps) {
+export function BoardFrame({ children, ref, ratio, tall, short, fill, label }: BoardFrameProps) {
   return (
     <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
       <Box
@@ -83,11 +88,11 @@ export function BoardFrame({ children, ref, ratio, tall, fill, label }: BoardFra
                 // While a clue is up there is a strip of controls under the
                 // board and lecterns under that. Give them the room rather
                 // than pushing a player's own score off a laptop screen.
-                md: tall ? "min(53vh, 590px)" : "min(60vh, 640px)",
+                md: tall ? "min(53vh, 590px)" : short ? "min(42vh, 480px)" : "min(60vh, 640px)",
               },
           width: `min(100%, calc(var(--board-height) * ${ratio}))`,
           // The grid keeps the set's proportions. A clue panel on a phone
-          // does not — it needs height for the buzzer and the answer field.
+          // does not: it needs height for the buzzer and the answer field.
           // A television has the room for both, so it keeps the ratio.
           aspectRatio: tall && !fill ? { xs: "auto", md: `${ratio}` } : `${ratio}`,
           height: tall && !fill ? { xs: "min(66vh, 560px)", md: "auto" } : "auto",
@@ -108,7 +113,9 @@ export function BoardFrame({ children, ref, ratio, tall, fill, label }: BoardFra
                   ...(tall
                     ? {
                         aspectRatio: "auto",
-                        height: "clamp(170px, calc(100dvh - 300px), 560px)",
+                        // 100dvh less the toolbar, the clock strip and the
+                        // fixed buzz bar (about 84px) with a gap above it.
+                        height: "clamp(170px, calc(100dvh - 324px), 560px)",
                         // The keyboard is up: fit what is left above it.
                         "html[data-keyboard-open] &": {
                           height: "max(120px, calc(var(--keyboard-viewport-height, 100dvh) - 150px))",
