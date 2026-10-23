@@ -217,7 +217,7 @@ export class RoomHost {
             kind: "system",
             text: `${player?.displayName ?? event.actorId} → ${clue?.category ?? "?"} $${
               clue?.value ?? 0
-            }${event.dailyDouble ? " · Daily Double" : ""}`,
+            }${event.dailyDouble ? ", Daily Double" : ""}`,
           });
           break;
         }

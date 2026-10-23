@@ -18,3 +18,9 @@ test-results/
 *.tsbuildinfo
 workers/rooms/tsconfig.tsbuildinfo
 .wrangler
+
+# agentlint ephemeral selector cache
+.agentlint/.cache/
+.agentlint/*.lock
+.agentlint/*.lock.*.stale
+.agentlint/*.tmp

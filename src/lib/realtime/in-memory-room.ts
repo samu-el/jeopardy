@@ -407,7 +407,7 @@ export class InMemoryRealtimeRoom {
     if (verdict.ambiguous && options.holdAmbiguous && this.hasHumanHostPresent()) {
       this.postChat({
         kind: "judge",
-        text: `? ${player?.displayName ?? targetPlayerId} · ${quotedAnswer(answer)} · too close to call: the host rules`,
+        text: `? ${player?.displayName ?? targetPlayerId}: ${quotedAnswer(answer)}, too close to call: the host rules`,
       });
       return { ...verdict, held: true as const };
     }
@@ -422,7 +422,7 @@ export class InMemoryRealtimeRoom {
       kind: "judge",
       text: `${verdict.correct ? "✓" : "✗"} ${
         player?.displayName ?? targetPlayerId
-      } · ${quotedAnswer(answer)} · ${(verdict.confidence * 100).toFixed(0)}%`,
+      }: ${quotedAnswer(answer)} (${(verdict.confidence * 100).toFixed(0)}%)`,
     });
     return { ...verdict, held: false as const };
   }
