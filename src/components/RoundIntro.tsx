@@ -18,7 +18,9 @@ const titles: Partial<Record<GameRound, string>> = {
 };
 
 /**
- * The title card the show drops in at the top of every round, over the board.
+ * The title card the show drops in at the top of every round. It covers the
+ * stage exactly, not the page, so the board that follows lands in the same
+ * box the card was in.
  */
 export function RoundIntro({ round, visible, reducedMotion }: RoundIntroProps) {
   const title = titles[round];
@@ -49,7 +51,8 @@ export function RoundIntro({ round, visible, reducedMotion }: RoundIntroProps) {
           fontWeight: 700,
           color: jeopardyPalette.categoryText,
           textShadow: "0.05em 0.05em 0 rgba(0,0,0,0.7)",
-          fontSize: "clamp(30px, 8vw, 104px)",
+          // Sized from the stage it covers, so the longest title still fits on one line.
+          fontSize: "clamp(22px, 8.4cqw, 104px)",
           letterSpacing: "0.01em",
           textAlign: "center",
           px: 2,

@@ -17,6 +17,7 @@ import { GameAnnouncer } from "./GameAnnouncer";
 import { mayTakeFocus } from "./clue/keyboard";
 import { useReducedMotion } from "./use-reduced-motion";
 import { useCompactPlay } from "./use-compact-play";
+import { clockStripSx } from "./board/BoardFrame";
 
 interface GameSurfaceProps {
   /**
@@ -200,14 +201,10 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
         ...(tv ? { height: "100%", alignContent: "center" } : null),
       }}
     >
-      <Box
-        sx={{
-          position: "relative",
-          width: "100%",
-          maxWidth: tv ? "none" : 1240,
-          mx: "auto",
-        }}
-      >
+      {/* The stage: the board, the clue over it and the round title card
+          over both, all in the one frame, so moving between them never
+          changes its size or place. */}
+      <Box sx={{ width: "100%", maxWidth: tv ? "none" : 1240, mx: "auto" }}>
         <Board
           state={publicState}
           canPick={canPick}
@@ -246,14 +243,16 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
               </Box>
             ) : undefined
           }
+          cover={
+            publicState ? (
+              <RoundIntro
+                round={publicState.round}
+                visible={introVisible}
+                reducedMotion={reducedMotion}
+              />
+            ) : null
+          }
         />
-        {publicState ? (
-          <RoundIntro
-            round={publicState.round}
-            visible={introVisible}
-            reducedMotion={reducedMotion}
-          />
-        ) : null}
       </Box>
 
       {tv ? null : (
@@ -262,9 +261,9 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
           this strip carries the clock and everything anyone presses. A
           television has neither: it is only ever the clue. */}
       {publicState && interactive ? <GameAnnouncer state={publicState} selfId={selfId} /> : null}
-      {publicState ? (
-        <ClueControls state={publicState} currentClientId={selfId} />
-      ) : null}
+      <Box sx={clockStripSx}>
+        {publicState ? <ClueControls state={publicState} currentClientId={selfId} /> : null}
+      </Box>
       <Box
         sx={{
           display: "flex",

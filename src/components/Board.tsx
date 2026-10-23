@@ -17,7 +17,6 @@ import {
 import {
   BoardFrame,
   BoardGrid,
-  boardRatio,
   categoryFontSize,
   cellSurface,
   enterAnimation,
@@ -33,6 +32,8 @@ interface BoardProps {
   canPick?: boolean;
   /** Full-board clue panel. Rendered over the grid with the reveal zoom. */
   overlay?: ReactNode;
+  /** Laid over everything on the stage, the clue included: the round title card. */
+  cover?: ReactNode;
   /**
    * Television: the grid takes the height it is given instead of the
    * laptop-sized cap. Cell type is sized from the board, so filling the
@@ -61,7 +62,7 @@ type Tile =
   | { kind: "blank" }
   | { kind: "ghost"; label: string };
 
-export function Board({ state, onPick, canPick = false, overlay, fill, returnFocus }: BoardProps) {
+export function Board({ state, onPick, canPick = false, overlay, cover, fill, returnFocus }: BoardProps) {
   const reducedMotion = useReducedMotion();
   const soundEnabled = useGameStore((s) => s.preferences.soundEnabled);
   const board = state?.board;
@@ -97,7 +98,6 @@ export function Board({ state, onPick, canPick = false, overlay, fill, returnFoc
   const dealt = layout.columns.length > 0;
   const columns = dealt ? layout.columns.length : boardColumns;
   const rows = dealt ? layout.ladder.length : boardRows;
-  const isFinal = state?.round === "final-jeopardy";
 
   // One grid for both states: before a game is dealt the same frame draws a
   // ghost board, so there is no second copy of the board's markup to keep in
@@ -128,12 +128,6 @@ export function Board({ state, onPick, canPick = false, overlay, fill, returnFoc
   return (
     <BoardFrame
       ref={containerRef}
-      // Final is one cell: framed at its own 1x1 ratio it becomes a narrow
-      // portrait card, so it keeps the standard board's landscape frame, and
-      // on a phone it stays short enough to leave the lecterns in view.
-      ratio={isFinal ? boardRatio(boardColumns, boardRows) : boardRatio(columns, rows)}
-      tall={Boolean(overlay) && !isFinal}
-      short={Boolean(overlay) && isFinal && !fill}
       label={dealt ? `Board, ${state?.round.replace(/-/g, " ") ?? ""}` : "Board"}
       fill={fill}
     >
@@ -184,6 +178,7 @@ export function Board({ state, onPick, canPick = false, overlay, fill, returnFoc
           {overlay}
         </Box>
       ) : null}
+      {cover}
     </BoardFrame>
   );
 }
