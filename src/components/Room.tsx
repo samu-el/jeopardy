@@ -76,7 +76,7 @@ export function Room() {
 
   if (showResults && publicState) {
     return (
-      <Box sx={{ minHeight: "100vh", background: ui.stage }}>
+      <Box data-room sx={{ minHeight: "100vh", background: ui.stage }}>
         <ConnectionBanner />
         <Box sx={{ maxWidth: 1400, mx: "auto", px: { xs: 2, md: 3 } }}>
           {toolbar}
@@ -90,7 +90,7 @@ export function Room() {
   }
 
   return (
-    <Box sx={{ minHeight: "100vh", background: ui.stage, overflowX: "hidden" }}>
+    <Box data-room sx={{ minHeight: "100vh", background: ui.stage, overflowX: "hidden" }}>
       <ConnectionBanner />
       <Box sx={{ maxWidth: 1400, mx: "auto", px: { xs: 1.5, md: 3 } }}>
         {toolbar}

@@ -2,7 +2,8 @@
 
 import Box from "@mui/material/Box";
 import type { ReactNode, Ref } from "react";
-import { jeopardyPalette } from "@/lib/foundation/jeopardy-style";
+import { boardColumns, boardRows, jeopardyPalette } from "@/lib/foundation/jeopardy-style";
+import { appViewport, viewportFraction } from "@/lib/foundation/viewport";
 import { compactPlayQuery } from "../use-compact-play";
 
 const compact = `@media ${compactPlayQuery}`;
@@ -44,84 +45,111 @@ export function enterAnimation(delayMs: number, reducedMotion: boolean) {
   } as const;
 }
 
+/**
+ * The stage: the one box the board, the clue, the round title card, the
+ * Daily Double and Final all play in. Its size comes from the screen alone,
+ * never from what is on it, so nothing changes size when the game moves from
+ * one of those to the next.
+ *
+ * It keeps the proportions of a full six-by-five board. A custom game with
+ * fewer categories gets wider cells, not a different stage.
+ */
+const stageRatio = boardRatio(boardColumns, boardRows);
+
+/**
+ * How tall the stage may get when the width allows it: a share of the screen
+ * height, less what is stacked above and below it. These are measured from
+ * the layout (the toolbar over it, the reserved clock strip and the row of
+ * lecterns under it), not from anything that changes during play.
+ *
+ * - A desk: the toolbar (68), a gap (12), the clock strip (`clockStripSx`)
+ *   and a lectern (222). A short window keeps at least half its height for
+ *   the stage and lets the lecterns run under the fold.
+ * - A phone held upright: a taller toolbar (120), a taller clock strip, a
+ *   smaller lectern (172) and the buzz bar pinned to the bottom (84).
+ * - A phone on its side: the page scrolls the stage to the top when a clue
+ *   opens, so it is the height less the clock strip and the buzz bar.
+ */
+const stageHeight = {
+  desk: `clamp(240px, max(${viewportFraction(0.5)}, ${appViewport.minHeight} - 400px), 640px)`,
+  phone: `clamp(200px, ${appViewport.minHeight} - 538px, 560px)`,
+  phoneLandscape: `clamp(150px, ${appViewport.minHeight} - 170px, 420px)`,
+} as const;
+
+/**
+ * A screen too narrow for the board's proportions gives the stage more
+ * height instead, up to square, so a clue on a phone is not a letterbox.
+ */
+const stageMinRatio = 1;
+
+/** A phone on its side, or any window too short for the desk layout. */
+const phoneLandscape = "@media (max-height:520px)";
+/** A phone held upright: wins over the rule above when both hold. */
+const phone = "@media (max-width:599.95px)";
+
+/**
+ * Room under the stage for the clock, the answer field, a wager and the
+ * judging, held open whether a clue is up or not, so the lecterns under it
+ * stay put as they come and go.
+ */
+export const clockStripSx = {
+  minHeight: 96,
+  [phoneLandscape]: { minHeight: 96 },
+  [phone]: { minHeight: 150 },
+} as const;
+
 interface BoardFrameProps {
   children: ReactNode;
   ref: Ref<HTMLDivElement>;
-  ratio: number;
-  /** A clue panel needs more vertical room than the grid does on a phone. */
-  tall?: boolean;
-  /**
-   * Final Jeopardy on a desk: the reveal list, the bench and the lecterns sit
-   * under the clue, so the clue gives up height to keep them on the screen.
-   */
-  short?: boolean;
-  /** Take the height the screen offers rather than the desk-sized cap. */
+  /** Take the height the screen offers (a television) rather than the desk's share. */
   fill?: boolean;
   /** The board's name, for the focus that lands on it when a clue closes. */
   label?: string;
 }
 
 /**
- * The board keeps the set's proportions and never grows past the space it
- * has: width is capped by both the column count and the height budget, so it
- * stays fully on screen with the lecterns below it.
+ * The stage frame. Width and height are fitted to the space the screen
+ * offers: as wide as the set's proportions allow, never wider than the
+ * column it stands in.
  */
-export function BoardFrame({ children, ref, ratio, tall, short, fill, label }: BoardFrameProps) {
+export function BoardFrame({ children, ref, fill, label }: BoardFrameProps) {
   return (
-    <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
+    <Box sx={{ display: "flex", justifyContent: "center", width: "100%", containerType: "inline-size" }}>
       <Box
         ref={ref}
         data-testid="board"
+        data-stage
         tabIndex={-1}
         role="group"
         aria-label={label ?? "Board"}
         sx={{
           outline: "none",
           position: "relative",
-          // A 660px cap is right on a desk and wrong on a television: it
-          // leaves a small board marooned in black. When the screen says how
-          // much height there is, take it.
-          "--board-height": fill
-            ? "var(--board-fill-height, 74dvh)"
+          flex: "0 0 auto",
+          "--stage-height": fill ? "var(--board-fill-height, 74dvh)" : stageHeight.desk,
+          ...(fill
+            ? null
             : {
-                xs: tall ? "min(64vh, 540px)" : "min(46vh, 420px)",
-                // While a clue is up there is a strip of controls under the
-                // board and lecterns under that. Give them the room rather
-                // than pushing a player's own score off a laptop screen.
-                md: tall ? "min(53vh, 590px)" : short ? "min(42vh, 480px)" : "min(60vh, 640px)",
-              },
-          width: `min(100%, calc(var(--board-height) * ${ratio}))`,
-          // The grid keeps the set's proportions. A clue panel on a phone
-          // does not: it needs height for the buzzer and the answer field.
-          // A television has the room for both, so it keeps the ratio.
-          aspectRatio: tall && !fill ? { xs: "auto", md: `${ratio}` } : `${ratio}`,
-          height: tall && !fill ? { xs: "min(66vh, 560px)", md: "auto" } : "auto",
-          // Cell type is sized from the board, not the viewport, so a
+                [phoneLandscape]: { "--stage-height": stageHeight.phoneLandscape },
+                [phone]: { "--stage-height": stageHeight.phone },
+              }),
+          width: `min(100cqw, calc(var(--stage-height) * ${stageRatio.toFixed(4)}))`,
+          height: `min(var(--stage-height), calc(100cqw / ${stageMinRatio}))`,
+          // Cell type is sized from the stage, not the viewport, so a
           // six-category board and a two-category one both read correctly.
           containerType: "inline-size",
           background: jeopardyPalette.gap,
           p: { xs: 0.5, sm: 0.75 },
           overflow: "hidden",
-          // A phone, or a phone on its side: size the board and the clue
-          // from the height actually left (dvh, not the URL-bar-less vh),
-          // leaving room for the clock strip and the buzz bar under it.
+          // The keyboard is up: the screen itself just got shorter, so fit
+          // what is left above it.
           ...(fill
             ? null
             : {
                 [compact]: {
-                  "--board-height": "clamp(170px, calc(100dvh - 130px), 420px)",
-                  ...(tall
-                    ? {
-                        aspectRatio: "auto",
-                        // 100dvh less the toolbar, the clock strip and the
-                        // fixed buzz bar (about 84px) with a gap above it.
-                        height: "clamp(170px, calc(100dvh - 324px), 560px)",
-                        // The keyboard is up: fit what is left above it.
-                        "html[data-keyboard-open] &": {
-                          height: "max(120px, calc(var(--keyboard-viewport-height, 100dvh) - 150px))",
-                        },
-                      }
-                    : null),
+                  "html[data-keyboard-open] &": {
+                    height: "max(120px, calc(var(--keyboard-viewport-height, 100dvh) - 150px))",
+                  },
                 },
               }),
         }}

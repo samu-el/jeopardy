@@ -104,6 +104,10 @@ export const appTheme = createTheme({
           WebkitTextSizeAdjust: "100%",
         },
         body: { backgroundColor: ui.stage, minHeight: "var(--app-svh, 100vh)" },
+        // In a room the page can grow past the screen and back as a wager or
+        // Final's answers open under the board. Keep the scrollbar's lane
+        // either way, so the board never slides sideways when it comes and goes.
+        "html:has([data-room])": { scrollbarGutter: "stable" },
         "::selection": { background: ui.blueTint },
         ...reducedMotionStyles,
       },
