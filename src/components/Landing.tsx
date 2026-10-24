@@ -256,9 +256,11 @@ export function Landing() {
             },
             gridTemplateRows: { md: "1fr 1fr" },
             columnGap: { md: 8, lg: 12 },
-            rowGap: { xs: 3, md: 4 },
+            // A 360x740 phone takes the mark, both cards and the builder
+            // without scrolling.
+            rowGap: { xs: 2.5, md: 4 },
             alignItems: "center",
-            py: { xs: 4, md: 6 },
+            py: { xs: 3, md: 6 },
           }}
         >
           <Box
@@ -632,7 +634,9 @@ export function Landing() {
               data-testid="landing-build"
               sx={{
                 alignSelf: { xs: "center", md: "flex-start" },
-                ml: { md: -1 },
+                // The icon, not the button's padding, lines up under the foot
+                // of the leaning mark.
+                ml: { md: "-14px" },
                 color: ui.inkMuted,
                 "&:hover": { color: ui.ink, background: ui.blueTint },
               }}

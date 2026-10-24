@@ -152,7 +152,7 @@ export function DisplayView() {
           ? `calc(100dvh - 24px - ${joinStrip})`
           : "calc(100dvh - 24px)",
         // Category names read from a sofa: bigger than a desk's 18px cap.
-        "--board-category-scale": "1.4",
+        "--board-category-scale": "1.1",
         "--board-category-max": "4.4vh",
       }}
     >
@@ -405,6 +405,9 @@ function JoinPanel({ roomId, onHide }: { roomId: string | null; onHide: () => vo
         bottom: 12,
         left: 16,
         maxHeight: `calc(${joinStrip} - 16px)`,
+        // Clear of the corner keys on the right, however narrow the screen.
+        maxWidth: "calc(100vw - 32px - 112px)",
+        boxSizing: "border-box",
         alignItems: "center",
         background: ui.surface,
         border: `1px solid ${ui.line}`,
@@ -418,15 +421,21 @@ function JoinPanel({ roomId, onHide }: { roomId: string | null; onHide: () => vo
           src={qr}
           alt={`QR code to join room ${roomId}`}
           data-testid="display-qr"
-          style={{ width: 80, height: 80, borderRadius: 6, background: "#fff" }}
+          style={{
+            // Smaller on a narrow screen, so the code beside it keeps its room.
+            width: "clamp(56px, 18vw, 80px)",
+            aspectRatio: "1",
+            borderRadius: 6,
+            background: "#fff",
+          }}
         />
       ) : null}
-      <Box>
+      <Box sx={{ minWidth: 0 }}>
         <Typography
           data-testid="display-room-code"
           sx={{
             fontFamily: jeopardyFonts.display,
-            letterSpacing: "0.3em",
+            letterSpacing: { xs: "0.12em", sm: "0.3em" },
             fontSize: "clamp(24px, 2.6vw, 44px)",
             color: ui.ink,
             lineHeight: 1.15,
@@ -434,7 +443,9 @@ function JoinPanel({ roomId, onHide }: { roomId: string | null; onHide: () => vo
         >
           {roomId ?? ""}
         </Typography>
-        <Typography sx={{ fontSize: 13, color: ui.inkMuted }}>
+        {/* A screen too narrow for the address on one line shows the code and
+            the QR, which are the two ways in anyone uses from a sofa. */}
+        <Typography sx={{ fontSize: 13, color: ui.inkMuted, display: { xs: "none", sm: "block" } }}>
           {joinUrl.replace(/^https?:\/\//, "")}
         </Typography>
       </Box>

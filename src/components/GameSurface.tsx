@@ -270,7 +270,9 @@ export function GameSurface({ interactive = true, tv = false }: GameSurfaceProps
           flexWrap: "wrap",
           gap: { xs: 1.5, sm: 2 },
           justifyContent: "center",
-          alignItems: "flex-end",
+          // Level by their tops: what hangs under a lectern (its badges) can
+          // wrap to a second line without lifting it off the row.
+          alignItems: "flex-start",
           // An avatar sits proud of its lectern by half its own height, so
           // the row needs headroom or the badge lands on the clock above it.
           pt: 2.5,

@@ -267,6 +267,9 @@ export function Podium({
         sx={{
           mt: 0.6,
           minHeight: 11,
+          // The line box is the badge's own height, so a lectern with a badge
+          // stands exactly as tall as one without.
+          lineHeight: "11px",
           justifyContent: "center",
           flexWrap: "wrap",
           fontFamily: jeopardyFonts.display,

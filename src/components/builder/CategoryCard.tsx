@@ -93,7 +93,9 @@ export function CategoryCard({
             error={Boolean(nameError)}
             helperText={limitHelper(category.name, builderLimits.category, nameError)}
             slotProps={{ htmlInput: { maxLength: builderLimits.category } }}
-            sx={{ flex: "1 1 200px" }}
+            // Narrow enough that a phone keeps the count and both keys on
+            // the name's line instead of dropping the remove key under it.
+            sx={{ flex: "1 1 140px", minWidth: 0 }}
           />
           <Chip
             label={`${complete}/${clues.length}`}

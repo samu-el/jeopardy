@@ -173,8 +173,10 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: 0.75,
-        py: 0.5,
+        // The answer bar and the judging bench together fit the strip held
+        // open for them (`clockStripSx`), so the lecterns never move.
+        gap: 0.5,
+        py: 0.25,
       }}
     >
       {/* Focused inside a touch buzz so iOS opens its keyboard in the tap;
@@ -202,7 +204,7 @@ export function ClueControls({ state, currentClientId }: ClueControlsProps) {
           seconds={turn.clockSeconds}
           control={
             typing ? (
-              <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", width: { xs: "100%", sm: 250 } }}>
+              <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", width: { xs: "100%", sm: "min(250px, 100%)" } }}>
                 <MicAnswerField
                   label={finalOpen ? "Final answer" : "What is…"}
                   value={answerInput}

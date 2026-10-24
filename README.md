@@ -91,7 +91,22 @@ bun run lint
 bun run test
 bun run test:e2e
 bun run foundation:verify
+bun run audit:layout
 bun run verify
 ```
 
 Use `proto install` before running commands on a fresh machine. `.prototools` is the source of truth for tool versions.
+
+### Layout audit
+
+`bun run audit:layout` plays one game at seven screen sizes (1440x900, 1280x800, 1024x768, 768x1024, 390x844, 360x740 and a 1920x1080 television) with a host, a guest and a TV in the same room, and checks every screen on the way: the landing page and its join and error states, the builder, the game picker, settings, shortcuts, onboarding, each clue phase, the Daily Double, Double Jeopardy, Final, the results, the replay and a removed guest. It flags sideways page scroll, content past the viewport or cut off by its container, painted boxes poking out of their parent, spilling or clipped text, overlapping controls, control rows off a shared centre line and top-level blocks off the page's left edge, and exits 1 on any finding.
+
+Run it against `bun run dev` (the dev build exposes the store the audit drives the room with) and the rooms Worker:
+
+```powershell
+bun run rooms:dev
+$env:NEXT_PUBLIC_ROOMS_URL="http://127.0.0.1:8787"; bun run dev
+$env:AUDIT_BASE_URL="http://127.0.0.1:3000"; bun run audit:layout --shots .audit/shots
+```
+
+`--viewports` and `--routes` (view name prefixes) narrow it, `--until <view>` ends the game early, `--json <file>` keeps the findings. Every board is archive episode `AUDIT_EPISODE` (default 9644), so two runs compare. The checks live in `scripts/layout-audit/detect.mjs` with their tests in `tests/unit/layout-audit/`. A container whose children run past it on purpose takes `data-audit-clip-ok`; `data-audit-ignore` skips a subtree.

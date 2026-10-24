@@ -112,11 +112,11 @@ export function RoomToolbar({
     // Three columns on a wide screen (mark, room, keys) so the room
     // housing sits on the board's centre line rather than trailing the
     // mark. A phone stacks it: the mark centred on top, the two housings
-    // side by side and centred beneath it. Nothing hangs off one edge.
+    // side by side beneath it, sharing the board's width edge to edge.
     <Box
       sx={{
         display: "grid",
-        gridTemplateColumns: { xs: "auto auto", sm: "1fr auto 1fr" },
+        gridTemplateColumns: { xs: "minmax(0, 1fr) minmax(0, 1fr)", sm: "1fr auto 1fr" },
         justifyContent: { xs: "center", sm: "stretch" },
         alignItems: "center",
         columnGap: 1,
@@ -152,7 +152,18 @@ export function RoomToolbar({
         </Tooltip>
       </Box>
 
-      <Box sx={{ gridColumn: { xs: "1", sm: "2" }, justifySelf: { xs: "end", sm: "center" }, minWidth: 0 }}>
+      <Box
+        sx={{
+          gridColumn: { xs: "1", sm: "2" },
+          justifySelf: { xs: "stretch", sm: "center" },
+          minWidth: 0,
+          "& > [data-testid='room-bar']": {
+            width: { xs: "100%", sm: "auto" },
+            boxSizing: "border-box",
+            justifyContent: "center",
+          },
+        }}
+      >
         <RoomBar
           episode={
             lobby.loadedEpisode
@@ -165,7 +176,7 @@ export function RoomToolbar({
       <Box
         sx={{
           gridColumn: { xs: "2", sm: "3" },
-          justifySelf: { xs: "start", sm: "end" },
+          justifySelf: { xs: "stretch", sm: "end" },
           display: "flex",
           flexWrap: "wrap",
           gap: 1,
@@ -205,7 +216,7 @@ export function RoomToolbar({
           )
         ) : null}
 
-        <Housing>
+        <Housing sx={{ flex: { xs: "1 1 auto", sm: "0 0 auto" }, justifyContent: "center" }}>
           {isRoomHost && !narrow ? (
             <ToolKey title="Change game" aria-label="Change game" data-testid="change-game" onClick={onOpenPicker}>
               <ShuffleIcon />

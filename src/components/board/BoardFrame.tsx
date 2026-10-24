@@ -20,10 +20,13 @@ export function valueFontSize(columns: number): string {
   return `clamp(11px, ${(25 / columns).toFixed(2)}cqw, 46px)`;
 }
 
-/** Never under 11px: a phone's six columns still have to be read. */
+/**
+ * Never under 11px: a phone's six columns still have to be read. On a desk
+ * the category strip reads at a glance, three lines at most in its row.
+ */
 export function categoryFontSize(columns: number): string {
   // A television raises both through CSS variables: 18px is a desk's cap.
-  return `clamp(11px, calc(${(9.5 / columns).toFixed(2)}cqw * var(--board-category-scale, 1)), var(--board-category-max, 18px))`;
+  return `clamp(11px, calc(${(12 / columns).toFixed(2)}cqw * var(--board-category-scale, 1)), var(--board-category-max, 18px))`;
 }
 
 /** The blue face every cell on the board shares. */
@@ -63,15 +66,16 @@ const stageRatio = boardRatio(boardColumns, boardRows);
  * lecterns under it), not from anything that changes during play.
  *
  * - A desk: the toolbar (68), a gap (12), the clock strip (`clockStripSx`)
- *   and a lectern (222). A short window keeps at least half its height for
- *   the stage and lets the lecterns run under the fold.
+ *   and a lectern (222). A short window keeps at least 47% of its height
+ *   for the stage and lets the lecterns run under the fold; at 768 tall
+ *   (a 1024x768 tablet on its side) that is still the whole room on screen.
  * - A phone held upright: a taller toolbar (120), a taller clock strip, a
  *   smaller lectern (172) and the buzz bar pinned to the bottom (84).
  * - A phone on its side: the page scrolls the stage to the top when a clue
  *   opens, so it is the height less the clock strip and the buzz bar.
  */
 const stageHeight = {
-  desk: `clamp(240px, max(${viewportFraction(0.5)}, ${appViewport.minHeight} - 400px), 640px)`,
+  desk: `clamp(240px, max(${viewportFraction(0.47)}, ${appViewport.minHeight} - 400px), 640px)`,
   phone: `clamp(200px, ${appViewport.minHeight} - 538px, 560px)`,
   phoneLandscape: `clamp(150px, ${appViewport.minHeight} - 170px, 420px)`,
 } as const;
@@ -163,21 +167,26 @@ export function BoardFrame({ children, ref, fill, label }: BoardFrameProps) {
 export function BoardGrid({
   columns,
   rows,
+  covered = false,
   children,
 }: {
   columns: number;
   rows: number;
+  /** A clue is laid over the grid: its squares are out of reach until it closes. */
+  covered?: boolean;
   children: ReactNode;
 }) {
   return (
     <Box
+      inert={covered}
       sx={{
         display: "grid",
         gap: { xs: "3px", sm: "6px" },
         gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
         gridTemplateRows: `0.8fr repeat(${rows}, 1fr)`,
-        // A phone's category strip needs three lines of 11px type.
-        [compact]: { gridTemplateRows: `1.35fr repeat(${rows}, 1fr)` },
+        // A phone's category strip needs four lines of 11px type: a long
+        // category breaks inside its words at that width.
+        [compact]: { gridTemplateRows: `1.8fr repeat(${rows}, 1fr)` },
         height: "100%",
       }}
     >

@@ -59,10 +59,13 @@ export function TranscriptPane({ open, onClose }: TranscriptPaneProps) {
       variant="outlined"
       sx={{
         position: "fixed",
-        right: 16,
-        top: 80,
+        // Under the room toolbar (two rows on a phone, one on a desk), and on
+        // a phone the same gutters as the page on both sides.
+        right: { xs: 12, sm: 16 },
+        left: { xs: 12, sm: "auto" },
+        top: { xs: 128, sm: 80 },
         bottom: 16,
-        width: { xs: "92vw", sm: 360 },
+        width: { xs: "auto", sm: 360 },
         zIndex: 1200,
         display: "flex",
         flexDirection: "column",
