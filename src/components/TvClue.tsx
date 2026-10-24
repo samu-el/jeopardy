@@ -7,6 +7,7 @@ import type { PublicGameState } from "@/lib/game";
 import { getFinalReveal, type FinalReveal, type FinalRevealRow } from "@/lib/game/final-reveal";
 import type { ClientGameCommand } from "@/lib/realtime/contracts";
 import { useGameStore } from "@/lib/state/game-store";
+import { formatCountdown } from "@/lib/foundation/clock";
 import { formatMoney } from "@/lib/foundation/money";
 import {
   boardGradient,
@@ -267,7 +268,7 @@ function TvFinal({ final }: { final: FinalReveal }) {
             fontSize: "clamp(18px, 3cqw, 52px)",
           })}
         >
-          0:{String(seconds).padStart(2, "0")}
+          {formatCountdown(seconds)}
         </Typography>
       ) : null}
 

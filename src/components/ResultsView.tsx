@@ -286,10 +286,11 @@ export function ResultsView({ state, onPlayAgain }: ResultsViewProps) {
             sx={{
               display: "grid",
               gap: 2,
-              // Cards keep a readable width: one player is one card, centred,
-              // not a strip across the whole screen.
+              // Cards keep a readable width: one player is one card, not a
+              // strip across the whole screen. They start under the heading,
+              // on the page's left edge like every other card here.
               gridTemplateColumns: "repeat(auto-fit, minmax(220px, 320px))",
-              justifyContent: "center",
+              justifyContent: "start",
             }}
           >
             {standings.map(({ player }) => {
@@ -405,6 +406,8 @@ function StatLine({
       </Stack>
       {progress !== undefined ? (
         <LinearProgress
+          // The bar slides in from the left inside its track by design.
+          data-audit-clip-ok=""
           variant="determinate"
           aria-label={progressLabel ?? label}
           value={Math.max(0, Math.min(100, progress))}

@@ -20,6 +20,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "foundation:verify": "bun run scripts/verify-foundation.ts",
+    "audit:layout": "node scripts/layout-audit/run.mjs",
     "verify": "bun run typecheck && bun run typecheck:worker && bun run lint && bun run test && bun run build && bun run foundation:verify && bun run lint:agent",
     "typecheck:worker": "tsc --noEmit -p workers/rooms/tsconfig.json",
     "rooms:dev": "wrangler dev --config workers/rooms/wrangler.jsonc --port 8787",

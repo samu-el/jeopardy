@@ -24,3 +24,6 @@ workers/rooms/tsconfig.tsbuildinfo
 .agentlint/*.lock
 .agentlint/*.lock.*.stale
 .agentlint/*.tmp
+
+# Layout audit screenshots and findings
+/.audit/

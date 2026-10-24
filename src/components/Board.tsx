@@ -131,7 +131,7 @@ export function Board({ state, onPick, canPick = false, overlay, cover, fill, re
       label={dealt ? `Board, ${state?.round.replace(/-/g, " ") ?? ""}` : "Board"}
       fill={fill}
     >
-      <BoardGrid columns={columns} rows={rows}>
+      <BoardGrid columns={columns} rows={rows} covered={Boolean(overlay)}>
         {grid.flatMap((column, columnIndex) =>
           column.map((tile, rowIndex) => (
             <Cell

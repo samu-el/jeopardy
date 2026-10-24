@@ -88,6 +88,10 @@ export function BuzzLights({
         rowGap: 0.75,
         minWidth: { xs: 0, sm: 440 },
         width: { xs: "100%", sm: "auto" },
+        // Never wider than the strip it sits in: the answer field gives up
+        // width before the housing runs past the board's edges.
+        maxWidth: "100%",
+        boxSizing: "border-box",
         px: 0.75,
         py: 0.5,
         // Round ends on one row; on a phone a second row makes it a slab, and

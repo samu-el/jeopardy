@@ -15,6 +15,15 @@ import {
 } from "@/lib/foundation/jeopardy-style";
 import { MetaParts } from "./MetaParts";
 
+/**
+ * A share of the screen height, as a television (16:9) sees it. A screen
+ * taller than that (a phone or tablet standing up) takes the same share of
+ * its width instead, so the results still fit it.
+ */
+function tv(vh: number): string {
+  return `min(${vh}vh, ${(vh * 0.5625).toFixed(3)}vw)`;
+}
+
 interface TvResultsProps {
   state: PublicGameState;
   reducedMotion: boolean;
@@ -58,18 +67,18 @@ export function TvResults({ state, reducedMotion }: TvResultsProps) {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: "2.4vh",
+        gap: tv(2.4),
         background: boardGradient,
         borderRadius: 1,
         px: "4vw",
-        py: "3vh",
+        py: tv(3),
         overflow: "hidden",
         textAlign: "center",
       }}
     >
       <EmojiEventsIcon
         aria-hidden
-        sx={{ fontSize: "clamp(40px, 9vh, 120px)", color: jeopardyPalette.goldBright }}
+        sx={{ fontSize: `clamp(40px, ${tv(9)}, 120px)`, color: jeopardyPalette.goldBright }}
       />
       <Typography
         id="tv-results-heading"
@@ -77,7 +86,7 @@ export function TvResults({ state, reducedMotion }: TvResultsProps) {
         data-testid="tv-results-winner"
         sx={displayType({
           fontWeight: 700,
-          fontSize: "clamp(28px, 8vh, 110px)",
+          fontSize: `clamp(28px, ${tv(8)}, 110px)`,
           lineHeight: 1,
           color: "#fff",
           textShadow: "0.05em 0.05em 0 rgba(0,0,0,0.8)",
@@ -96,7 +105,7 @@ export function TvResults({ state, reducedMotion }: TvResultsProps) {
           data-testid="tv-results-score"
           sx={displayType({
             fontWeight: 700,
-            fontSize: "clamp(22px, 6vh, 80px)",
+            fontSize: `clamp(22px, ${tv(6)}, 80px)`,
             color: jeopardyPalette.goldBright,
             lineHeight: 1,
           })}
@@ -129,14 +138,14 @@ export function TvResults({ state, reducedMotion }: TvResultsProps) {
             display: "flex",
             flexWrap: "wrap",
             justifyContent: "center",
-            gap: "1vh 3vw",
+            gap: `${tv(1)} 3vw`,
           }}
         >
           {standings.slice(3).map((entry) => (
             <Box
               component="li"
               key={entry.player.id}
-              sx={displayType({ fontSize: "clamp(16px, 2.6vh, 34px)", color: "rgba(255,255,255,0.85)" })}
+              sx={displayType({ fontSize: `clamp(16px, ${tv(2.6)}, 34px)`, color: "rgba(255,255,255,0.85)" })}
             >
               <MetaParts
                 gap="0.8em"
@@ -152,10 +161,10 @@ export function TvResults({ state, reducedMotion }: TvResultsProps) {
           <Typography
             component="h2"
             sx={displayType({
-              fontSize: "clamp(16px, 2.2vh, 28px)",
+              fontSize: `clamp(16px, ${tv(2.2)}, 28px)`,
               letterSpacing: "0.14em",
               color: "rgba(255,255,255,0.82)",
-              mb: "1vh",
+              mb: tv(1),
             })}
           >
             <MetaParts gap="0.8em" parts={["Final Jeopardy", final.correctResponse ?? final.category]} />
@@ -179,22 +188,22 @@ export function TvResults({ state, reducedMotion }: TvResultsProps) {
                         : "rgba(255,255,255,0.25)"
                   }`,
                   borderRadius: 1,
-                  p: "1vh",
+                  p: tv(1),
                   background: "rgba(0,0,0,0.25)",
                   minWidth: 0,
                 }}
               >
-                <Typography sx={displayType({ fontSize: "clamp(16px, 2.2vh, 28px)", color: "#fff" })}>
+                <Typography sx={displayType({ fontSize: `clamp(16px, ${tv(2.2)}, 28px)`, color: "#fff" })}>
                   {row.displayName}
                 </Typography>
                 <Typography
-                  sx={clueType({ fontSize: "clamp(16px, 2.4vh, 30px)", overflowWrap: "anywhere" })}
+                  sx={clueType({ fontSize: `clamp(16px, ${tv(2.4)}, 30px)`, overflowWrap: "anywhere" })}
                 >
                   {row.answer?.trim() ? row.answer : "(no response)"}
                 </Typography>
                 <Typography
                   sx={displayType({
-                    fontSize: "clamp(16px, 1.9vh, 24px)",
+                    fontSize: `clamp(16px, ${tv(1.9)}, 24px)`,
                     color: "rgba(255,255,255,0.85)",
                     fontVariantNumeric: "tabular-nums",
                   })}
@@ -217,7 +226,7 @@ export function TvResults({ state, reducedMotion }: TvResultsProps) {
 }
 
 function PodiumStep({ entry }: { entry: Standing }) {
-  const height = entry.rank === 1 ? "16vh" : entry.rank === 2 ? "11vh" : "7vh";
+  const height = entry.rank === 1 ? tv(16) : entry.rank === 2 ? tv(11) : tv(7);
   return (
     <Box
       role="listitem"
@@ -227,7 +236,7 @@ function PodiumStep({ entry }: { entry: Standing }) {
     >
       <Typography
         sx={displayType({
-          fontSize: "clamp(16px, 3.4vh, 44px)",
+          fontSize: `clamp(16px, ${tv(3.4)}, 44px)`,
           color: "#fff",
           maxWidth: "100%",
           overflow: "hidden",
@@ -239,7 +248,7 @@ function PodiumStep({ entry }: { entry: Standing }) {
       </Typography>
       <Typography
         sx={displayType({
-          fontSize: "clamp(16px, 3.4vh, 44px)",
+          fontSize: `clamp(16px, ${tv(3.4)}, 44px)`,
           fontWeight: 700,
           color: entry.player.score < 0 ? "#FFB4B4" : jeopardyPalette.goldBright,
           fontVariantNumeric: "tabular-nums",
@@ -250,7 +259,7 @@ function PodiumStep({ entry }: { entry: Standing }) {
       <Box
         aria-hidden
         sx={{
-          mt: "0.6vh",
+          mt: tv(0.6),
           width: "100%",
           height,
           background: entry.winner ? jeopardyPalette.goldBright : "rgba(0,0,0,0.35)",
@@ -259,8 +268,8 @@ function PodiumStep({ entry }: { entry: Standing }) {
           display: "flex",
           alignItems: "flex-start",
           justifyContent: "center",
-          pt: "0.8vh",
-          ...displayType({ fontSize: "clamp(18px, 4vh, 56px)", fontWeight: 700 }),
+          pt: tv(0.8),
+          ...displayType({ fontSize: `clamp(18px, ${tv(4)}, 56px)`, fontWeight: 700 }),
         }}
       >
         {entry.rank}

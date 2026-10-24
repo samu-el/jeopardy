@@ -8,7 +8,8 @@ interface WordmarkProps {
 }
 
 // The hero size steps down on a phone: at 112px the mark runs off a 390px
-// screen with the exclamation mark cut in half.
+// screen with the exclamation mark cut in half, and at 52px it sits inside
+// a 360px screen's gutters with room to spare.
 const sizeMap = {
   sm: { font: 24, height: 30 },
   md: { font: 36, height: 44 },
@@ -16,8 +17,8 @@ const sizeMap = {
   // A two-column landing leaves the mark about 460px at 1024: 96 fits it,
   // 112 needs a desktop-wide column.
   xl: {
-    font: { xs: 60, sm: 88, md: 96, lg: 112 },
-    height: { xs: 70, sm: 102, md: 112, lg: 130 },
+    font: { xs: 52, sm: 88, md: 96, lg: 112 },
+    height: { xs: 62, sm: 102, md: 112, lg: 130 },
   },
 } as const;
 
@@ -48,6 +49,10 @@ export function Wordmark({ size = "md" }: WordmarkProps) {
         letterSpacing: "0.01em",
         lineHeight: 1,
         transform: "skew(-10deg)",
+        // The lean pushes the foot of the J out past the box on the left and
+        // the top of the ! out on the right. Room for both inside the box, so
+        // the ink starts where the box does and a centred mark stays centred.
+        px: "0.09em",
       }}
     >
       <Box
